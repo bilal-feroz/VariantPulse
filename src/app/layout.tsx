@@ -17,6 +17,13 @@ const inter = Inter({
   display: "swap",
 });
 
+/**
+ * The layout computes the analysis, so rendering it per request is what lets
+ * a deployment in live mode read current evidence. In demo mode this costs
+ * nothing beyond reading the bundled snapshot.
+ */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: {
     default: "VariantPulse · Genomic Change Intelligence",

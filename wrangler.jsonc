@@ -12,6 +12,7 @@
     { "binding": "WORKER_SELF_REFERENCE", "service": "variantpulse" }
   ],
   "images": { "binding": "IMAGES" },
+  "vars": { "VARIANTPULSE_EVIDENCE_MODE": "live" },
   "observability": { "enabled": true },
   "routes": [
     { "pattern": "variantpulse.kanbanstudios.ae", "custom_domain": true }

@@ -188,7 +188,7 @@ export function CommandPalette({
         onClick={() => onOpenChange(false)}
         className="absolute inset-0 cursor-default bg-ink/25 backdrop-blur-[2px]"
       />
-      <div className="relative mx-auto mt-[12vh] w-[min(620px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_24px_70px_-20px_rgba(18,19,50,0.45)]">
+      <div className="relative mx-auto mt-[12vh] w-[min(620px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_24px_70px_-20px_rgba(var(--vp-shadow-rgb),0.36)]">
         <div className="flex items-center gap-3 border-b border-line px-4">
           <Search className="h-4 w-4 shrink-0 text-faint" />
           <input

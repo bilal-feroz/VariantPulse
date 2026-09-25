@@ -44,3 +44,7 @@ next-env.d.ts
 
 # VariantPulse
 /dashboard.png
+
+# cloudflare
+/.open-next/
+/.wrangler/

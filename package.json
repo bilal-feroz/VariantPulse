@@ -12,9 +12,13 @@
     "verify:data": "node scripts/verify-data.mjs",
     "verify:contrast": "node scripts/verify-contrast.mjs",
     "verify": "npm run type-check && npm run lint && npm run verify:data && npm run verify:contrast",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.6",
     "clsx": "^2.1.1",
     "framer-motion": "^13.4.3",
     "lucide-react": "^1.48.0",
@@ -31,11 +35,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "15.5.26",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "wrangler": "^4.140.0"
   },
   "description": "Genomic Change Intelligence: monitors historical genomic findings against evolving scientific evidence."
 }

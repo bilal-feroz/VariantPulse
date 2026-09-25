@@ -36,6 +36,7 @@ import {
 } from "@/components/ui";
 import { REVIEWERS } from "@/data/workspace";
 import { composeRecommendation } from "@/lib/narrative";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { useWorkspace, type CaseNote, type CaseStatus } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
 
@@ -308,7 +309,7 @@ export default function ReviewCasePage() {
               <Field label="Assigned" value={state.assignee ?? "Unassigned"} />
               <Field
                 label="Evidence source"
-                value={`ClinVar (${analysis.mode})`}
+                value={`ClinVar · ${EVIDENCE_MODES[analysis.mode].indicator}`}
               />
               <Field
                 label="Records impacted"

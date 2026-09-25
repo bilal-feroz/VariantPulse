@@ -50,7 +50,9 @@ export default function VariantPage() {
         description={`${variant.proteinChange ? `${variant.proteinChange} · ` : ""}${variant.condition}`}
         actions={
           <>
-            <SyncButton />
+            <span className="hidden sm:inline-flex">
+              <SyncButton />
+            </span>
             {caseId ? (
               <Link href={`/review/${caseId}`}>
                 <Button variant="primary">

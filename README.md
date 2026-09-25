@@ -239,3 +239,7 @@ accessions and case numbers.
 <div align="center">
   <sub><strong>VariantPulse</strong> · Genomic Change Intelligence · Built by Team Kanban</sub>
 </div>
+
+<div align="center">
+  <sub><strong>Team Members</strong> · Bilal Feroz Khan · Awaiz Ahmed · Huda Mueen</sub>
+</div>

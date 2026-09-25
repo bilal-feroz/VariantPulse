@@ -116,7 +116,7 @@ export default function ReviewCasePage() {
           evidence table and the reasoning trail. */}
       <div className="grid gap-5 min-[1400px]:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)]">
         {/* ── Left: what is affected ──────────────────────────────────── */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card className="p-5">
             <SectionHeading title="Classification change" />
             <ThenNow assessment={assessment} stacked caption className="mt-4" />
@@ -156,8 +156,8 @@ export default function ReviewCasePage() {
               title="Patient impact"
               count={assessment.impactedRecordCount}
               description="The changed variant and every historical record that carries it. Select a record to see its detail."
-              action={<SyntheticDataLabel />}
             />
+            <SyntheticDataLabel className="mt-3" />
             <PatientImpactGraph assessment={assessment} caseStatus={state.status} className="mt-5" />
           </Card>
           <EvidenceComparison assessment={assessment} />
@@ -199,7 +199,7 @@ export default function ReviewCasePage() {
         </div>
 
         {/* ── Right: the decision ─────────────────────────────────────── */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card className="p-5">
             <SectionHeading title="Recommendation" />
             <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{recommendation}</p>
@@ -326,8 +326,8 @@ export default function ReviewCasePage() {
           <SectionHeading
             title="Affected records in full"
             count={assessment.impactedPatients.length}
-            action={<SyntheticDataLabel />}
           />
+          <SyntheticDataLabel className="mt-3" />
         </div>
         <PatientImpactTable
           rows={assessment.impactedPatients}

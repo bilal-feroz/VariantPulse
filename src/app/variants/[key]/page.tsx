@@ -108,8 +108,8 @@ export default function VariantPage() {
           title="Patient impact"
           count={impactedPatients.length}
           description="The changed variant and every historical record that carries it. Select a record to see its detail."
-          action={<SyntheticDataLabel />}
         />
+        <SyntheticDataLabel className="mt-3" />
         <PatientImpactGraph
           assessment={assessment}
           caseStatus={caseId ? getCase(caseId).status : undefined}
@@ -117,15 +117,14 @@ export default function VariantPage() {
         />
       </Card>
 
-
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <EvidenceSummaryPanel assessment={assessment} />
           <EvidenceComparison assessment={assessment} />
           {assessment.regional ? <RegionalComparison assessment={assessment} /> : null}
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <ScienceTimeline assessment={assessment} />
           <ReasoningPanel assessment={assessment} />
           {caseId ? <PriorityPanel assessment={assessment} /> : null}
@@ -138,8 +137,8 @@ export default function VariantPage() {
             title="Records carrying this variant"
             count={impactedPatients.length}
             description="The same records as a list, for scanning and screen readers."
-            action={<SyntheticDataLabel />}
           />
+          <SyntheticDataLabel className="mt-3" />
         </div>
         <PatientImpactTable
           rows={impactedPatients}

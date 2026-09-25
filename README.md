@@ -93,6 +93,7 @@ sentence traces back to a cited field. No language model decides or phrases a ve
 | Framework | Next.js 15 (App Router) · React 19 |
 | Language | TypeScript, strict |
 | Styling | Tailwind CSS v4 |
+| 3D | three.js, drawing the glTF helix on the home screen |
 | Icons | lucide-react |
 | Evidence | NCBI ClinVar and PubMed via E-utilities |
 
@@ -269,6 +270,15 @@ regulatory assessment.
 
 Global search is on `Ctrl`/`Cmd` + `K` — record IDs, gene symbols, HGVS strings, ClinVar
 accessions and case numbers.
+
+## Credits
+
+The helix on the home screen is
+[“DNA Helix with Base Pairing (3D)”](https://sketchfab.com/3d-models/dna-helix-with-base-pairing-3d-212e5422645f4432a61dc2f3aac3c8c8)
+by [naratech](https://sketchfab.com/naratech), licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The model file is used unmodified
+and credited in the dashboard footer, as the licence requires. The licence does not permit
+commercial use: replace the model before VariantPulse is used commercially.
 
 ---
 

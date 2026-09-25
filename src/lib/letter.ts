@@ -123,6 +123,69 @@ export function countWords(text: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
+/* -- Rewording with a language model ---------------------------------------
+   Optional. The model is given the filled templates and asked only to make
+   them read better; whatever it returns must still carry every fact from the
+   record and stay inside the letter's limits, or the template is kept. */
+
+export const LETTER_SYSTEM_PROMPT = `You polish letters a genetics service sends to patients. You receive an English letter and its Arabic version, both filled in from a template.
+
+Make each read more clearly and warmly for a patient with no medical training. Keep every fact exactly as given: the reference number, the month and year of the test, the gene name, the team to book with, and the clinician and department that sign the letter. Keep its three messages: new scientific research may change what the earlier test result means; the patient's DNA has not changed; they should book a follow-up appointment.
+Keep each version under 150 words. Mention no diagnosis, risk, percentage or classification, use no medical term beyond the gene name, and add no facts.
+Write the Arabic in Modern Standard Arabic, in the respectful plural, saying the same as the English.
+
+Reply in exactly this layout and nothing else:
+=== ENGLISH ===
+the English letter
+=== ARABIC ===
+the Arabic letter`;
+
+/** What "Improve with AI" returns: the reworded letter, or the template it kept. */
+export interface LetterImprovement extends PatientLetter {
+  source: "ai" | "template";
+  /** Why the template wording was kept. */
+  reason?: string;
+}
+
+export function buildLetterPrompt(letter: PatientLetter): string {
+  return `=== ENGLISH ===\n${letter.english}\n=== ARABIC ===\n${letter.arabic}`;
+}
+
+const EN_FORBIDDEN =
+  /diagnos|risk|%|percent|pathogenic|benign|uncertain significance|\bVUS\b|variant|mutation|classif/i;
+const AR_FORBIDDEN = /تشخيص|خطر|مخاطر|٪|%|طفرة|ممرض|حميد|تصنيف/;
+
+/**
+ * The model's letters if both still carry every fact from the record, the
+ * required messages and the letter's limits, otherwise null.
+ */
+export function parseImprovedLetter(text: string, input: LetterInput): PatientLetter | null {
+  const match = /=== ENGLISH ===\s*([\s\S]+?)\s*=== ARABIC ===\s*([\s\S]+)$/.exec(text.trim());
+  if (!match) return null;
+  const english = match[1].trim();
+  const arabic = match[2].trim();
+
+  const shared = [input.recordId, input.gene, input.clinicalOwner];
+  const englishHolds =
+    [...shared, input.department, monthYear(input.testedOn, EN_MONTHS), "DNA"].every((fact) =>
+      english.includes(fact),
+    ) &&
+    /not changed|hasn't changed|has not changed/i.test(english) &&
+    /follow-up|appointment/i.test(english) &&
+    !EN_FORBIDDEN.test(english);
+  const arabicHolds =
+    [...shared, arabicDepartment(input.department), monthYear(input.testedOn, AR_MONTHS)].every(
+      (fact) => arabic.includes(fact),
+    ) &&
+    /النووي|DNA/.test(arabic) &&
+    !AR_FORBIDDEN.test(arabic);
+
+  const withinLimits =
+    countWords(english) <= LETTER_WORD_LIMIT && countWords(arabic) <= LETTER_WORD_LIMIT;
+
+  return englishHolds && arabicHolds && withinLimits ? { english, arabic } : null;
+}
+
 /** Both languages in one plain-text file, headed by the draft notice. */
 export function letterFileText(input: LetterInput, letter: PatientLetter): string {
   return [

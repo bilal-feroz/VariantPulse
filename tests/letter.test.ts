@@ -8,6 +8,7 @@ import {
   composePatientLetter,
   countWords,
   letterFileText,
+  parseImprovedLetter,
   type LetterInput,
 } from "@/lib/letter";
 
@@ -73,5 +74,29 @@ describe("patient letter", () => {
 
   it("falls back to the English department name when no Arabic one is held", () => {
     expect(arabicDepartment("Dermatology")).toBe("Dermatology");
+  });
+});
+
+describe("checking a reworded letter", () => {
+  const letter = composePatientLetter(input);
+  const reply = (english: string, arabic = letter.arabic) =>
+    `=== ENGLISH ===\n${english}\n=== ARABIC ===\n${arabic}`;
+
+  it("accepts the template's own wording", () => {
+    expect(parseImprovedLetter(reply(letter.english), input)).toEqual(letter);
+  });
+
+  it("rejects a reply without both languages", () => {
+    expect(parseImprovedLetter(letter.english, input)).toBeNull();
+    expect(parseImprovedLetter(`=== ENGLISH ===\n${letter.english}`, input)).toBeNull();
+  });
+
+  it("rejects a risk figure, a lost fact or a letter over the limit", () => {
+    expect(parseImprovedLetter(reply(`${letter.english}\n\nYour risk is 60%.`), input)).toBeNull();
+    expect(parseImprovedLetter(reply(letter.english.replace("Dr. L. Haddad", "Your doctor")), input)).toBeNull();
+    expect(parseImprovedLetter(reply(`${letter.english}\n\n${"word ".repeat(60)}`), input)).toBeNull();
+    expect(
+      parseImprovedLetter(reply(letter.english, letter.arabic.replaceAll("قسم الوراثة السريرية", "القسم")), input),
+    ).toBeNull();
   });
 });

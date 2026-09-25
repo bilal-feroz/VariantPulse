@@ -4,6 +4,7 @@ import * as React from "react";
 import { notFound, useParams } from "next/navigation";
 import { FolderOpen, ListPlus, Search, UserPlus } from "lucide-react";
 
+import { AiSummaryPanel } from "@/components/ai-summary";
 import { DecisionBlock, DecisionButtons } from "@/components/decision";
 import { ThenNow } from "@/components/domain";
 import { EvidenceBriefButton } from "@/components/evidence-brief";
@@ -57,6 +58,7 @@ const NOTE_LABEL: Record<NonNullable<CaseNote["kind"]>, string> = {
   "follow-up": "Follow-up",
   decision: "Decision",
   amendment: "Decision amended",
+  summary: "Evidence summary",
 };
 
 const EVIDENCE_REQUEST =
@@ -68,8 +70,16 @@ const FOLLOW_UP_DEFAULT =
 export default function ReviewCasePage() {
   const params = useParams<{ caseId: string }>();
   const caseId = decodeURIComponent(params.caseId);
-  const { analysis, getCase, openReview, requestEvidence, assignReviewer, createFollowUp, recordDecision } =
-    useWorkspace();
+  const {
+    analysis,
+    getCase,
+    openReview,
+    requestEvidence,
+    assignReviewer,
+    createFollowUp,
+    recordDecision,
+    addNote,
+  } = useWorkspace();
 
   const assessment = analysis.assessments.find((a) => a.caseId === caseId);
   const [clinicianNote, setClinicianNote] = React.useState("");
@@ -170,6 +180,10 @@ export default function ReviewCasePage() {
 
         {/* ── Centre: the evidence ────────────────────────────────────── */}
         <div className="min-w-0 space-y-5">
+          <AiSummaryPanel
+            assessment={assessment}
+            onUseInBrief={(text) => addNote(caseId, text, "summary")}
+          />
           <EvidenceSummaryPanel assessment={assessment} />
           <Card className="p-5">
             <SectionHeading

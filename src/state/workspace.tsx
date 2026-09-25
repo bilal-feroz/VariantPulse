@@ -41,7 +41,8 @@ export interface CaseNote {
     | "evidence-request"
     | "follow-up"
     | "decision"
-    | "amendment";
+    | "amendment"
+    | "summary";
 }
 
 export interface CaseState {
@@ -97,7 +98,8 @@ interface WorkspaceValue {
   createFollowUp: (caseId: string, body: string) => void;
   /** Records a decision, or an amendment when the case already has one. */
   recordDecision: (caseId: string, decision: Decision, clinicianNote: string) => void;
-  addNote: (caseId: string, body: string) => void;
+  /** `summary` marks an evidence summary filed for the brief. */
+  addNote: (caseId: string, body: string, kind?: "note" | "summary") => void;
 }
 
 const WorkspaceContext = React.createContext<WorkspaceValue | null>(null);
@@ -411,13 +413,13 @@ export function WorkspaceProvider({
   );
 
   const addNote = React.useCallback(
-    (caseId: string, body: string) => {
-      note(caseId, body, "note");
+    (caseId: string, body: string, kind: "note" | "summary" = "note") => {
+      note(caseId, body, kind);
       log({
         kind: "note",
         actor: CURRENT_USER.name,
         caseId,
-        title: `Note added to ${caseId}`,
+        title: kind === "summary" ? `Evidence summary added to ${caseId}` : `Note added to ${caseId}`,
         detail: body.slice(0, 96),
       });
     },

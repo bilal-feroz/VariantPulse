@@ -12,7 +12,7 @@
 
 import * as React from "react";
 import { Noto_Sans_Arabic } from "next/font/google";
-import { Check, Copy, Download, Mail, RotateCcw, X } from "lucide-react";
+import { Check, Copy, Download, Mail, RotateCcw, Sparkles, X } from "lucide-react";
 
 import { Badge, Button } from "@/components/ui";
 import type { VariantAssessment } from "@/lib/analysis";
@@ -22,10 +22,14 @@ import {
   composePatientLetter,
   countWords,
   letterFileText,
+  type LetterImprovement,
   type LetterInput,
   type PatientLetter,
 } from "@/lib/letter";
 import { cn } from "@/lib/utils";
+
+/** A little past the server's own model timeout, so the server gets to answer first. */
+const AI_REQUEST_TIMEOUT_MS = 12_000;
 
 // Inter carries no Arabic glyphs. Not preloaded: it is only needed once a
 // letter is open.
@@ -86,6 +90,11 @@ function PatientLetterDialog({
   const [recordId, setRecordId] = React.useState(records[0]?.id ?? "");
   const [drafts, setDrafts] = React.useState<Record<string, PatientLetter>>({});
   const [copyState, setCopyState] = React.useState<"idle" | "copied" | "manual">("idle");
+  const [improving, setImproving] = React.useState(false);
+  /** Per record: what "Improve with AI" did, and the draft it replaced. */
+  const [aiOutcome, setAiOutcome] = React.useState<
+    Record<string, { reworded: boolean; reason?: string; previous?: PatientLetter }>
+  >({});
 
   const record = records.find((r) => r.id === recordId) ?? records[0];
   const input = React.useMemo<LetterInput | null>(
@@ -128,14 +137,60 @@ function PatientLetterDialog({
     setDrafts((prev) => ({ ...prev, [record.id]: { ...(prev[record.id] ?? template), [field]: value } }));
   };
 
+  const forget = <T,>(map: Record<string, T>, id: string): Record<string, T> => {
+    const next = { ...map };
+    delete next[id];
+    return next;
+  };
+
   const resetDraft = () => {
     if (!record) return;
-    setDrafts((prev) => {
-      const next = { ...prev };
-      delete next[record.id];
-      return next;
-    });
+    setDrafts((prev) => forget(prev, record.id));
+    setAiOutcome((prev) => forget(prev, record.id));
   };
+
+  /** Optional. Any failure leaves the draft as it was and says so plainly. */
+  const improve = async () => {
+    if (!record || !input || !letter) return;
+    const id = record.id;
+    const previous = letter;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+    setImproving(true);
+
+    let result: LetterImprovement | null = null;
+    try {
+      const response = await fetch("/api/letter", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ caseId: input.caseId, recordId: id }),
+        signal: controller.signal,
+      });
+      result = response.ok ? ((await response.json()) as LetterImprovement) : null;
+    } catch {
+      result = null;
+    } finally {
+      window.clearTimeout(timer);
+      setImproving(false);
+    }
+
+    const improved = result;
+    if (improved?.source === "ai" && improved.english && improved.arabic) {
+      setDrafts((prev) => ({ ...prev, [id]: { english: improved.english, arabic: improved.arabic } }));
+      setAiOutcome((prev) => ({ ...prev, [id]: { reworded: true, previous } }));
+    } else {
+      setAiOutcome((prev) => ({ ...prev, [id]: { reworded: false, reason: improved?.reason } }));
+    }
+  };
+
+  const undoImprovement = () => {
+    const previous = record ? aiOutcome[record.id]?.previous : undefined;
+    if (!record || !previous) return;
+    setDrafts((prev) => ({ ...prev, [record.id]: previous }));
+    setAiOutcome((prev) => forget(prev, record.id));
+  };
+
+  const outcome = record ? aiOutcome[record.id] : undefined;
 
   const copy = async () => {
     if (!input || !letter) return;
@@ -172,6 +227,10 @@ function PatientLetterDialog({
 
       <div className="relative mx-auto my-8 w-[min(1120px,calc(100vw-2rem))]">
         <div className="mb-3 flex items-center justify-end gap-2">
+          <Button size="sm" onClick={improve} disabled={!letter || improving}>
+            <Sparkles className={cn("h-3.5 w-3.5", improving && "vp-spin")} />
+            {improving ? "Improving" : "Improve with AI"}
+          </Button>
           <Button size="sm" onClick={copy} disabled={!letter}>
             {copyState === "copied" ? (
               <Check className="h-3.5 w-3.5" />
@@ -257,6 +316,25 @@ function PatientLetterDialog({
               the record: test date, gene, ordering department and clinical owner. It states no
               diagnosis and no risk figures.
               {copyState === "manual" ? " Copying is not available here; select the text instead." : ""}
+              {outcome?.reworded ? (
+                <>
+                  {" "}
+                  Reworded by Claude from the template, with every fact from the record kept.{" "}
+                  <button
+                    type="button"
+                    onClick={undoImprovement}
+                    className="font-medium text-ink-2 underline-offset-2 transition-colors hover:text-accent hover:underline"
+                  >
+                    Undo
+                  </button>
+                </>
+              ) : outcome ? (
+                outcome.reason === "no-key" ? (
+                  " AI wording is not set up here, so the template wording stands."
+                ) : (
+                  " The template wording was kept."
+                )
+              ) : null}
             </p>
             {record && drafts[record.id] ? (
               <button

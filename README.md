@@ -133,6 +133,13 @@ therefore shallow by design and size, case and tracking carry it instead.
 No environment variables are required. VariantPulse reads public endpoints that need no key, and
 works fully offline against its bundled evidence snapshot.
 
+One is optional. With `AI_API_KEY` set in `.env.local` (see `.env.example`), a case drafts its
+evidence summary with Claude, and the patient letter offers "Improve with AI". The model sees only
+that case's data, has 8 seconds to answer, and its output is checked before it is shown: every
+sentence must end with a source tag drawn from the case, and nothing may read as clinical advice.
+Without a key, after a timeout, or when a check fails, the same summary is composed from a fixed
+template, so nothing on screen depends on the model.
+
 ## Data sources
 
 | Source | What it provides | Live? |

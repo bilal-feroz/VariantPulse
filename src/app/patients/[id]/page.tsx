@@ -167,7 +167,7 @@ export default function PatientPage() {
           title="Current interpretation"
           icon={<Stethoscope className="h-4 w-4" />}
           description={
-            assessment.evidenceMode === "live"
+            analysis.mode === "live"
               ? "Read live from NCBI ClinVar at the last evidence sync."
               : "From the cached, verified ClinVar snapshot; live ClinVar was not reachable."
           }

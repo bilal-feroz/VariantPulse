@@ -18,9 +18,9 @@ import type {
 } from "./classification";
 import { meta } from "./classification";
 import type { EvidenceRecord } from "./clinvar";
-import type { RegionalEvidence } from "@/data/regional";
+import type { RegionalView } from "@/lib/regional-view";
 import type { MonitoredVariant } from "@/data/workspace";
-import type { RegionalDisagreement } from "./analysis";
+import type { RegionalSignal } from "./classification";
 import { formatDate, formatYear } from "./utils";
 
 export interface SummaryInput {
@@ -30,8 +30,8 @@ export interface SummaryInput {
   currentCode: ClassificationCode;
   changeType: ChangeType;
   confidence: ReviewConfidence;
-  regional: RegionalEvidence | null;
-  disagreement: RegionalDisagreement | null;
+  regional: RegionalView | null;
+  signal: RegionalSignal;
   impactedRecordCount: number;
 }
 
@@ -58,7 +58,7 @@ export function composeEvidenceSummary(input: SummaryInput): string {
     changeType,
     confidence,
     regional,
-    disagreement,
+    signal,
     impactedRecordCount,
   } = input;
 
@@ -118,7 +118,7 @@ export function composeEvidenceSummary(input: SummaryInput): string {
           `The regional index asserts ${meta(regional.assertion).label.toLowerCase()} on ${regional.observations} observation${regional.observations === 1 ? "" : "s"} across a cohort of ${regional.cohortSize.toLocaleString("en-US")}.`,
         );
       }
-      if (disagreement?.severity === "high") {
+      if (signal.kind === "CATALOGUE_DISAGREES") {
         sentences.push(
           "One source places this variant in the clinically actionable band and the other does not, which is the form of disagreement most likely to change a care decision.",
         );

@@ -78,9 +78,9 @@ for (const a of analysis.assessments) {
   console.log(`${control ? "CONTROL  " : ""}${v.gene} ${v.hgvsCoding}  (ClinVar ${v.clinvarId}${v.rsid ? `, ${v.rsid}` : ""})`);
 
   if (v.historicalSource.kind === "clinvar-release") {
-    console.log(`${pad(`${v.historicalSource.shortLabel}:`)}${v.historicalClinvarText} — ${v.historicalReviewStatus}`);
+    console.log(`${pad(`${v.historicalSource.shortLabel}:`)}${v.historicalClinvarText}, ${v.historicalReviewStatus}`);
   } else {
-    console.log(`${pad("On record:")}${meta(v.historicalClassification).label} — synthetic hospital report, ${v.recordedOn}; not in ClinVar in ${CLINVAR_JAN_2023.label}`);
+    console.log(`${pad("On record:")}${meta(v.historicalClassification).label}, synthetic hospital report, ${v.recordedOn}; not in ClinVar in ${CLINVAR_JAN_2023.label}`);
   }
 
   const later = a.releaseHistory.slice(1);
@@ -92,7 +92,7 @@ for (const a of analysis.assessments) {
     );
   }
 
-  console.log(`${pad("Current snapshot:")}${e.classification} — ${e.reviewStatus}, last evaluated ${e.lastEvaluated}`);
+  console.log(`${pad("Current snapshot:")}${e.classification}, ${e.reviewStatus}, last evaluated ${e.lastEvaluated}`);
 
   if (live) {
     const raw = live[v.clinvarId]?.germline_classification;
@@ -101,7 +101,7 @@ for (const a of analysis.assessments) {
     } else if (raw.description === e.classification && raw.review_status === e.reviewStatus) {
       console.log(`${pad("Live ClinVar:")}same as the snapshot`);
     } else {
-      console.log(`${pad("Live ClinVar:")}${raw.description} — ${raw.review_status} (differs from the snapshot; the snapshot is kept as the fallback)`);
+      console.log(`${pad("Live ClinVar:")}${raw.description}, ${raw.review_status} (differs from the snapshot; the snapshot is kept as the fallback)`);
     }
   }
 
@@ -120,7 +120,7 @@ for (const a of analysis.assessments) {
         `rs${row.rs}` === v.rsid &&
         normaliseClassification(row.text) === v.historicalClassification;
       if (!same) failures.push(`${v.key}: archive says "${row.text}" / ${row.reviewStatus} / rs${row.rs}.`);
-      console.log(`${pad("Archive:")}${same ? "matches the historical classification" : `DIFFERS: "${row.text}" — ${row.reviewStatus}`}`);
+      console.log(`${pad("Archive:")}${same ? "matches the historical classification" : `DIFFERS: "${row.text}", ${row.reviewStatus}`}`);
     }
   }
 

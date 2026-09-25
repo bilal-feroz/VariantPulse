@@ -11,7 +11,7 @@
  *
  * The data modules are imported as the application imports them, and the counts
  * at the end come from the application's own engine run against the bundled
- * snapshot — so they are the numbers the interface shows with the network off.
+ * snapshot, so they are the numbers the interface shows with the network off.
  */
 
 import "./lib/load-ts.mjs";

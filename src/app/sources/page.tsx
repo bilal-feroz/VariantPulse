@@ -70,7 +70,7 @@ export default function SourcesPage() {
     },
     {
       name: REGIONAL_SOURCE.name,
-      description: REGIONAL_SOURCE.scope,
+      description: REGIONAL_SOURCE.coverageNote,
       icon: Globe2,
       status: "Connected" as const,
       tone: "positive" as const,
@@ -79,12 +79,15 @@ export default function SourcesPage() {
         { label: "Variants held", value: formatNumber(REGIONAL_EVIDENCE.length) },
         {
           label: "Observations",
-          value: formatNumber(REGIONAL_EVIDENCE.reduce((t, r) => t + r.observations, 0)),
+          value: formatNumber(REGIONAL_EVIDENCE.reduce((t, r) => t + (r.middleEastern?.alleleCount ?? 0), 0)),
         },
         {
           label: "Last updated",
           value: formatDate(
-            REGIONAL_EVIDENCE.map((r) => r.lastUpdated).sort().at(-1) ?? null,
+            REGIONAL_EVIDENCE.map((r) => r.catalogue?.listedSince)
+              .filter((d): d is string => Boolean(d))
+              .sort()
+              .at(-1) ?? null,
           ),
         },
       ],
@@ -99,7 +102,6 @@ export default function SourcesPage() {
         "Read-only. VariantPulse walks the finding corpus at each sync and never writes back to it.",
       stats: [
         { label: "Findings on file", value: formatNumber(analysis.scan.findingsChecked) },
-        { label: "On monitored variants", value: formatNumber(analysis.scan.monitoredFindings) },
         { label: "Distinct variants", value: formatNumber(analysis.scan.distinctVariants) },
       ],
     },

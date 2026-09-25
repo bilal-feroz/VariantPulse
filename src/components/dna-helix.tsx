@@ -17,7 +17,7 @@
  * Rendering stops whenever the helix cannot be seen: scrolled out of view or
  * in a background tab. Under reduced motion it holds a single still frame.
  *
- * It is decorative — every figure it stands for is stated in text nearby — so
+ * It is decorative (every figure it stands for is stated in text nearby), so
  * it is hidden from assistive technology.
  */
 

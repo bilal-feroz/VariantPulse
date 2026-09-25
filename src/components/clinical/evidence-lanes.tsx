@@ -6,8 +6,8 @@
 
 import { Globe2, MapPin, ShieldCheck, UserCheck } from "lucide-react";
 
-import type { RegionalDisagreement } from "@/lib/analysis";
-import type { RegionalEvidence } from "@/data/regional";
+import type { ClassificationCode, RegionalSignal } from "@/lib/classification";
+import type { RegionalView } from "@/lib/regional-view";
 import { REGIONAL_SOURCE } from "@/data/regional";
 import { meta } from "@/lib/classification";
 import { cn, formatDate } from "@/lib/utils";
@@ -17,20 +17,23 @@ import { REVIEW } from "@/components/clinical/tokens";
 export function EvidenceLanes({
   disagreement,
   regional,
+  globalCode,
   globalEvaluated,
   globalMeta,
   className,
 }: {
-  disagreement: RegionalDisagreement;
-  regional: RegionalEvidence;
+  disagreement: RegionalSignal;
+  regional: RegionalView;
+  /** ClinVar's current reading, which the regional lane is set against. */
+  globalCode: ClassificationCode;
   /** ClinVar's last evaluation date for this record. */
   globalEvaluated: string | null;
   /** A short line describing the global record, e.g. review status. */
   globalMeta?: string;
   className?: string;
 }) {
-  const conflict = disagreement.conflicting;
-  const { globalCode, regionalCode } = disagreement;
+  const conflict = disagreement.flagged;
+  const regionalCode = regional.assertion;
 
   return (
     <figure className={cn("@container min-w-0", className)}>
@@ -136,7 +139,7 @@ function Lane({
 }: {
   icon: React.ReactNode;
   source: string;
-  code: RegionalDisagreement["globalCode"];
+  code: ClassificationCode;
   detail: string;
 }) {
   return (

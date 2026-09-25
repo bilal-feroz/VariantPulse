@@ -16,7 +16,7 @@ import {
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { Badge, Card, Field, SectionHeading } from "@/components/ui";
-import { CURRENT_USER, MONITORED_FINDING_COUNT } from "@/data/workspace";
+import { CURRENT_USER } from "@/data/workspace";
 import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { WORKSPACE_TOTAL_LABELS } from "@/lib/narrative";
 import { cn, formatNumber } from "@/lib/utils";
@@ -244,7 +244,7 @@ export default function SettingsPage() {
             <Field label="Last checked" value={<RelativeTime value={lastChecked} />} />
             <Field
               label="Findings monitored"
-              value={formatNumber(MONITORED_FINDING_COUNT)}
+              value={formatNumber(analysis.scan.findingsChecked)}
             />
             <Field label="Variants on panel" value={String(analysis.assessments.length)} />
             <Field

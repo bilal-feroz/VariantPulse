@@ -44,7 +44,7 @@ describe("summary facts", () => {
     expect(facts.citations.length).toBeGreaterThan(0);
     expect(facts.citations.length).toBeLessThanOrEqual(6);
     expect(facts.citations.every((c) => c.tag === `[PMID ${c.pmid}]`)).toBe(true);
-    expect(facts.regional?.ctgaTag).toBeNull();
+    expect(facts.regional).toBeNull();
   });
 
   it("flags a CTGA-backed regional reading", async () => {

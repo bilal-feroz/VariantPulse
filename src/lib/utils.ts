@@ -37,7 +37,7 @@ export function formatTime(value: string | null | undefined): string {
 
 /** Renders a `YYYY-MM-DD` date as `Mar 2023`. */
 export function formatMonth(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const date = new Date(value.includes("T") ? value : `${value.slice(0, 10)}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).format(date);

@@ -26,7 +26,7 @@ export default function RegionalPage() {
 
   const conflicts = pick(analysis, analysis.regionalConflictKeys);
   const covered = analysis.assessments.filter((a) => a.regional);
-  const agreeing = covered.filter((a) => !a.regionalDisagreement?.conflicting);
+  const agreeing = covered.filter((a) => !a.regionalSignal?.flagged);
 
   return (
     <PageShell>
@@ -71,7 +71,7 @@ export default function RegionalPage() {
             </p>
             <p className="mt-3 text-[12.5px] text-muted">
               <span className="font-medium text-ink vp-num">{covered.length}</span> variants held ·{" "}
-              {REGIONAL_SOURCE.scope}
+              {REGIONAL_SOURCE.population}
             </p>
           </div>
         </div>

@@ -323,7 +323,7 @@ export function EvidenceComparison({
       ) : (
         <span className="text-[12.5px] text-muted">-</span>
       ),
-      note: REGIONAL_SOURCE.provenance,
+      note: REGIONAL_SOURCE.coverageNote,
     },
     {
       source: "This institution",
@@ -431,10 +431,10 @@ export function RegionalComparison({
   assessment: VariantAssessment;
   className?: string;
 }) {
-  const { regional, regionalDisagreement, currentCode, evidence } = assessment;
+  const { regional, regionalSignal, currentCode, evidence } = assessment;
   if (!regional) return null;
 
-  const conflicting = Boolean(regionalDisagreement?.conflicting);
+  const conflicting = Boolean(regionalSignal?.flagged);
 
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -451,10 +451,11 @@ export function RegionalComparison({
         )}
       </div>
 
-      {regionalDisagreement ? (
+      {regionalSignal ? (
         <div className="border-b border-line p-5">
           <EvidenceLanes
-            disagreement={regionalDisagreement}
+            disagreement={regionalSignal}
+            globalCode={currentCode}
             regional={regional}
             globalEvaluated={evidence.lastEvaluated}
             globalMeta={evidence.reviewStatus}
@@ -512,7 +513,7 @@ export function RegionalComparison({
             />
           </dl>
           <p className="mt-4 text-[12px] leading-relaxed text-faint">
-            {REGIONAL_SOURCE.provenance}.
+            {REGIONAL_SOURCE.coverageNote}.
           </p>
         </div>
       </div>
@@ -521,7 +522,7 @@ export function RegionalComparison({
         <Eyebrow>VariantPulse analysis</Eyebrow>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
           {conflicting
-            ? regionalDisagreement?.reason
+            ? regionalSignal?.reason
             : "Both sources place this variant in the same band, so there is no divergence to resolve."}{" "}
           {regional.note}
         </p>

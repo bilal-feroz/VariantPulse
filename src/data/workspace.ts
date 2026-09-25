@@ -64,7 +64,7 @@ export const MODELLED_HOSPITAL_REPORT: HistoricalSource = {
 };
 
 export interface MonitoredVariant {
-  /** `GENE:cDNA` — the join key across evidence sources. */
+  /** `GENE:cDNA`, the join key across evidence sources. */
   key: string;
   gene: string;
   hgvsCoding: string;
@@ -377,7 +377,7 @@ const LAB = {
 } as const;
 
 export const PATIENTS: PatientRecord[] = [
-  // BRCA1:c.5056C>T — the headline: uncertain in January 2023, likely pathogenic
+  // BRCA1:c.5056C>T: the headline: uncertain in January 2023, likely pathogenic
   // after expert-panel review. Four records, none reassessed since.
   {
     id: "VP-10247",
@@ -432,7 +432,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Cascade testing following a family result",
   },
 
-  // BRCA2:c.7847C>T — uncertain to pathogenic.
+  // BRCA2:c.7847C>T: uncertain to pathogenic.
   {
     id: "VP-10395",
     ageBand: "35-44",
@@ -460,7 +460,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Family history of pancreatic cancer",
   },
 
-  // TP53:c.589G>A — uncertain to likely pathogenic, including a child tested
+  // TP53:c.589G>A: uncertain to likely pathogenic, including a child tested
   // through cascade testing.
   {
     id: "VP-10469",
@@ -489,7 +489,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Cascade testing following a family result",
   },
 
-  // LDLR:c.1381G>T — uncertain to likely pathogenic.
+  // LDLR:c.1381G>T: uncertain to likely pathogenic.
   {
     id: "VP-10543",
     ageBand: "35-44",
@@ -517,7 +517,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Cascade testing following a family result",
   },
 
-  // PTEN:c.149T>C — uncertain to pathogenic, in a paediatric record.
+  // PTEN:c.149T>C: uncertain to pathogenic, in a paediatric record.
   {
     id: "VP-10617",
     ageBand: "5-11",
@@ -532,7 +532,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Macrocephaly with developmental delay",
   },
 
-  // MYBPC3:c.26-2A>G — the reverse case: pathogenic/likely pathogenic in
+  // MYBPC3:c.26-2A>G: the reverse case: pathogenic/likely pathogenic in
   // January 2023, uncertain now, while a family is on cardiac surveillance.
   {
     id: "VP-10654",
@@ -561,7 +561,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Cascade testing following a family result",
   },
 
-  // HBB:c.380T>G — pathogenic/likely pathogenic to uncertain, on a carrier
+  // HBB:c.380T>G: pathogenic/likely pathogenic to uncertain, on a carrier
   // result from premarital screening. Carries regional context.
   {
     id: "VP-10728",
@@ -577,7 +577,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Premarital screening follow-up",
   },
 
-  // BRCA2:c.9538C>T — uncertain to benign.
+  // BRCA2:c.9538C>T: uncertain to benign.
   {
     id: "VP-10765",
     ageBand: "45-54",
@@ -605,7 +605,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Family history of ovarian cancer",
   },
 
-  // TP53:c.784G>A — uncertain to likely benign.
+  // TP53:c.784G>A: uncertain to likely benign.
   {
     id: "VP-10839",
     ageBand: "55-64",
@@ -620,7 +620,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Treatment planning",
   },
 
-  // BRCA1:c.5123C>T — uncertain to conflicting: submitters now disagree.
+  // BRCA1:c.5123C>T: uncertain to conflicting: submitters now disagree.
   {
     id: "VP-10876",
     ageBand: "35-44",
@@ -637,7 +637,7 @@ export const PATIENTS: PatientRecord[] = [
 
   // -- Classification unchanged since January 2023. ------------------------
 
-  // LDLR:c.2479G>A — the control: nothing moved, so nothing is raised.
+  // LDLR:c.2479G>A: the control: nothing moved, so nothing is raised.
   {
     id: "VP-10913",
     ageBand: "45-54",
@@ -665,7 +665,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Cascade testing following a family result",
   },
 
-  // CFTR:c.601G>A — classification unchanged; its Middle Eastern frequency in
+  // CFTR:c.601G>A: classification unchanged; its Middle Eastern frequency in
   // gnomAD v4 is what differs.
   {
     id: "VP-10987",
@@ -683,7 +683,7 @@ export const PATIENTS: PatientRecord[] = [
 
   // -- CTGA-backed cases. --
 
-  // HBB:c.364G>C — Hb D-Punjab: conflicting in January 2023, now
+  // HBB:c.364G>C: Hb D-Punjab: conflicting in January 2023, now
   // pathogenic/likely pathogenic.
   {
     id: "VP-10701",
@@ -712,7 +712,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Anaemia work-up",
   },
 
-  // MYBPC3:c.776delinsTT — reported by the hospital as a novel VUS; ClinVar's
+  // MYBPC3:c.776delinsTT: reported by the hospital as a novel VUS; ClinVar's
   // first and only classification, years later, is likely pathogenic.
   {
     id: "VP-10775",
@@ -741,7 +741,7 @@ export const PATIENTS: PatientRecord[] = [
     indication: "Cascade testing following a family result",
   },
 
-  // BRCA1:c.1140dup — pathogenic then and now: the second control.
+  // BRCA1:c.1140dup: pathogenic then and now: the second control.
   {
     id: "VP-10849",
     ageBand: "45-54",

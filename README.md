@@ -9,7 +9,7 @@
 
 ## The problem
 
-A patient has genetic testing. A variant comes back as **VUS — a variant of uncertain
+A patient has genetic testing. A variant comes back as **VUS, a variant of uncertain
 significance**. The report is filed, and the patient goes home.
 
 Years later, new functional studies are published, new submissions reach ClinVar, and an expert
@@ -18,7 +18,7 @@ panel reviews the variant. The consensus moves. The variant is now considered pa
 The patient's DNA has not changed. The evidence around it has.
 
 But the report in the record system still says what it said on the day it was issued, and nobody
-is watching. Reclassification is not an edge case — it is the normal behaviour of a field where
+is watching. Reclassification is not an edge case; it is the normal behaviour of a field where
 evidence accumulates faster than old reports are revisited. At population scale, that gap widens
 quietly and continuously.
 
@@ -27,11 +27,11 @@ quietly and continuously.
 VariantPulse continuously compares historical genomic findings against current scientific
 evidence and surfaces:
 
-- **what changed** — the interpretation on record versus the interpretation held today
-- **when and why** — the submissions, review status and literature behind the move
-- **who is affected** — every historical record carrying the changed variant
-- **where sources disagree** — global consensus against regional evidence
-- **what needs a human** — a prioritised clinical review queue
+- **what changed**: the interpretation on record versus the interpretation held today
+- **when and why**: the submissions, review status and literature behind the move
+- **who is affected**: every historical record carrying the changed variant
+- **where sources disagree**: global consensus against regional evidence
+- **what needs a human**: a prioritised clinical review queue
 
 It raises cases. It does not diagnose, and it never writes to a patient record.
 
@@ -127,8 +127,8 @@ npm run evidence:refresh  # re-pull the ClinVar snapshot (deliberate; never at r
 against the snapshot to do it: identifiers that disagree between the panel, the snapshot and
 `provenance.json`; malformed HGVS; duplicate records; a historical classification that does not
 match the January 2023 release, or current evidence leaking into history; frequencies outside 0–1;
-a patient-impact join that drops a record; an unchanged variant that opens a case; and — most
-importantly — any reclassification that cannot be reproduced from the supplied historical and
+a patient-impact join that drops a record; an unchanged variant that opens a case; and, most
+importantly, any reclassification that cannot be reproduced from the supplied historical and
 current data, or that the source evaluated *before* the classification it supposedly superseded.
 It ends by printing the computed counts.
 
@@ -158,7 +158,7 @@ variant, classification, frequency and catalogue reading is public and cited.
 
 With the bundled snapshot, `npm run verify:data` computes: **11 reclassifications** (10 against the
 January 2023 release, 1 against the modelled hospital report), **1 consensus conflict**, **2 regional
-signals**, **3 unchanged classifications** — two of which raise nothing at all — and **13 review
+signals**, **3 unchanged classifications** (two of which raise nothing at all) and **13 review
 cases covering 23 synthetic patients**. The lead case is **BRCA1 c.5056C>T**: uncertain significance
 in January 2023, likely pathogenic after expert-panel review (last evaluated 18 August 2025), carried
 by four synthetic patients. Live ClinVar can move these numbers; the interface always shows the
@@ -185,7 +185,7 @@ Every non-synthetic value was re-checked against its primary source on 25 Septem
 ### Live reads and fallback
 
 Evidence is read live from ClinVar on every sync. If that call fails, times out, or returns a
-partial response, the workspace serves its verified snapshot instead and **says so** — the status
+partial response, the workspace serves its verified snapshot instead and **says so**: the status
 switches from `Live ClinVar evidence` to `Cached verified evidence` everywhere, with the reason
 attached. A partial response is discarded rather than mixed with cached records, and a failed read
 is remembered for 30 seconds so a dead network costs one timeout rather than one per page; an
@@ -231,8 +231,8 @@ else: there is no generated background volume behind the numbers.
 The brand accent is the crimson of the mark. Critical status is also red, which is
 a hazard: in a triage tool the alarm colour must never read as decoration. Two
 things keep them apart. The accent is rose-leaning and held at a different hue from
-the vermillion used for critical, and — more reliably, since hue alone is weak here
-— only a `CRITICAL` priority is rendered as a **filled** badge. Everything else is
+the vermillion used for critical, and, more reliably, since hue alone is weak here,
+only a `CRITICAL` priority is rendered as a **filled** badge. Everything else is
 tinted. The distinction is carried by weight, which survives both a projector and a
 colour-vision deficiency.
 
@@ -252,23 +252,23 @@ regulatory assessment.
 
 ## Walkthrough
 
-1. **Home** — a historical synthetic patient, VP-10247: BRCA1 c.5056C>T, reported in 2023 as
+1. **Home**. A historical synthetic patient, VP-10247: BRCA1 c.5056C>T, reported in 2023 as
    uncertain significance, which is what ClinVar said in its January 2023 release.
-2. **Run evidence sync** — reads current ClinVar live (or the verified snapshot offline), compares
+2. **Run evidence sync**. Reads current ClinVar live (or the verified snapshot offline), compares
    classifications, walks the 26 synthetic records and compares regional evidence. It ends on the
    highest-priority change: uncertain significance → likely pathogenic, four synthetic patients,
    one clinical review case.
-3. **Evidence changes requiring attention** — each item opens a review case. The unchanged
+3. **Evidence changes requiring attention**. Each item opens a review case. The unchanged
    controls (LDLR c.2479G>A, BRCA1 c.1140dup) raise nothing.
-4. **Open a case** — patient impact on the left, the evidence in the centre, the decision on the
+4. **Open a case**. Patient impact on the left, the evidence in the centre, the decision on the
    right. Expand *How VariantPulse reached this result* for the full eight-step derivation.
-5. **Regional insights** — gnomAD v4 Middle Eastern frequencies against the global figure, CTGA
+5. **Regional insights**. gnomAD v4 Middle Eastern frequencies against the global figure, CTGA
    readings, the two regional signals (HBB c.380T>G, CFTR c.601G>A), and the two cases where the
    regional record was ahead of ClinVar (Hb D-Punjab, MYBPC3 c.776delinsTT).
-6. **Generate evidence brief** — a clinician-facing brief, printable and downloadable.
-7. **Activity** — the audit trail behind all of it.
+6. **Generate evidence brief**. A clinician-facing brief, printable and downloadable.
+7. **Activity**. The audit trail behind all of it.
 
-Global search is on `Ctrl`/`Cmd` + `K` — record IDs, gene symbols, HGVS strings, ClinVar
+Global search is on `Ctrl`/`Cmd` + `K` and covers record IDs, gene symbols, HGVS strings, ClinVar
 accessions and case numbers.
 
 ## Credits

@@ -6,8 +6,8 @@
  * The button triggers a real read: the server drops its cached evidence, queries
  * the source again, and re-walks the synthetic records. The overlay paces that
  * work so a reviewer can see which stage is running and what it found, rather
- * than watching an indeterminate spinner. The result it ends on — the
- * highest-priority change, the records it touches and the case it opened — is
+ * than watching an indeterminate spinner. The result it ends on, namely the
+ * highest-priority change, the records it touches and the case it opened, is
  * read from the analysis the server returned, never scripted.
  */
 

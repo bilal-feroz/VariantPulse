@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   CHANGE_TYPES,
   detectChange,
-  detectDisagreement,
+  assessRegionalSignal,
   normaliseClassification,
 } from "@/lib/classification";
+import { CLINVAR_JAN_2023 } from "@/data/workspace";
 
 describe("normaliseClassification", () => {
   it.each([
@@ -65,15 +66,44 @@ describe("detectChange", () => {
   });
 });
 
-describe("detectDisagreement", () => {
-  it("treats an actionable split as a high-severity conflict", () => {
-    expect(detectDisagreement("LIKELY_PATHOGENIC", "LIKELY_BENIGN")).toMatchObject({
-      conflicting: true,
-      severity: "high",
-    });
+describe("assessRegionalSignal", () => {
+  const variant = {
+    historicalClassification: "VUS" as const,
+    historicalClinvarText: "Uncertain significance",
+    historicalSource: CLINVAR_JAN_2023,
+  };
+
+  const withCatalogue = (code: "LIKELY_PATHOGENIC" | "BENIGN") => ({
+    variantKey: "GENE:c.1A>T",
+    gnomadVariantId: "1-1-A-T",
+    inGnomad: true,
+    callSet: "joint" as const,
+    global: { alleleCount: 10, alleleNumber: 100000, frequency: 0.0001 },
+    middleEastern: { alleleCount: 4, alleleNumber: 6000, frequency: 0.00067 },
+    catalogue: {
+      catalogue: "CTGA" as const,
+      significance: code === "BENIGN" ? "Benign" : "Likely pathogenic",
+      code,
+      countries: ["United Arab Emirates"],
+      conditions: [],
+      references: [],
+      listedSince: "2020-01-01",
+      url: "https://cags.org.ae/",
+    },
+    context: null,
   });
 
-  it("does not treat an indeterminate reading as a regional conflict", () => {
-    expect(detectDisagreement("CONFLICTING", "BENIGN").conflicting).toBe(false);
+  it("flags a catalogue that places the variant in another band", () => {
+    const signal = assessRegionalSignal(withCatalogue("BENIGN"), variant, "LIKELY_PATHOGENIC");
+    expect(signal).toMatchObject({ kind: "CATALOGUE_DISAGREES", flagged: true });
+  });
+
+  it("does not flag a catalogue that agrees with the current band", () => {
+    const signal = assessRegionalSignal(withCatalogue("LIKELY_PATHOGENIC"), variant, "LIKELY_PATHOGENIC");
+    expect(signal.flagged).toBe(false);
+  });
+
+  it("raises nothing when no regional evidence is held", () => {
+    expect(assessRegionalSignal(null, variant, "PATHOGENIC")).toMatchObject({ kind: "NONE", flagged: false });
   });
 });

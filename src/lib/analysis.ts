@@ -14,14 +14,15 @@ import "server-only";
 
 import {
   detectChange,
-  detectDisagreement,
   meta,
   normaliseClassification,
   reviewConfidence,
+  assessRegionalSignal,
   type ChangeType,
   type ChangeVerdict,
   type ClassificationCode,
   type ReviewConfidence,
+  type RegionalSignal,
 } from "./classification";
 import { assessPriority, comparePriority, type PriorityAssessment } from "./priority";
 import { scanCorpus, type CorpusScan } from "./corpus";
@@ -31,7 +32,9 @@ import {
   type EvidenceResult,
   type RequestedEvidenceMode,
 } from "./clinvar";
-import { REGIONAL_BY_KEY, type RegionalEvidence } from "@/data/regional";
+import { REGIONAL_BY_KEY, REGIONAL_SOURCE } from "@/data/regional";
+import { PROVENANCE_BY_KEY, type ReleaseClassification } from "@/data/provenance";
+import { regionalView, type RegionalView } from "@/lib/regional-view";
 import {
   MONITORED_VARIANTS,
   patientsForVariant,
@@ -46,25 +49,19 @@ export interface PipelineStep {
   detail: string;
 }
 
-export interface RegionalDisagreement {
-  conflicting: boolean;
-  severity: "none" | "moderate" | "high";
-  reason: string;
-  globalCode: ClassificationCode;
-  regionalCode: ClassificationCode;
-}
-
 export interface VariantAssessment {
   variant: MonitoredVariant;
   evidence: EvidenceRecord;
+  /** ClinVar's reading at each archived release, oldest first. */
+  releaseHistory: ReleaseClassification[];
   recordedCode: ClassificationCode;
   currentCode: ClassificationCode;
   verdict: ChangeVerdict;
   /** What the interface leads with. Regional conflict outranks a global shift. */
   changeType: ChangeType;
   confidence: ReviewConfidence;
-  regional: RegionalEvidence | null;
-  regionalDisagreement: RegionalDisagreement | null;
+  regional: RegionalView | null;
+  regionalSignal: RegionalSignal;
   impactedPatients: PatientRecord[];
   impactedRecordCount: number;
   priority: PriorityAssessment;
@@ -102,18 +99,18 @@ function buildPipeline(input: {
   variant: MonitoredVariant;
   evidence: EvidenceRecord;
   verdict: ChangeVerdict;
-  regional: RegionalEvidence | null;
-  disagreement: RegionalDisagreement | null;
+  regional: RegionalView | null;
+  signal: RegionalSignal;
   impacted: number;
   scan: CorpusScan;
   mode: EvidenceResult["mode"];
 }): PipelineStep[] {
-  const { variant, evidence, verdict, regional, disagreement, impacted, scan, mode } = input;
+  const { variant, evidence, verdict, regional, signal, impacted, scan, mode } = input;
 
   return [
     {
       label: "Historical record retrieved",
-      detail: `${variant.gene} ${variant.hgvsCoding} reported as ${meta(variant.recordedClassification).label} on ${variant.recordedOn}.`,
+      detail: `${variant.gene} ${variant.hgvsCoding} reported as ${meta(variant.historicalClassification).label} on ${variant.recordedOn}.`,
     },
     {
       label: "Variant normalised",
@@ -130,10 +127,8 @@ function buildPipeline(input: {
     {
       label: "Regional sources compared",
       detail: regional
-        ? disagreement?.conflicting
-          ? `Regional index asserts ${meta(regional.assertion).label} across ${regional.observations} observations. ${disagreement.reason}`
-          : `Regional index asserts ${meta(regional.assertion).label}, consistent with the global reading.`
-        : "No regional evidence is held for this variant.",
+        ? `${REGIONAL_SOURCE.catalogueShortName} records it as ${meta(regional.assertion).label.toLowerCase()}. ${signal.reason}`
+        : signal.frequencySummary,
     },
     {
       label: "Impacted records identified",
@@ -156,24 +151,21 @@ function assessVariant(
   scan: CorpusScan,
   mode: EvidenceResult["mode"],
 ): Omit<VariantAssessment, "caseId"> {
-  const recordedCode = variant.recordedClassification;
+  const recordedCode = variant.historicalClassification;
   const currentCode = normaliseClassification(evidence.classification);
   const verdict = detectChange(recordedCode, currentCode);
   const confidence = reviewConfidence(evidence.reviewStatus);
 
-  const regional = REGIONAL_BY_KEY.get(variant.key) ?? null;
-  const raw = regional ? detectDisagreement(currentCode, regional.assertion) : null;
-  const regionalDisagreement: RegionalDisagreement | null =
-    regional && raw
-      ? { ...raw, globalCode: currentCode, regionalCode: regional.assertion }
-      : null;
+  const regionalEvidence = REGIONAL_BY_KEY.get(variant.key) ?? null;
+  const regional = regionalView(regionalEvidence);
+  const regionalSignal = assessRegionalSignal(regionalEvidence, variant, currentCode);
 
   const impactedPatients = patientsForVariant(variant.key);
   const impactedRecordCount = scan.byVariant.get(variant.key)?.length ?? impactedPatients.length;
 
   // Regional conflict is what a reviewer needs to see first, so it takes the
   // headline even when the global reading also moved.
-  const changeType: ChangeType = regionalDisagreement?.conflicting
+  const changeType: ChangeType = regionalSignal.flagged
     ? "REGIONAL_CONFLICT"
     : verdict.type;
 
@@ -182,7 +174,7 @@ function assessVariant(
     recorded: recordedCode,
     current: currentCode,
     impactedRecords: impactedRecordCount,
-    regionalConflict: Boolean(regionalDisagreement?.conflicting),
+    regionalConflict: Boolean(regionalSignal.flagged),
     confidenceStars: confidence.stars,
   });
 
@@ -192,13 +184,14 @@ function assessVariant(
   return {
     variant,
     evidence,
+    releaseHistory: PROVENANCE_BY_KEY.get(variant.key)?.releases ?? [],
     recordedCode,
     currentCode,
     verdict,
     changeType,
     confidence,
     regional,
-    regionalDisagreement,
+    regionalSignal,
     impactedPatients,
     impactedRecordCount,
     priority,
@@ -211,7 +204,7 @@ function assessVariant(
       changeType,
       confidence,
       regional,
-      disagreement: regionalDisagreement,
+      signal: regionalSignal,
       impactedRecordCount,
     }),
     pipeline: buildPipeline({
@@ -219,7 +212,7 @@ function assessVariant(
       evidence,
       verdict,
       regional,
-      disagreement: regionalDisagreement,
+      signal: regionalSignal,
       impacted: impactedRecordCount,
       scan,
       mode,
@@ -232,11 +225,14 @@ function caseIdFor(index: number, year: number): string {
   return `VP-R-${year}-${String(index + 1).padStart(3, "0")}`;
 }
 
-export async function analyseWorkspace(options?: {
-  force?: boolean;
-  mode?: RequestedEvidenceMode;
-}): Promise<WorkspaceAnalysis> {
-  const evidence = await fetchCurrentEvidence({ force: options?.force, mode: options?.mode });
+/**
+ * The analysis itself, as a pure function of an evidence read.
+ *
+ * Kept separate from the fetch so the same engine that renders the workspace
+ * can be run against the bundled snapshot by `verify:data`, with no network
+ * and a fixed clock.
+ */
+export function buildAnalysis(evidence: EvidenceResult, now: Date = new Date()): WorkspaceAnalysis {
   const scan = scanCorpus();
 
   const partial = MONITORED_VARIANTS.map((variant) => {
@@ -265,7 +261,7 @@ export async function analyseWorkspace(options?: {
     .map((a) => byKey.get(a.variant.key))
     .filter((a): a is VariantAssessment => Boolean(a));
 
-  const regionalConflicts = assessments.filter((a) => a.regionalDisagreement?.conflicting);
+  const regionalConflicts = assessments.filter((a) => a.regionalSignal.flagged);
   const consensusConflicts = assessments.filter((a) => a.verdict.type === "CONSENSUS_CONFLICT");
 
   // A "change" is a global reclassification. Conflicts are counted separately
@@ -277,7 +273,7 @@ export async function analyseWorkspace(options?: {
         a.verdict.type === "EVIDENCE_STRENGTHENED" ||
         a.verdict.type === "EVIDENCE_WEAKENED",
     )
-    .filter((a) => !a.regionalDisagreement?.conflicting)
+    .filter((a) => !a.regionalSignal.flagged)
     .sort(comparePriority);
 
   const impactedIds = new Set<string>();
@@ -302,8 +298,18 @@ export async function analyseWorkspace(options?: {
       unchanged: assessments.filter((a) => a.changeType === "NO_MATERIAL_CHANGE").length,
       openCases: reviewable.length,
     },
-    generatedAt: evidence.mode === "demo" ? evidence.checkedAt : new Date().toISOString(),
+    generatedAt: evidence.mode === "demo" ? evidence.checkedAt : now.toISOString(),
   };
+}
+
+
+/** Reads current evidence, then runs the analysis over it. */
+export async function analyseWorkspace(options?: {
+  force?: boolean;
+  mode?: RequestedEvidenceMode;
+}): Promise<WorkspaceAnalysis> {
+  const evidence = await fetchCurrentEvidence({ force: options?.force, mode: options?.mode });
+  return buildAnalysis(evidence);
 }
 
 /** Looks up a single assessment by variant key. */

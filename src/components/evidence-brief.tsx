@@ -284,10 +284,10 @@ function EvidenceBrief({
             </Section>
           ) : null}
 
-          {regional && assessment.regionalDisagreement?.conflicting ? (
+          {regional && assessment.regionalSignal?.flagged ? (
             <Section title="Regional evidence">
               <p className="text-[13.5px] leading-relaxed text-ink-2">
-                {assessment.regionalDisagreement.reason} {regional.note}
+                {assessment.regionalSignal.reason} {regional.note}
               </p>
             </Section>
           ) : null}

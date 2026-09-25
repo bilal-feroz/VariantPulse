@@ -8,7 +8,7 @@ import { ArrowRight, BookOpen, Building2, ClipboardCheck, Database, Globe2, User
 import { buttonClasses, ClassificationBadge } from "@/components/ui";
 import { meta, type ClassificationCode } from "@/lib/classification";
 import { cn } from "@/lib/utils";
-import { STEP, STEP_STARTS_MS } from "./timeline";
+import { patientsLocated, STEP, STEP_STARTS_MS } from "./timeline";
 
 export interface StoryPatient {
   id: string;
@@ -38,7 +38,7 @@ export const GRAPH_H = 560;
 const CY = 292;
 const PAST = { x: 104, w: 196 };
 const CORE = { x: 392, w: 240, h: 150 };
-const PRESENT = { x: 652, w: 196 };
+const PRESENT = { x: 654, w: 220 };
 const FORK_X = 776;
 const PATIENT_X = 842;
 const PATIENT_R = 24;
@@ -335,6 +335,7 @@ function CoreCard({ data, step }: { data: StoryData; step: number }) {
 
 export function PresentCard({ data, step }: { data: StoryData; step: number }) {
   const changed = step >= STEP.reclassify;
+  const holding = step === STEP.reclassify;
   return (
     <div
       className={cn(
@@ -344,17 +345,29 @@ export function PresentCard({ data, step }: { data: StoryData; step: number }) {
     >
       <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint">ClinVar today</p>
       {changed ? (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-vermilion-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-vermilion" />
-            New evidence found
-          </span>
-          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[14px] font-semibold leading-tight">
-            <span className="text-faint line-through">{meta(data.recordedCode).short}</span>
-            <ArrowRight className="h-4 w-4 text-vermilion" strokeWidth={2.4} aria-label="to" />
-            <span className="text-accent">{meta(data.currentCode).label}</span>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: holding ? [0.92, 1.06, 1] : 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          aria-label={`${meta(data.recordedCode).short} to ${meta(data.currentCode).label}`}
+        >
+          <p className="mt-2 text-[26px] font-semibold leading-none tracking-tight text-faint line-through decoration-2">
+            {meta(data.recordedCode).short}
           </p>
-          <p className="mt-1.5 text-[11px] text-faint vp-num">Evaluated {data.lastEvaluated ?? "not stated"}</p>
+          <div className="my-2.5 flex items-center gap-2" aria-hidden>
+            <span className="h-0.5 w-6 rounded-full bg-vermilion" />
+            <span className="relative h-3 w-3 rounded-full bg-vermilion">
+              <span
+                className="absolute inset-0 rounded-full bg-vermilion"
+                style={{ animation: "vp-pulse-ring 1.2s ease-out infinite" }}
+              />
+            </span>
+            <ArrowRight className="h-5 w-5 text-vermilion" strokeWidth={2.6} />
+          </div>
+          <p className="text-[28px] font-bold leading-[1.05] tracking-tight text-garnet">
+            {meta(data.currentCode).label}
+          </p>
+          <p className="mt-2 text-[11px] text-faint vp-num">Evaluated {data.lastEvaluated ?? "not stated"}</p>
         </motion.div>
       ) : (
         <p className="mt-2 text-[20px] font-semibold leading-none text-line-2" aria-label="Not yet checked">
@@ -362,6 +375,21 @@ export function PresentCard({ data, step }: { data: StoryData; step: number }) {
         </p>
       )}
     </div>
+  );
+}
+
+function PatientsLocated({ data, step }: { data: StoryData; step: number }) {
+  if (step < STEP.patients) return null;
+  return (
+    <motion.p
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-active-bg px-3 py-1 text-[13px] font-semibold text-accent vp-num"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-vermilion" aria-hidden />
+      {patientsLocated(data.patients.length)}
+    </motion.p>
   );
 }
 
@@ -488,6 +516,11 @@ export function StoryGraph({ data, step }: { data: StoryData; step: number }) {
           <PatientAvatar id={p.id} shown={step >= STEP.patients} index={i} />
         </Place>
       ))}
+      <Place x={PATIENT_X} y={(PATIENT_YS[0] ?? CY) - 50}>
+        <div className="flex h-8 items-center justify-center">
+          <PatientsLocated data={data} step={step} />
+        </div>
+      </Place>
       <Place x={PATIENT_X} y={(PATIENT_YS[PATIENT_YS.length - 1] ?? CY) + 64}>
         <StageLabel>Affected patients</StageLabel>
       </Place>
@@ -597,6 +630,9 @@ export function StoryStack({ data, step }: { data: StoryData; step: number }) {
       <Rail active={step >= STEP.records} />
 
       <StageLabel className="mb-1.5 text-left">Affected patients</StageLabel>
+      <div className="mb-2 flex h-8 items-center">
+        <PatientsLocated data={data} step={step} />
+      </div>
       <div className="vp-card-flat flex justify-around p-4">
         {data.patients.map((p, i) => (
           <PatientAvatar key={p.id} id={p.id} shown={step >= STEP.patients} index={i} />

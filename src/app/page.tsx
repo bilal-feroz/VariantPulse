@@ -6,9 +6,11 @@ import { FastForward, RefreshCw } from "lucide-react";
 
 import { evidenceModeMeta } from "@/components/story/mode";
 import { FittedStoryGraph, StoryStack, type StoryData } from "@/components/story/story-graph";
-import { STORY_STEPS, STORY_VARIANT_KEY } from "@/components/story/timeline";
+import { storyCaption } from "@/components/story/timeline";
 import { useBackgroundSync, useStoryTimeline } from "@/components/story/use-story";
 import { Button, StatusDot } from "@/components/ui";
+import { meta } from "@/lib/classification";
+import { selectStoryAssessment } from "@/lib/story";
 import { useWorkspace } from "@/state/workspace";
 
 export default function HomePage() {
@@ -19,7 +21,7 @@ export default function HomePage() {
 
   const data = React.useMemo<StoryData | null>(() => {
     const lead =
-      analysis.assessments.find((a) => a.variant.key === STORY_VARIANT_KEY) ??
+      selectStoryAssessment(analysis.assessments) ??
       analysis.assessments.find((a) => analysis.reviewableKeys.includes(a.variant.key));
     if (!lead) return null;
     return {
@@ -97,7 +99,15 @@ export default function HomePage() {
         </header>
 
         <p className="sr-only" aria-live="polite">
-          {STORY_STEPS[step]?.caption}
+          {data
+            ? storyCaption(step, {
+                gene: data.gene,
+                hgvs: data.hgvs,
+                recorded: meta(data.recordedCode).short,
+                current: meta(data.currentCode).label,
+                patients: data.patients.length,
+              })
+            : null}
         </p>
 
         <section

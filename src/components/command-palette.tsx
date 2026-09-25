@@ -226,7 +226,7 @@ export function CommandPalette({
             <p className="px-3 py-10 text-center text-[13px] text-muted">
               Nothing matches{" "}
               <span className="font-medium text-ink">&ldquo;{query}&rdquo;</span>. Try a gene
-              symbol, a record ID such as VP-10283, or an HGVS string.
+              symbol, a record ID such as VP-10247, or an HGVS string.
             </p>
           ) : (
             results.map((entry, index) => {

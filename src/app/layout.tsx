@@ -38,8 +38,8 @@ export default async function RootLayout({
   const analysis = serialiseAnalysis(await analyseWorkspace());
 
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
         <WorkspaceProvider initial={analysis}>
           <a
             href="#workspace-content"

@@ -135,7 +135,7 @@ export function Topbar() {
             </button>
 
             {notifOpen ? (
-              <div className="vp-rise absolute right-0 top-12 w-[330px] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_22px_60px_-24px_rgba(18,19,50,0.44)]">
+              <div className="vp-rise absolute right-0 top-12 w-[330px] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_22px_60px_-24px_rgba(var(--vp-shadow-rgb),0.36)]">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <p className="text-[13px] font-semibold text-ink">Open review cases</p>
                   <Badge tone={open.length ? "critical" : "positive"}>{open.length}</Badge>
@@ -181,7 +181,7 @@ export function Topbar() {
           <Link
             href="/settings"
             title={`${CURRENT_USER.name} · ${CURRENT_USER.role}`}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#E0475F] to-[#B4123C] text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-oxblood text-[14px] font-semibold text-white transition-colors hover:bg-garnet"
           >
             {CURRENT_USER.initials}
             <span className="sr-only">{CURRENT_USER.name}, open settings</span>

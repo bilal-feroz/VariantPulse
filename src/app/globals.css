@@ -1,51 +1,103 @@
 @import "tailwindcss";
 
 /* ── VariantPulse design tokens ────────────────────────────────────────────
-   A light, low-noise clinical surface. One accent (indigo), three status
-   colours, and a strict type scale. Nothing decorative earns a colour. */
+   Source of truth: docs/color-system.md. Garnet is the product, vermilion
+   means "something changed", semantic colours only carry their state, and
+   everything else stays neutral (bone and warm white). The semantic names
+   below are the ones components use; the explicit palette tokens exist for
+   the rare case that needs the exact brand colour. */
 @theme {
-  /* Neutrals carry a faint warm bias so they sit with the crimson accent
-     rather than against it. */
-  --color-canvas: #eeecef;
-  --color-canvas-deep: #e6e3e8;
-  --color-surface: #ffffff;
-  --color-surface-2: #faf9fb;
-  --color-surface-3: #f3f1f4;
+  /* Palette */
+  --color-garnet: #7a263a;
+  --color-oxblood: #481a27;
+  --color-vermilion: #e85d4a;
+  --color-vermilion-soft: #fdece8;
+  --color-bone: #f7f4ed;
+  --color-warm-white: #fffefb;
+  --color-carbon: #17191c;
+  --color-slate: #74777d;
+  --color-mineral: #dddad2;
+  --color-clinical-green: #277c66;
+  --color-amber: #d99a28;
+  --color-clinical-red: #c63d3d;
+  --color-evidence-blue: #416b8c;
 
-  --color-ink: #17141a;
-  --color-ink-2: #46424c;
-  /* Every text tone clears 4.5:1 against the lightest surface it appears on,
-     including the canvas. Small uppercase labels are still "normal text" under
-     WCAG, so the faintest tone is held to the same bar; the hierarchy is
-     carried by size, case and tracking rather than by lightness alone. */
-  --color-muted: #5c5762;
-  --color-faint: #6d6874;
+  /* Component states */
+  --color-active-bg: #f0dfe2;
+  --color-selected-bg: #fff8f6;
+  --color-selected-border: #e8c5cc;
 
-  --color-line: #ecebef;
-  --color-line-2: #e0dde3;
+  /* Surfaces */
+  --color-canvas: #f7f4ed;
+  --color-canvas-deep: #efebe2;
+  --color-surface: #fffefb;
+  --color-surface-2: #fbf9f4;
+  --color-surface-3: #f5f2eb;
 
-  /* Accent is the deep crimson of the mark. It is deliberately a rose-leaning
-     red, held apart in hue from the vermillion used for critical status —
-     brand colour and alarm colour must never be confused in a triage tool. */
-  --color-accent: #b4123c;
-  --color-accent-hover: #960f32;
-  --color-accent-soft: #fdeef2;
-  --color-accent-ring: #f0b6c6;
+  /* Text. Every tone clears 4.5:1 on every surface above and on the
+     selected-record background. Palette slate (#74777d) is 4.09:1 on bone,
+     so it is non-text only (icons, dividers, the historical-state
+     connector); small muted text uses the text-safe slate #6b6e74 (`faint`).
+     `faint` is 3.98:1 on active-bg, so only ink, ink-2, muted and accent
+     are used on the active navigation fill. */
+  --color-ink: #17191c;
+  --color-ink-2: #3f4247;
+  --color-muted: #55585e;
+  --color-faint: #6b6e74;
 
-  --color-ok: #117e39;
-  --color-ok-soft: #e8f6ed;
-  --color-warn: #9d610e;
-  --color-warn-soft: #fdf3e2;
-  --color-crit: #d12222;
-  --color-crit-soft: #fdecea;
-  --color-info: #2563eb;
-  --color-info-soft: #eaf0fe;
+  --color-line: #dddad2;
+  --color-line-2: #d0ccc2;
+
+  --color-accent: #7a263a;
+  --color-accent-hover: #481a27;
+  --color-accent-soft: #f0dfe2;
+  --color-accent-ring: #e8c5cc;
+
+  /* Status. Text colour, soft background and border per the priority chips
+     in the colour system. Palette amber (#d99a28) is a fill/indicator
+     colour; its documented text tone #a86e11 is only 4.05:1 on its soft
+     background, so `warn` is a text-safe amber derived from it. */
+  --color-ok: #277c66;
+  --color-ok-soft: #edf6f2;
+  --color-ok-border: #c6ded5;
+  --color-warn: #94620f;
+  --color-warn-soft: #fff8e8;
+  --color-warn-border: #e8d19c;
+  --color-crit: #c63d3d;
+  --color-crit-soft: #fff1ef;
+  --color-crit-border: #f0c5c0;
+  --color-info: #416b8c;
+  --color-info-soft: #eef3f7;
+  --color-info-border: #c9d7e3;
 
   --radius-card: 20px;
   --radius-panel: 24px;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+:root {
+  --vp-garnet: var(--color-garnet);
+  --vp-oxblood: var(--color-oxblood);
+  --vp-vermilion: var(--color-vermilion);
+  --vp-bone: var(--color-bone);
+  --vp-white: var(--color-warm-white);
+  --vp-carbon: var(--color-carbon);
+  --vp-slate: var(--color-slate);
+  --vp-border: var(--color-mineral);
+  --vp-success: var(--color-clinical-green);
+  --vp-warning: var(--color-amber);
+  --vp-danger: var(--color-clinical-red);
+  --vp-info: var(--color-evidence-blue);
+  --vp-active-bg: var(--color-active-bg);
+  --vp-selected-bg: var(--color-selected-bg);
+  --vp-danger-bg: var(--color-crit-soft);
+  --vp-warning-bg: var(--color-warn-soft);
+  --vp-success-bg: var(--color-ok-soft);
+  /* The one permitted brand gradient: hero accents and brand artwork only. */
+  --vp-brand-gradient: linear-gradient(135deg, #481a27 0%, #7a263a 65%, #e85d4a 100%);
+  --vp-shadow-rgb: 23, 25, 28;
 }
 
 @layer base {
@@ -89,8 +141,8 @@
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     box-shadow:
-      0 1px 2px rgba(23, 20, 26, 0.03),
-      0 10px 28px -20px rgba(40, 20, 30, 0.2);
+      0 1px 2px rgba(var(--vp-shadow-rgb), 0.03),
+      0 10px 28px -20px rgba(var(--vp-shadow-rgb), 0.18);
   }
 
   .vp-card-flat {
@@ -101,14 +153,21 @@
 
   /* Floating elements over the hero composition. */
   .vp-float {
-    background: rgba(255, 255, 255, 0.86);
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
     backdrop-filter: blur(12px) saturate(140%);
     -webkit-backdrop-filter: blur(12px) saturate(140%);
-    border: 1px solid rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--color-line);
     border-radius: 18px;
     box-shadow:
-      0 1px 2px rgba(23, 20, 26, 0.04),
-      0 18px 40px -22px rgba(70, 22, 40, 0.3);
+      0 1px 2px rgba(var(--vp-shadow-rgb), 0.04),
+      0 18px 40px -22px rgba(var(--vp-shadow-rgb), 0.24);
+  }
+
+  /* Selected clinical record: soft rose surface with a garnet left accent. */
+  .vp-selected {
+    background: var(--color-selected-bg);
+    border-color: var(--color-selected-border);
+    box-shadow: inset 3px 0 0 var(--color-garnet);
   }
 
   .vp-hairline {
@@ -189,6 +248,6 @@
 
 @media print {
   .vp-no-print { display: none !important; }
-  body { background: #fff; }
+  body { background: var(--color-surface); }
   .vp-card, .vp-card-flat { box-shadow: none; break-inside: avoid; }
 }

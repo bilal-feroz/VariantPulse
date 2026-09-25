@@ -90,19 +90,19 @@ export function Eyebrow({
 /* -- Tone system ----------------------------------------------------------- */
 
 const TONE_CLASS: Record<Tone, string> = {
-  critical: "bg-crit-soft text-crit border-crit/15",
-  warning: "bg-warn-soft text-warn border-warn/15",
-  positive: "bg-ok-soft text-ok border-ok/15",
-  neutral: "bg-info-soft text-info border-info/15",
+  critical: "bg-crit-soft text-crit border-crit-border",
+  warning: "bg-warn-soft text-warn border-warn-border",
+  positive: "bg-ok-soft text-ok border-ok-border",
+  neutral: "bg-info-soft text-info border-info-border",
   muted: "bg-surface-3 text-muted border-line-2",
 };
 
 const TONE_DOT: Record<Tone, string> = {
   critical: "bg-crit",
-  warning: "bg-warn",
+  warning: "bg-amber",
   positive: "bg-ok",
   neutral: "bg-info",
-  muted: "bg-faint",
+  muted: "bg-slate",
 };
 
 const TONE_SOLID: Record<Tone, string> = {
@@ -271,9 +271,9 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "bg-ink text-white hover:bg-ink/90 active:bg-ink shadow-[0_1px_2px_rgba(18,19,26,0.16)]",
+    "bg-oxblood text-white hover:bg-garnet active:bg-oxblood shadow-sm shadow-oxblood/20",
   secondary:
-    "bg-surface text-ink border border-line-2 hover:bg-surface-2 active:bg-surface-3",
+    "bg-surface text-accent border border-line hover:bg-canvas active:bg-surface-3",
   ghost: "text-ink-2 hover:bg-surface-3 hover:text-ink",
   danger: "bg-crit text-white hover:bg-crit/90",
 };
@@ -423,7 +423,7 @@ export function Skeleton({ className }: { className?: string }) {
       aria-hidden
     >
       <div
-        className="absolute inset-x-0 h-full bg-gradient-to-b from-transparent via-white/70 to-transparent"
+        className="absolute inset-x-0 h-full bg-gradient-to-b from-transparent via-surface/70 to-transparent"
         style={{ animation: "vp-sweep 1.4s ease-in-out infinite" }}
       />
     </div>

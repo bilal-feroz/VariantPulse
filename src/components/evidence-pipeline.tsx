@@ -163,9 +163,9 @@ interface Stage {
 }
 
 const STAGES: Stage[] = [
-  { label: "New evidence", y: 424, rx: 152, ry: 38, hue: "#DC2626", shade: "#B91C1C", delay: "0s" },
-  { label: "Analysis", y: 512, rx: 176, ry: 44, hue: "#E11D48", shade: "#BE123C", delay: "0.5s" },
-  { label: "Affected patients", y: 600, rx: 200, ry: 50, hue: "#DB2777", shade: "#9D174D", delay: "1s" },
+  { label: "New evidence", y: 424, rx: 152, ry: 38, hue: "var(--color-vermilion)", shade: "var(--color-garnet)", delay: "0s" },
+  { label: "Analysis", y: 512, rx: 176, ry: 44, hue: "var(--color-garnet)", shade: "var(--color-oxblood)", delay: "0.5s" },
+  { label: "Affected patients", y: 600, rx: 200, ry: 50, hue: "var(--color-oxblood)", shade: "var(--color-carbon)", delay: "1s" },
 ];
 
 /** Where the evidence lines converge: the rim of the first disc. */
@@ -180,9 +180,9 @@ export function EvidencePipeline({ className }: { className?: string }) {
       focusable="false"
     >
       <defs>
-        {/* The mark pairs a crimson ribbon with a pale one. The two strands
-            keep to separate hue families so they stay legible where they
-            cross: one warm red, one cooler rose.
+        {/* The mark pairs a garnet ribbon with a pale one. The two strands
+            keep to separate tones so they stay legible where they
+            cross: one garnet, one pale rose.
 
             These are in user space and run horizontally, for two reasons. A
             bounding-box gradient would restart inside every one of the ~130
@@ -197,9 +197,9 @@ export function EvidencePipeline({ className }: { className?: string }) {
           x2={CENTRE + AMPLITUDE}
           y2="0"
         >
-          <stop offset="0%" stopColor="#FF8A75" />
-          <stop offset="50%" stopColor="#E02424" />
-          <stop offset="100%" stopColor="#8B1616" />
+          <stop offset="0%" stopColor="var(--color-vermilion)" />
+          <stop offset="50%" stopColor="var(--color-garnet)" />
+          <stop offset="100%" stopColor="var(--color-oxblood)" />
         </linearGradient>
         <linearGradient
           id="vp-strand-b"
@@ -209,32 +209,32 @@ export function EvidencePipeline({ className }: { className?: string }) {
           x2={CENTRE + AMPLITUDE}
           y2="0"
         >
-          <stop offset="0%" stopColor="#FF9CB8" />
-          <stop offset="50%" stopColor="#D81B48" />
-          <stop offset="100%" stopColor="#7A0F30" />
+          <stop offset="0%" stopColor="var(--color-selected-border)" />
+          <stop offset="50%" stopColor="var(--color-garnet)" />
+          <stop offset="100%" stopColor="var(--color-oxblood)" />
         </linearGradient>
 
         {/* Beads are lit from the upper left, which is what reads as spherical. */}
         <radialGradient id="vp-bead-a" cx="33%" cy="27%" r="80%">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="26%" stopColor="#FCA5A5" />
-          <stop offset="100%" stopColor="#7F1D1D" />
+          <stop offset="0%" stopColor="var(--color-surface)" />
+          <stop offset="26%" stopColor="var(--color-selected-border)" />
+          <stop offset="100%" stopColor="var(--color-oxblood)" />
         </radialGradient>
         <radialGradient id="vp-bead-b" cx="33%" cy="27%" r="80%">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="26%" stopColor="#FDA4AF" />
-          <stop offset="100%" stopColor="#881337" />
+          <stop offset="0%" stopColor="var(--color-surface)" />
+          <stop offset="26%" stopColor="var(--color-active-bg)" />
+          <stop offset="100%" stopColor="var(--color-garnet)" />
         </radialGradient>
 
         <linearGradient id="vp-column" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#DC2626" stopOpacity="0" />
-          <stop offset="50%" stopColor="#DC2626" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#DB2777" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--color-garnet)" stopOpacity="0" />
+          <stop offset="50%" stopColor="var(--color-garnet)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--color-garnet)" stopOpacity="0" />
         </linearGradient>
 
         {STAGES.map((stage, index) => (
           <radialGradient key={stage.label} id={`vp-disc-${index}`} cx="50%" cy="36%" r="64%">
-            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.45" />
+            <stop offset="0%" stopColor="var(--color-surface)" stopOpacity="0.45" />
             <stop offset="42%" stopColor={stage.hue} stopOpacity="0.32" />
             <stop offset="100%" stopColor={stage.shade} stopOpacity="0.17" />
           </radialGradient>
@@ -243,10 +243,10 @@ export function EvidencePipeline({ className }: { className?: string }) {
         {/* Fades the helix into the stack at the base. The top barely fades so
             the form does not look cropped. */}
         <linearGradient id="vp-helix-fade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#000" stopOpacity="0" />
-          <stop offset="3%" stopColor="#fff" stopOpacity="1" />
-          <stop offset="90%" stopColor="#fff" stopOpacity="1" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0" />
+          <stop offset="0%" stopColor="black" stopOpacity="0" />
+          <stop offset="3%" stopColor="white" stopOpacity="1" />
+          <stop offset="90%" stopColor="white" stopOpacity="1" />
+          <stop offset="100%" stopColor="black" stopOpacity="0" />
         </linearGradient>
         <mask id="vp-helix-mask">
           <rect
@@ -267,7 +267,7 @@ export function EvidencePipeline({ className }: { className?: string }) {
       </defs>
 
       {/* Ambient wash behind the whole composition. */}
-      <ellipse cx={CENTRE} cy={508} rx={232} ry={176} fill="#E11D48" opacity="0.09" filter="url(#vp-soft)" />
+      <ellipse cx={CENTRE} cy={508} rx={232} ry={176} fill="var(--color-garnet)" opacity="0.09" filter="url(#vp-soft)" />
 
       {/* The column of light linking the helix to the stack. */}
       <rect x={CENTRE - 46} y={160} width={92} height={432} fill="url(#vp-column)" />
@@ -301,7 +301,7 @@ export function EvidencePipeline({ className }: { className?: string }) {
           <path
             d={`M ${CENTRE - stage.rx} ${stage.y} A ${stage.rx} ${stage.ry} 0 0 1 ${CENTRE + stage.rx} ${stage.y}`}
             fill="none"
-            stroke="#FFFFFF"
+            stroke="var(--color-surface)"
             strokeOpacity="0.85"
             strokeWidth="1.7"
           />
@@ -336,7 +336,7 @@ export function EvidencePipeline({ className }: { className?: string }) {
       ))}
 
       {/* Where the helix meets the top disc. */}
-      <ellipse cx={CENTRE} cy={HELIX_BOTTOM + 12} rx={90} ry={16} fill="#9F1239" opacity="0.26" filter="url(#vp-contact)" />
+      <ellipse cx={CENTRE} cy={HELIX_BOTTOM + 12} rx={90} ry={16} fill="var(--color-oxblood)" opacity="0.26" filter="url(#vp-contact)" />
 
       {/* The helix. Depth-sorted, and sliding by exactly one turn. */}
       <g mask="url(#vp-helix-mask)">
@@ -356,7 +356,7 @@ export function EvidencePipeline({ className }: { className?: string }) {
                       y1={item.y1}
                       x2={item.x2}
                       y2={item.y2}
-                      stroke="#FFFFFF"
+                      stroke="var(--color-surface)"
                       strokeWidth={q(width + 6)}
                       strokeLinecap="round"
                       opacity={q((n - 0.55) * 2.1)}
@@ -384,7 +384,7 @@ export function EvidencePipeline({ className }: { className?: string }) {
                   y1={item.y1}
                   x2={item.x2}
                   y2={item.y2}
-                  stroke={item.pair === 0 ? "#E04A4A" : "#E8738F"}
+                  stroke={item.pair === 0 ? "var(--color-garnet)" : "var(--color-selected-border)"}
                   strokeWidth={q(1.5 + 1.6 * n)}
                   strokeLinecap="round"
                   opacity={q(0.14 + 0.5 * n)}
@@ -416,8 +416,8 @@ export function EvidencePipeline({ className }: { className?: string }) {
         const path = `M ${WIDTH - 4} ${line.y} C ${WIDTH - 118} ${line.y}, ${CENTRE + line.curve + 74} ${INTAKE_Y}, ${CENTRE + line.curve} ${INTAKE_Y}`;
         return (
           <g key={line.y}>
-            <path d={path} fill="none" stroke="#EDA3B4" strokeOpacity="0.5" strokeWidth="1.1" />
-            <circle r="2.9" fill="#E11D48">
+            <path d={path} fill="none" stroke="var(--color-selected-border)" strokeOpacity="0.5" strokeWidth="1.1" />
+            <circle r="2.9" fill="var(--color-garnet)">
               <animateMotion dur="4.5s" begin={`${index * 0.9}s`} repeatCount="indefinite" path={path} />
               <animate
                 attributeName="opacity"
@@ -440,7 +440,7 @@ export function EvidencePipeline({ className }: { className?: string }) {
           key={line.y}
           d={`M ${CENTRE + line.curve} ${line.y} C ${CENTRE + line.curve - 74} ${line.y}, 70 ${line.y + 14}, 6 ${line.y + 18}`}
           fill="none"
-          stroke="#DB2777"
+          stroke="var(--color-garnet)"
           strokeOpacity={0.24 - index * 0.06}
           strokeWidth="1.1"
         />

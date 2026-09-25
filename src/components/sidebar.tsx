@@ -121,7 +121,7 @@ export function Sidebar() {
 
       <div className="px-3 pb-3">
         <Link
-          href="/variants/BRCA1:c.5522G>T"
+          href="/variants/BRCA1:c.5056C>T"
           className="group relative block overflow-hidden rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-selected-border"
         >
           <HelixMotif className="pointer-events-none absolute -right-3 -top-4 h-28 w-24 opacity-70" />

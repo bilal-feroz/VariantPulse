@@ -18,7 +18,7 @@ panel reviews the variant. The consensus moves. The variant is now considered pa
 The patient's DNA has not changed. The evidence around it has.
 
 But the report in the record system still says what it said on the day it was issued, and nobody
-is watching. Reclassification is not an edge case — it is the normal behaviour of a field where
+is watching. Reclassification is not an edge case - it is the normal behaviour of a field where
 evidence accumulates faster than old reports are revisited. At population scale, that gap widens
 quietly and continuously.
 

@@ -108,7 +108,7 @@ export function EvidenceLanes({
               </p>
             </div>
           ) : (
-            <div className="relative w-full overflow-hidden rounded-xl border border-ok/25 bg-ok-soft p-3.5 pl-4">
+            <div className="relative w-full overflow-hidden rounded-xl border border-ok-border bg-ok-soft p-3.5 pl-4">
               <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-ok" />
               <p className="flex items-center gap-1.5 text-[13px] font-semibold text-ok">
                 <ShieldCheck className="h-4 w-4" />

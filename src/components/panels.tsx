@@ -132,8 +132,8 @@ export function ScienceTimeline({
                 className={cn(
                   "z-10 grid h-14 w-14 shrink-0 place-items-center rounded-xl border text-[12px] font-semibold vp-num",
                   event.tone === "muted" && "border-line bg-surface-2 text-muted",
-                  event.tone === "warn" && "border-warn/20 bg-warn-soft text-warn",
-                  event.tone === "crit" && "border-crit/20 bg-crit-soft text-crit",
+                  event.tone === "warn" && "border-warn-border bg-warn-soft text-warn",
+                  event.tone === "crit" && "border-crit-border bg-crit-soft text-crit",
                   event.tone === "accent" && "border-accent-ring/60 bg-accent-soft text-accent",
                 )}
               >

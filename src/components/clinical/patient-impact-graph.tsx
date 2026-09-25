@@ -103,7 +103,7 @@ export function PatientImpactGraph({
           <div
             className={cn(
               "relative w-full overflow-hidden rounded-xl border bg-surface p-3.5 pl-4",
-              changed ? "border-accent-ring" : "border-line",
+              changed ? "border-vermilion-soft" : "border-line",
             )}
           >
             <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", changed ? CHANGE.fill : "bg-line-2")} />
@@ -114,7 +114,7 @@ export function PatientImpactGraph({
             <p className="font-mono text-[11.5px] text-muted [overflow-wrap:anywhere]">{variant.hgvsCoding}</p>
             <p className="mt-2 flex flex-wrap items-center gap-1 text-[11.5px] font-medium">
               <span className={HISTORICAL.text}>{meta(recordedCode).short}</span>
-              <ArrowRight aria-hidden className={cn("h-3 w-3", changed ? CHANGE.text : "text-faint")} />
+              <ArrowRight aria-hidden className={cn("h-3 w-3", changed ? CHANGE.icon : "text-faint")} />
               <span className={changed ? CURRENT.text : "text-ink-2"}>{meta(currentCode).short}</span>
             </p>
           </div>
@@ -167,16 +167,13 @@ export function PatientImpactGraph({
                   onClick={() => setSelectedId(patient.id)}
                   className={cn(
                     "relative flex w-full items-center gap-2.5 overflow-hidden rounded-xl border px-3 py-2 text-left transition-colors",
-                    active
-                      ? cn(CURRENT.border, CURRENT.surface)
-                      : "border-line bg-surface hover:bg-surface-2",
+                    active ? "vp-selected" : "border-line bg-surface hover:bg-surface-2",
                   )}
                 >
-                  {active ? <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", CURRENT.fill)} /> : null}
                   <span
                     className={cn(
                       "grid h-7 w-7 shrink-0 place-items-center rounded-full",
-                      active ? "bg-surface text-accent" : "bg-surface-3 text-muted",
+                      active ? "bg-active-bg text-garnet" : "bg-surface-3 text-muted",
                     )}
                   >
                     <UserRound className="h-3.5 w-3.5" />

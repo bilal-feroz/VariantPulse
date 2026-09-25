@@ -164,7 +164,7 @@ export function ThenNow({
               <span className={cn("h-px w-full", changed ? CHANGE.fill : "bg-line-2")} />
               <ChevronRight
                 aria-hidden
-                className={cn("absolute -right-1.5 h-3.5 w-3.5", changed ? CHANGE.text : "text-faint")}
+                className={cn("absolute -right-1.5 h-3.5 w-3.5", changed ? CHANGE.icon : "text-faint")}
               />
               {changed ? (
                 <span className={cn("absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full", CHANGE.fill)}>
@@ -177,7 +177,7 @@ export function ThenNow({
             </span>
             <ArrowRight
               aria-hidden
-              className={cn("h-3.5 w-3.5 rotate-90 sm:hidden", changed ? CHANGE.text : "text-faint")}
+              className={cn("h-3.5 w-3.5 rotate-90 sm:hidden", changed ? CHANGE.icon : "text-faint")}
             />
             <span
               className={cn(
@@ -226,7 +226,7 @@ function Panel({
     <div
       className={cn(
         "relative min-w-0 overflow-hidden rounded-xl border bg-surface p-3.5 pl-4",
-        tone === "historical" ? "border-line" : "border-accent-ring",
+        tone === "historical" ? "border-line" : CURRENT.border,
       )}
     >
       <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", role.fill)} />

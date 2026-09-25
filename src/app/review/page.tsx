@@ -118,7 +118,7 @@ export default function ReviewPage() {
                   </div>
                   <Link
                     href={`/review/${assessment.caseId}`}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-ink px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-ink/90"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-oxblood px-4 py-2.5 text-[13px] font-medium text-warm-white transition-colors hover:bg-garnet"
                   >
                     Open case
                     <ArrowRight className="h-3.5 w-3.5" />

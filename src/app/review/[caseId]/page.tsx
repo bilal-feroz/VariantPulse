@@ -202,7 +202,7 @@ export default function ReviewCasePage() {
             <SectionHeading title="Recommendation" />
             <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{recommendation}</p>
             {reviewed ? (
-              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-ok/20 bg-ok-soft p-3.5">
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-ok-border bg-ok-soft p-3.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" />
                 <div className="min-w-0">
                   <p className="text-[12.5px] font-medium text-ink">Reviewed</p>

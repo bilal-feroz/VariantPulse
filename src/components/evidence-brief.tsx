@@ -168,7 +168,7 @@ function EvidenceBrief({
         type="button"
         aria-label="Close brief"
         onClick={onClose}
-        className="fixed inset-0 cursor-default bg-ink/30 backdrop-blur-[2px] vp-no-print"
+        className="fixed inset-0 cursor-default bg-carbon/30 backdrop-blur-[2px] vp-no-print"
       />
 
       <div className="relative mx-auto my-8 w-[min(820px,calc(100vw-2rem))]">

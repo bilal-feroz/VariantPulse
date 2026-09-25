@@ -107,7 +107,7 @@ for (const viewport of VIEWPORTS) {
       const visible = (el) => {
         const style = getComputedStyle(el);
         const rect = el.getBoundingClientRect();
-        return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+        return style.visibility !== "hidden" && style.display !== "none" && rect.width > 1 && rect.height > 1;
       };
       const clippedByAncestor = (el) => {
         for (let p = el.parentElement; p; p = p.parentElement) {

@@ -185,7 +185,7 @@ export function composeRecommendation(changeType: ChangeType, impacted: number):
 
 /**
  * Workspace totals span every monitored variant, whereas the headline story is a
- * single variant (BRCA1 c.5522G>T, four records). Totals are always labelled
+ * single variant (see `selectStoryAssessment`). Totals are always labelled
  * with their scope so the two numbers never read as contradicting each other.
  */
 export const WORKSPACE_TOTAL_LABELS = {

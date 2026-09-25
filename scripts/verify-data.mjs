@@ -209,45 +209,69 @@ const impacted = new Set(
 
 /* -- Demo story invariants ------------------------------------------------ */
 
-const STORY = {
-  key: "BRCA1:c.5522G>T",
-  accession: "VCV000869004",
-  recordedClassification: "VUS",
-  recordedOn: "2023-04-18",
-  current: "LIKELY_PATHOGENIC",
-  lastEvaluated: "2025-11-06",
-  patients: ["VP-10283", "VP-10491", "VP-10822", "VP-11034"],
+// Historical and current values come from data/provenance.json, never from
+// literals here. The story is whichever VUS now reads (likely) pathogenic for
+// the most records on file; ties would make the headline ambiguous.
+const provenance = JSON.parse(read("src/data/provenance.json"));
+const MONTHS = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
+const provenanceCode = (raw) => (raw ?? "").split(" (")[0].trim();
+const provenanceDate = (raw) => {
+  const m = /^([A-Z][a-z]{2}) (\d{2}), (\d{4})$/.exec(raw ?? "");
+  return m ? `${m[3]}-${MONTHS[m[1]]}-${m[2]}` : null;
 };
+const carriers = (key) => patients.filter((p) => p.variantKey === key).map((p) => p.id).sort();
 
-const storyVariant = variants.find((v) => v.key === STORY.key);
-const storyRecord = snapshot.records[STORY.key];
-
-if (!storyVariant || !storyRecord) {
-  fail(`Demo story variant ${STORY.key} is missing from the panel or the snapshot.`);
-} else {
-  if (storyRecord.accession !== STORY.accession) {
-    fail(`${STORY.key} should resolve to ${STORY.accession}, found ${storyRecord.accession}.`);
+for (const entry of provenance) {
+  const variant = variants.find((v) => v.key === entry.key);
+  const record = snapshot.records[entry.key];
+  if (!variant || !record) {
+    fail(`Provenance entry ${entry.key} is missing from the panel or the snapshot.`);
+    continue;
   }
-  if (storyVariant.recordedClassification !== STORY.recordedClassification) {
-    fail(`${STORY.key} should be recorded as ${STORY.recordedClassification}.`);
+  const then = provenanceCode(entry.clinvar_2023_01);
+  if (then in BAND && variant.recordedClassification !== then) {
+    fail(`${entry.key} is recorded as ${variant.recordedClassification}; provenance says ${then} in Jan 2023.`);
   }
-  if (storyVariant.recordedOn !== STORY.recordedOn) {
-    fail(`${STORY.key} should be recorded on ${STORY.recordedOn}, found ${storyVariant.recordedOn}.`);
+  const now = provenanceCode(entry.clinvar_2026_09);
+  if (now in BAND && normalise(record.classification) !== now) {
+    fail(`${entry.key} snapshot reads ${record.classification}; provenance says ${now}.`);
   }
-  if (normalise(storyRecord.classification) !== STORY.current) {
-    fail(`${STORY.key} snapshot should read Likely pathogenic, found ${storyRecord.classification}.`);
+  const evaluated = provenanceDate(entry.currentLastEvaluated);
+  if (evaluated && record.lastEvaluated !== evaluated) {
+    fail(`${entry.key} snapshot was last evaluated ${record.lastEvaluated}; provenance says ${evaluated}.`);
   }
-  if (storyRecord.lastEvaluated !== STORY.lastEvaluated) {
-    fail(`${STORY.key} should be last evaluated ${STORY.lastEvaluated}, found ${storyRecord.lastEvaluated}.`);
+  if (typeof entry.patients === "number" && carriers(entry.key).length !== entry.patients) {
+    fail(`${entry.key} is carried by ${carriers(entry.key).length} patients; provenance says ${entry.patients}.`);
   }
 }
 
-const storyPatients = patients
-  .filter((p) => p.variantKey === STORY.key)
-  .map((p) => p.id)
-  .sort();
-if (storyPatients.join(",") !== STORY.patients.join(",")) {
-  fail(`${STORY.key} should be carried by exactly ${STORY.patients.join(", ")}; found ${storyPatients.join(", ")}.`);
+const headlineCandidates = variants
+  .filter((v) => {
+    const record = snapshot.records[v.key];
+    return (
+      record &&
+      v.recordedClassification === "VUS" &&
+      BAND[normalise(record.classification)] === "pathogenic" &&
+      carriers(v.key).length > 0
+    );
+  })
+  .sort((a, b) => carriers(b.key).length - carriers(a.key).length);
+
+const story = headlineCandidates[0];
+const storyPatients = story ? carriers(story.key) : [];
+if (!story) {
+  fail("No VUS -> (likely) pathogenic change carries patients, so the demo has no story.");
+} else {
+  const runnerUp = headlineCandidates[1];
+  if (runnerUp && carriers(runnerUp.key).length === storyPatients.length) {
+    fail(`${story.key} and ${runnerUp.key} tie for the headline story.`);
+  }
+  if (storyPatients.length !== 4) {
+    fail(`The demo story ${story.key} should reach exactly 4 patients; found ${storyPatients.length}.`);
+  }
+  if (!provenance.some((e) => e.key === story.key)) {
+    fail(`The demo story ${story.key} has no provenance entry.`);
+  }
 }
 
 for (const patient of patients) {
@@ -274,7 +298,9 @@ const unchangedControls = variants.filter((v) => {
   return record && normalise(record.classification) === v.recordedClassification;
 });
 
-if (variants.length !== 12) fail(`Expected 12 monitored variants, found ${variants.length}.`);
+if (variants.length !== provenance.length) {
+  fail(`Expected ${provenance.length} monitored variants (one per provenance entry), found ${variants.length}.`);
+}
 if (patients.length < 25 || patients.length > 40) {
   fail(`Expected about 30 synthetic patients, found ${patients.length}.`);
 }
@@ -284,7 +310,9 @@ if (unchangedControls.length === 0) fail("Expected at least one unchanged contro
 if (shared.length < 2) fail("Expected several patients sharing a changed variant.");
 
 notes.push(`${variants.length} variants on the panel, all backed by a ClinVar record`);
-notes.push(`Demo story: ${STORY.key} VUS -> Likely pathogenic for ${storyPatients.length} patients`);
+notes.push(
+  `Demo story: ${story?.key} VUS -> ${story ? snapshot.records[story.key].classification : "?"} for ${storyPatients.length} patients (${storyPatients.join(", ")})`,
+);
 notes.push(`${unchangedControls.length} unchanged controls, ${shared.length} changed variants shared by several patients`);
 notes.push(`${patients.length} patient records, ${impacted.size} on a variant that moved`);
 notes.push(`${changed} reclassifications, ${conflicts} regional conflicts`);

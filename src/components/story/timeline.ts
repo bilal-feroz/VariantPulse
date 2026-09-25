@@ -11,10 +11,10 @@ export const STORY_STEPS = [
   { id: "sources", caption: "Evidence sources connected." },
   { id: "flow", caption: "Evidence flowing into VariantPulse." },
   { id: "scan", caption: "Scanning monitored variants." },
-  { id: "detect", caption: "New evidence found for BRCA1 c.5522G>T." },
-  { id: "reclassify", caption: "Classification changed: VUS to Likely pathogenic." },
+  { id: "detect", caption: "New evidence found." },
+  { id: "reclassify", caption: "Classification changed." },
   { id: "records", caption: "Searching historical hospital records." },
-  { id: "patients", caption: "4 historical patients located." },
+  { id: "patients", caption: "Historical patients located." },
   { id: "review", caption: "Clinical review case created." },
 ] as const;
 
@@ -35,10 +35,28 @@ export const STEP = {
 export const FINAL_STEP = STEP.review;
 
 /** Start time of each step, in ms after Run is pressed. Index = step. */
-export const STEP_STARTS_MS = [0, 0, 650, 1450, 2450, 3150, 3950, 4650, 5450] as const;
+export const STEP_STARTS_MS = [0, 0, 600, 1300, 2100, 2700, 3850, 4450, 5250] as const;
 
 /** Total length of the sequence, from click to the settled end state. */
-export const STORY_DURATION_MS = 6000;
+export const STORY_DURATION_MS = 5800;
 
-/** The variant the home story is about. */
-export const STORY_VARIANT_KEY = "BRCA1:c.5522G>T";
+export function patientsLocated(count: number): string {
+  return `${count} historical patient${count === 1 ? "" : "s"} located`;
+}
+
+/** Screen-reader caption for a step, filled in from the story's own data. */
+export function storyCaption(
+  step: number,
+  story: { gene: string; hgvs: string; recorded: string; current: string; patients: number },
+): string {
+  switch (STORY_STEPS[step]?.id) {
+    case "detect":
+      return `New evidence found for ${story.gene} ${story.hgvs}.`;
+    case "reclassify":
+      return `Classification changed: ${story.recorded} to ${story.current}.`;
+    case "patients":
+      return `${patientsLocated(story.patients)}.`;
+    default:
+      return STORY_STEPS[step]?.caption ?? "";
+  }
+}

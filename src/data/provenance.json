@@ -1,0 +1,335 @@
+[
+ {
+  "key": "BRCA1:c.5056C>T",
+  "clinvarVariationId": "531444",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/531444/",
+  "name": "NM_007294.4(BRCA1):c.5056C>T (p.His1686Tyr)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "CONFLICTING",
+  "clinvar_2025_01": "CONFLICTING",
+  "clinvar_2026_09": "LIKELY_PATHOGENIC",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Aug 18, 2025",
+  "submitters": "9",
+  "grch38": "17-43067626-G-A",
+  "gnomad_v4_global_ac_an": [
+   0,
+   0
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   0
+  ],
+  "patients": 4
+ },
+ {
+  "key": "BRCA2:c.7847C>T",
+  "clinvarVariationId": "630829",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/630829/",
+  "name": "NM_000059.4(BRCA2):c.7847C>T (p.Ser2616Phe)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "CONFLICTING",
+  "clinvar_2025_01": "CONFLICTING",
+  "clinvar_2026_09": "PATHOGENIC",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Jul 06, 2026",
+  "submitters": "7",
+  "grch38": "13-32362564-C-T",
+  "gnomad_v4_global_ac_an": [
+   1,
+   1461794
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   5768
+  ],
+  "patients": 2
+ },
+ {
+  "key": "TP53:c.589G>A",
+  "clinvarVariationId": "188060",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/188060/",
+  "name": "NM_000546.6(TP53):c.589G>A (p.Val197Met)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "VUS",
+  "clinvar_2025_01": "CONFLICTING",
+  "clinvar_2026_09": "LIKELY_PATHOGENIC",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Dec 05, 2025",
+  "submitters": "10",
+  "grch38": "17-7674942-C-T",
+  "gnomad_v4_global_ac_an": [
+   0,
+   1461890
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   5768
+  ],
+  "patients": 2
+ },
+ {
+  "key": "LDLR:c.1381G>T",
+  "clinvarVariationId": "183113",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/183113/",
+  "name": "NM_000527.5(LDLR):c.1381G>T (p.Gly461Cys)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "VUS",
+  "clinvar_2025_01": "CONFLICTING",
+  "clinvar_2026_09": "LIKELY_PATHOGENIC",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Feb 23, 2024",
+  "submitters": "10",
+  "grch38": "19-11113557-G-T",
+  "gnomad_v4_global_ac_an": [
+   8,
+   1613752
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   6084
+  ],
+  "patients": 2
+ },
+ {
+  "key": "PTEN:c.149T>C",
+  "clinvarVariationId": "492727",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/492727/",
+  "name": "NM_000314.8(PTEN):c.149T>C (p.Ile50Thr)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "CONFLICTING",
+  "clinvar_2025_01": "PATHOGENIC",
+  "clinvar_2026_09": "PATHOGENIC",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Feb 09, 2024",
+  "submitters": "9",
+  "grch38": "10-87894094-T-C",
+  "gnomad_v4_global_ac_an": [
+   1,
+   1458964
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   5754
+  ],
+  "patients": 1
+ },
+ {
+  "key": "MYBPC3:c.26-2A>G",
+  "clinvarVariationId": "42644",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/42644/",
+  "name": "NM_000256.3(MYBPC3):c.26-2A>G",
+  "clinvar_2023_01": "PATHOGENIC",
+  "clinvar_2024_01": "PATHOGENIC",
+  "clinvar_2025_01": "PATHOGENIC",
+  "clinvar_2026_09": "VUS",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Nov 13, 2025",
+  "submitters": "35",
+  "grch38": "11-47351507-T-C",
+  "gnomad_v4_global_ac_an": [
+   62,
+   1581032
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   5944
+  ],
+  "patients": 2
+ },
+ {
+  "key": "HBB:c.380T>G",
+  "clinvarVariationId": "15483",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/15483/",
+  "name": "NM_000518.5(HBB):c.380T>G (p.Val127Gly)",
+  "clinvar_2023_01": "PATHOGENIC",
+  "clinvar_2024_01": "PATHOGENIC",
+  "clinvar_2025_01": "PATHOGENIC",
+  "clinvar_2026_09": "VUS",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Apr 30, 2026",
+  "submitters": "9",
+  "grch38": "11-5225662-A-C",
+  "gnomad_v4_global_ac_an": [
+   3,
+   1461774
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   5768
+  ],
+  "patients": 1
+ },
+ {
+  "key": "BRCA2:c.9538C>T",
+  "clinvarVariationId": "52865",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/52865/",
+  "name": "NM_000059.4(BRCA2):c.9538C>T (p.Leu3180Phe)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "CONFLICTING",
+  "clinvar_2025_01": "CONFLICTING",
+  "clinvar_2026_09": "BENIGN",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Aug 18, 2025",
+  "submitters": "13",
+  "grch38": "13-32396934-C-T",
+  "gnomad_v4_global_ac_an": [
+   12,
+   1614074
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   6060
+  ],
+  "patients": 2
+ },
+ {
+  "key": "TP53:c.784G>A",
+  "clinvarVariationId": "141228",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/141228/",
+  "name": "NM_000546.6(TP53):c.784G>A (p.Gly262Ser)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "VUS",
+  "clinvar_2025_01": "VUS",
+  "clinvar_2026_09": "LIKELY_BENIGN",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Apr 03, 2025",
+  "submitters": "13",
+  "grch38": "17-7673836-C-T",
+  "gnomad_v4_global_ac_an": [
+   38,
+   1611646
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   6080
+  ],
+  "patients": 1
+ },
+ {
+  "key": "BRCA1:c.5123C>T",
+  "clinvarVariationId": "37640",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/37640/",
+  "name": "NM_007294.4(BRCA1):c.5123C>T (p.Ala1708Val)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "VUS",
+  "clinvar_2025_01": "CONFLICTING",
+  "clinvar_2026_09": "CONFLICTING",
+  "currentReviewStatus": "criteria provided, conflicting classifications",
+  "currentLastEvaluated": "Jan 31, 2026",
+  "submitters": "25",
+  "grch38": "17-43063903-G-A",
+  "gnomad_v4_global_ac_an": [
+   32,
+   1613780
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   6084
+  ],
+  "patients": 1
+ },
+ {
+  "key": "LDLR:c.2479G>A",
+  "clinvarVariationId": "36462",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/36462/",
+  "name": "NM_000527.5(LDLR):c.2479G>A (p.Val827Ile)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "VUS",
+  "clinvar_2025_01": "VUS",
+  "clinvar_2026_09": "VUS",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Jun 22, 2021",
+  "submitters": "39",
+  "grch38": "19-11129602-G-A",
+  "gnomad_v4_global_ac_an": [
+   900,
+   1613892
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   6062
+  ],
+  "patients": 2
+ },
+ {
+  "key": "CFTR:c.601G>A",
+  "clinvarVariationId": "54022",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/54022/",
+  "name": "NM_000492.4(CFTR):c.601G>A (p.Val201Met)",
+  "clinvar_2023_01": "VUS",
+  "clinvar_2024_01": "VUS",
+  "clinvar_2025_01": "VUS",
+  "clinvar_2026_09": "VUS",
+  "currentReviewStatus": "reviewed by expert panel",
+  "currentLastEvaluated": "Mar 03, 2017",
+  "submitters": "20",
+  "grch38": "7-117535269-G-A",
+  "gnomad_v4_global_ac_an": [
+   272,
+   1614044
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   4,
+   6060
+  ],
+  "patients": 1
+ },
+ {
+  "key": "HBB:c.364G>C",
+  "clinvarVariationId": "15152",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/15152/",
+  "name": "NM_000518.5(HBB):c.364G>C (p.Glu122Gln) \u2014 Hb D-Punjab",
+  "clinvar_2023_01": "CONFLICTING",
+  "clinvar_2026_09": "PATHOGENIC (Pathogenic/Likely pathogenic, Mar 2026)",
+  "ctga": "UAE records; CTGA: Likely pathogenic, Pathogenic (sickle cell anaemia; beta-thalassaemia)",
+  "grch38": "11-5225678-C-G",
+  "gnomad_v4_global_ac_an": [
+   717,
+   1614096
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   11,
+   6062
+  ],
+  "patients": 2
+ },
+ {
+  "key": "MYBPC3:c.776delinsTT",
+  "clinvarVariationId": "4689837",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/4689837/",
+  "name": "NM_000256.3(MYBPC3):c.776delinsTT (p.Ala259fs)",
+  "clinvar_2023_01": "NOT IN CLINVAR",
+  "clinvar_2026_09": "LIKELY_PATHOGENIC (single submitter, Jul 2025)",
+  "ctga": "UAE record (2020); CTGA: Likely pathogenic (LV non-compaction 10)",
+  "grch38": "11-47347902-G-AA",
+  "gnomad_v4_global_ac_an": [
+   0,
+   0
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   0
+  ],
+  "patients": 2
+ },
+ {
+  "key": "BRCA1:c.1140dup",
+  "clinvarVariationId": "231732",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/231732/",
+  "name": "NM_007294.4(BRCA1):c.1140dup (p.Lys381fs)",
+  "clinvar_2023_01": "PATHOGENIC (expert panel)",
+  "clinvar_2026_09": "PATHOGENIC (expert panel)",
+  "ctga": "UAE (Rawashdeh et al. 2024) and Yemen (Al-Ali et al. 2023); CTGA: Likely pathogenic, Pathogenic",
+  "grch38": "17-43094390-T-TC",
+  "gnomad_v4_global_ac_an": [
+   0,
+   0
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   0
+  ],
+  "patients": 1
+ }
+]

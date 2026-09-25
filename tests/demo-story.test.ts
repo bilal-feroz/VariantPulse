@@ -3,9 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { analyseWorkspace } from "@/lib/analysis";
 import { invalidateEvidenceCache, resolveEvidenceMode, SNAPSHOT_CAPTURED_AT } from "@/lib/clinvar";
 import { serialiseAnalysis } from "@/lib/dto";
+import { selectStoryAssessment } from "@/lib/story";
 
-const BRCA1 = "BRCA1:c.5522G>T";
-const STORY_PATIENTS = ["VP-10283", "VP-10491", "VP-10822", "VP-11034"];
+const BRCA1 = "BRCA1:c.5056C>T";
+const STORY_PATIENTS = ["VP-10247", "VP-10284", "VP-10321", "VP-10358"];
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -36,14 +37,15 @@ describe("the demo story", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("moves BRCA1 c.5522G>T from VUS to Likely pathogenic for exactly four patients", async () => {
+  it("derives BRCA1 c.5056C>T as the story: VUS to Likely pathogenic for exactly four patients", async () => {
     const analysis = await analyseWorkspace({ mode: "demo" });
-    const brca1 = analysis.assessments.find((a) => a.variant.key === BRCA1);
+    const brca1 = selectStoryAssessment(analysis.assessments);
 
-    expect(brca1).toBeDefined();
-    expect(brca1?.evidence.accession).toBe("VCV000869004");
-    expect(brca1?.variant.recordedOn).toBe("2023-04-18");
-    expect(brca1?.evidence.lastEvaluated).toBe("2025-11-06");
+    expect(brca1?.variant.key).toBe(BRCA1);
+    expect(brca1?.evidence.accession).toBe("VCV000531444");
+    expect(brca1?.variant.recordedOn).toBe("2023-03-14");
+    expect(brca1?.evidence.lastEvaluated).toBe("2025-08-18");
+    expect(brca1?.evidence.reviewStatus).toBe("reviewed by expert panel");
     expect(brca1?.recordedCode).toBe("VUS");
     expect(brca1?.currentCode).toBe("LIKELY_PATHOGENIC");
     expect(brca1?.verdict.type).toBe("CLASSIFICATION_DRIFT");
@@ -73,6 +75,42 @@ describe("the demo story", () => {
     expect(second).toEqual(first);
     expect(first.checkedAt).toBe(SNAPSHOT_CAPTURED_AT);
     expect(first.generatedAt).toBe(SNAPSHOT_CAPTURED_AT);
+  });
+});
+
+describe("reclassifications in both directions", () => {
+  async function assessment(key: string) {
+    const analysis = await analyseWorkspace({ mode: "demo" });
+    const found = analysis.assessments.find((a) => a.variant.key === key);
+    if (!found) throw new Error(`${key} is not on the panel`);
+    return found;
+  }
+
+  it("reads Pathogenic to VUS as leaving the actionable band", async () => {
+    const mybpc3 = await assessment("MYBPC3:c.26-2A>G");
+    expect([mybpc3.recordedCode, mybpc3.currentCode]).toEqual(["PATHOGENIC", "VUS"]);
+    expect(mybpc3.verdict).toMatchObject({ type: "CLASSIFICATION_DRIFT", direction: "toward-benign" });
+    expect(mybpc3.priority.level).toBe("HIGH");
+    expect(mybpc3.priority.factors.map((f) => f.label)).toContain("Moved out of the actionable band");
+    expect(mybpc3.summary).toContain("out of the clinically actionable band");
+    expect(mybpc3.summary).not.toContain("crosses the clinically actionable boundary");
+  });
+
+  it("reads a VUS resolving to Benign as reassuring, not as an escalation", async () => {
+    for (const key of ["BRCA2:c.9538C>T", "TP53:c.784G>A"]) {
+      const a = await assessment(key);
+      expect(a.recordedCode).toBe("VUS");
+      expect(a.verdict).toMatchObject({ type: "EVIDENCE_WEAKENED", direction: "toward-benign" });
+      expect(a.priority.level).toBe("LOW");
+      expect(a.summary).toContain("more benign reading");
+    }
+  });
+
+  it("never picks a benign-ward change as the home story", async () => {
+    const analysis = await analyseWorkspace({ mode: "demo" });
+    const story = selectStoryAssessment(analysis.assessments);
+    expect(story?.verdict.direction).toBe("toward-pathogenic");
+    expect(story?.summary).toContain("crosses the clinically actionable boundary");
   });
 });
 

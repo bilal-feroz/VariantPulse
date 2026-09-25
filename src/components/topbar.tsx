@@ -66,7 +66,7 @@ export function Topbar() {
 
   const open = analysis.assessments
     .filter((a) => a.caseId)
-    .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Resolved");
+    .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Reviewed");
 
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
   const live = analysis.mode === "live";

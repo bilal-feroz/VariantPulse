@@ -15,6 +15,7 @@ import {
   ScienceTimeline,
 } from "@/components/panels";
 import { PatientImpactTable } from "@/components/patient-table";
+import { PatientImpactGraph, SyntheticDataLabel } from "@/components/clinical/patient-impact-graph";
 import { SyncButton } from "@/components/sync";
 import {
   Badge,
@@ -31,7 +32,7 @@ import { useWorkspace } from "@/state/workspace";
 
 export default function VariantPage() {
   const params = useParams<{ key: string }>();
-  const { analysis } = useWorkspace();
+  const { analysis, getCase } = useWorkspace();
 
   const key = decodeURIComponent(params.key);
   const assessment = analysis.assessments.find((a) => a.variant.key === key);
@@ -53,7 +54,7 @@ export default function VariantPage() {
             {caseId ? (
               <Link href={`/review/${caseId}`}>
                 <Button variant="primary">
-                  Open review case
+                  Open clinical review
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -99,8 +100,23 @@ export default function VariantPage() {
           title="Then and now"
           description={CHANGE_TYPES[changeType].description}
         />
-        <ThenNow assessment={assessment} size="lg" className="mt-5" />
+        <ThenNow assessment={assessment} size="lg" caption className="mt-5" />
       </Card>
+
+      <Card className="mb-5 p-5">
+        <SectionHeading
+          title="Patient impact"
+          count={impactedPatients.length}
+          description="The changed variant and every historical record that carries it. Select a record to see its detail."
+          action={<SyntheticDataLabel />}
+        />
+        <PatientImpactGraph
+          assessment={assessment}
+          caseStatus={caseId ? getCase(caseId).status : undefined}
+          className="mt-5"
+        />
+      </Card>
+
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <div className="space-y-5">
@@ -121,7 +137,8 @@ export default function VariantPage() {
           <SectionHeading
             title="Records carrying this variant"
             count={impactedPatients.length}
-            description="Historical findings in the connected record system that reference this variant."
+            description="The same records as a list, for scanning and screen readers."
+            action={<SyntheticDataLabel />}
           />
         </div>
         <PatientImpactTable rows={impactedPatients} byKey={byKey} showVariant={false} />

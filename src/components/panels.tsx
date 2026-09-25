@@ -20,6 +20,7 @@ import {
   Eyebrow,
   SectionHeading,
 } from "@/components/ui";
+import { EvidenceLanes } from "@/components/clinical/evidence-lanes";
 
 /* -- Science timeline ------------------------------------------------------ */
 
@@ -449,6 +450,17 @@ export function RegionalComparison({
           </Badge>
         )}
       </div>
+
+      {regionalDisagreement ? (
+        <div className="border-b border-line p-5">
+          <EvidenceLanes
+            disagreement={regionalDisagreement}
+            regional={regional}
+            globalEvaluated={evidence.lastEvaluated}
+            globalMeta={evidence.reviewStatus}
+          />
+        </div>
+      ) : null}
 
       <div className="grid gap-px bg-line md:grid-cols-2">
         <div className="bg-surface p-5">

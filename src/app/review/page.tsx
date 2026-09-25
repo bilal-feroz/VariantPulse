@@ -21,7 +21,7 @@ import { pick } from "@/lib/dto";
 import { useWorkspace, type CaseStatus } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
 
-const TABS: CaseStatus[] = ["Needs review", "Assigned", "In progress", "Resolved"];
+const TABS: CaseStatus[] = ["Needs review", "Assigned", "In review", "Reviewed"];
 
 export default function ReviewPage() {
   const { analysis, getCase } = useWorkspace();
@@ -60,7 +60,7 @@ export default function ReviewPage() {
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors",
               tab === option
-                ? "bg-surface text-ink shadow-[0_1px_2px_rgba(18,19,26,0.07)]"
+                ? "bg-surface text-ink shadow-sm"
                 : "text-muted hover:text-ink",
             )}
           >
@@ -95,7 +95,7 @@ export default function ReviewPage() {
           {rows.map((assessment) => {
             const state = getCase(assessment.caseId as string);
             return (
-              <Card key={assessment.caseId} className="p-5 transition-shadow hover:shadow-[0_14px_38px_-22px_rgba(18,19,50,0.3)]">
+              <Card key={assessment.caseId} className="p-5 transition-shadow hover:border-line-2">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <PriorityBadge level={assessment.priority.level} />
                   <ChangeTypeBadge type={assessment.changeType} />
@@ -161,14 +161,14 @@ export default function ReviewPage() {
                     <dd className="mt-1">
                       <Badge
                         tone={
-                          state.status === "Resolved"
+                          state.status === "Reviewed"
                             ? "positive"
                             : state.status === "Needs review"
                               ? "warning"
                               : "neutral"
                         }
                       >
-                        {state.escalated ? "Escalated" : state.status}
+                        {state.status}
                       </Badge>
                     </dd>
                   </div>

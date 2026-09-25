@@ -10,8 +10,9 @@
     "type-check": "tsc --noEmit",
     "evidence:refresh": "node scripts/refresh-evidence.mjs",
     "verify:data": "node scripts/verify-data.mjs",
+    "verify:history": "node scripts/verify-history.mjs",
     "verify:contrast": "node scripts/verify-contrast.mjs",
-    "verify": "npm run type-check && npm run lint && npm run verify:data && npm run verify:contrast"
+    "verify": "npm run type-check && npm run lint && npm run verify:data && npm run verify:history && npm run verify:contrast"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -16,7 +16,8 @@
 import * as React from "react";
 import type { ClientAnalysis } from "@/lib/dto";
 import type { VariantAssessment } from "@/lib/analysis";
-import { composeReviewReason } from "@/lib/narrative";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { composeReviewReason, workspaceScope } from "@/lib/narrative";
 import { CURRENT_USER } from "@/data/workspace";
 
 export type CaseStatus = "Needs review" | "Assigned" | "In progress" | "Resolved";
@@ -91,7 +92,7 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       at: at(0),
       kind: "sync",
       title: "Evidence sync completed",
-      detail: `${analysis.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${analysis.mode === "live" ? "live" : "cached"} evidence`,
+      detail: `${analysis.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${EVIDENCE_MODES[analysis.mode].noun} evidence`,
     },
   ];
 
@@ -209,7 +210,7 @@ export function WorkspaceProvider({
     log({
       kind: "sync",
       title: "Evidence sync completed",
-      detail: `${result.scan.findingsChecked.toLocaleString("en-US")} findings checked · ${result.metrics.evidenceChanges} change${result.metrics.evidenceChanges === 1 ? "" : "s"} · ${result.metrics.regionalConflicts} regional conflict${result.metrics.regionalConflicts === 1 ? "" : "s"}`,
+      detail: `${result.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${EVIDENCE_MODES[result.mode].noun} evidence · ${workspaceScope(result.metrics)}`,
     });
   }, [analysis, log]);
 

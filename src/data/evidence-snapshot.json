@@ -1,6 +1,7 @@
 {
   "source": "NCBI ClinVar (E-utilities)",
   "sourceUrl": "https://www.ncbi.nlm.nih.gov/clinvar/",
+  "capturedAt": "2026-09-25T10:28:31.000Z",
   "recordCount": 12,
   "records": {
     "BRCA1:c.5522G>T": {

@@ -23,6 +23,7 @@ import {
   type DecisionRecord,
 } from "@/lib/decision";
 import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { parseScanTiming } from "@/lib/impact";
 import { composeReviewReason, workspaceScope } from "@/lib/narrative";
 import { CURRENT_USER } from "@/data/workspace";
 
@@ -83,6 +84,8 @@ export type SyncStage =
 
 interface WorkspaceValue {
   analysis: ClientAnalysis;
+  /** How long the analysis run behind `analysis` took, in milliseconds. */
+  scanMs: number | null;
   cases: Record<string, CaseState>;
   activity: ActivityEntry[];
   sync: SyncStage;
@@ -189,12 +192,16 @@ interface Persisted {
 
 export function WorkspaceProvider({
   initial,
+  initialScanMs = null,
   children,
 }: {
   initial: ClientAnalysis;
+  /** Measured on the server around the analysis run that produced `initial`. */
+  initialScanMs?: number | null;
   children: React.ReactNode;
 }) {
   const [analysis, setAnalysis] = React.useState(initial);
+  const [scanMs, setScanMs] = React.useState<number | null>(initialScanMs);
   const [cases, setCases] = React.useState<Record<string, CaseState>>({});
   const [activity, setActivity] = React.useState<ActivityEntry[]>(() => seedActivity(initial));
   const [sync, setSync] = React.useState<SyncStage>({ phase: "idle" });
@@ -238,7 +245,14 @@ export function WorkspaceProvider({
     // The request and the stage animation run together: the animation paces the
     // interface, the request decides the result.
     const request = fetch("/api/sync", { method: "POST" })
-      .then((r) => (r.ok ? (r.json() as Promise<ClientAnalysis>) : null))
+      .then(async (r) =>
+        r.ok
+          ? {
+              analysis: (await r.json()) as ClientAnalysis,
+              durationMs: parseScanTiming(r.headers.get("Server-Timing")),
+            }
+          : null,
+      )
       .catch(() => null);
 
     for (let step = 0; step < SYNC_STEPS.length; step += 1) {
@@ -252,9 +266,12 @@ export function WorkspaceProvider({
     }
 
     const next = await request;
-    if (next) setAnalysis(next);
+    if (next) {
+      setAnalysis(next.analysis);
+      if (next.durationMs !== null) setScanMs(next.durationMs);
+    }
 
-    const result = next ?? analysis;
+    const result = next?.analysis ?? analysis;
     setSync({
       phase: "done",
       at: new Date().toISOString(),
@@ -410,6 +427,7 @@ export function WorkspaceProvider({
   const value = React.useMemo<WorkspaceValue>(
     () => ({
       analysis,
+      scanMs,
       cases,
       activity,
       sync,
@@ -424,6 +442,7 @@ export function WorkspaceProvider({
     }),
     [
       analysis,
+      scanMs,
       cases,
       activity,
       sync,

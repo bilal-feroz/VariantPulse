@@ -1,0 +1,39 @@
+{
+  "name": "variantpulse",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "evidence:refresh": "node scripts/refresh-evidence.mjs",
+    "verify:data": "node scripts/verify-data.mjs",
+    "verify:contrast": "node scripts/verify-contrast.mjs",
+    "verify": "npm run type-check && npm run lint && npm run verify:data && npm run verify:contrast"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.4.3",
+    "lucide-react": "^1.48.0",
+    "next": "15.5.26",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "recharts": "^3.10.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.26",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "description": "Genomic Change Intelligence — monitors historical genomic findings against evolving scientific evidence."
+}

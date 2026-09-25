@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+/* ── VariantPulse design tokens ────────────────────────────────────────────
+   A light, low-noise clinical surface. One accent (indigo), three status
+   colours, and a strict type scale. Nothing decorative earns a colour. */
+@theme {
+  /* Neutrals carry a faint warm bias so they sit with the crimson accent
+     rather than against it. */
+  --color-canvas: #eeecef;
+  --color-canvas-deep: #e6e3e8;
+  --color-surface: #ffffff;
+  --color-surface-2: #faf9fb;
+  --color-surface-3: #f3f1f4;
+
+  --color-ink: #17141a;
+  --color-ink-2: #46424c;
+  /* Every text tone clears 4.5:1 against the lightest surface it appears on,
+     including the canvas. Small uppercase labels are still "normal text" under
+     WCAG, so the faintest tone is held to the same bar; the hierarchy is
+     carried by size, case and tracking rather than by lightness alone. */
+  --color-muted: #5c5762;
+  --color-faint: #6d6874;
+
+  --color-line: #ecebef;
+  --color-line-2: #e0dde3;
+
+  /* Accent is the deep crimson of the mark. It is deliberately a rose-leaning
+     red, held apart in hue from the vermillion used for critical status —
+     brand colour and alarm colour must never be confused in a triage tool. */
+  --color-accent: #b4123c;
+  --color-accent-hover: #960f32;
+  --color-accent-soft: #fdeef2;
+  --color-accent-ring: #f0b6c6;
+
+  --color-ok: #117e39;
+  --color-ok-soft: #e8f6ed;
+  --color-warn: #9d610e;
+  --color-warn-soft: #fdf3e2;
+  --color-crit: #d12222;
+  --color-crit-soft: #fdecea;
+  --color-info: #2563eb;
+  --color-info-soft: #eaf0fe;
+
+  --radius-card: 20px;
+  --radius-panel: 24px;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  }
+
+  /* Visible, consistent focus for every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--color-accent-ring);
+    color: var(--color-ink);
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.021em;
+  }
+}
+
+@layer components {
+  /* The standard card. Borders do the structural work; shadow only lifts. */
+  .vp-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 2px rgba(23, 20, 26, 0.03),
+      0 10px 28px -20px rgba(40, 20, 30, 0.2);
+  }
+
+  .vp-card-flat {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  /* Floating elements over the hero composition. */
+  .vp-float {
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 18px;
+    box-shadow:
+      0 1px 2px rgba(23, 20, 26, 0.04),
+      0 18px 40px -22px rgba(70, 22, 40, 0.3);
+  }
+
+  .vp-hairline {
+    border-top: 1px solid var(--color-line);
+  }
+
+  .vp-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-2) transparent;
+  }
+  .vp-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
+  .vp-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-line-2);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .vp-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  .vp-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* ── Motion ────────────────────────────────────────────────────────────────
+   Small, purposeful, and fully disabled under reduced-motion. */
+@keyframes vp-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes vp-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes vp-pulse-ring {
+  0% { transform: scale(1); opacity: 0.55; }
+  70% { transform: scale(2.1); opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@keyframes vp-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes vp-trace {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes vp-sweep {
+  0% { transform: translateY(-110%); }
+  100% { transform: translateY(210%); }
+}
+@keyframes vp-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes vp-helix-turn {
+  to { transform: translateY(var(--vp-pitch, 0)); }
+}
+
+.vp-rise { animation: vp-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.vp-fade { animation: vp-fade 0.45s ease both; }
+.vp-drift { animation: vp-drift 7s ease-in-out infinite; }
+.vp-spin { animation: vp-spin 1s linear infinite; }
+/* Slides the helix by exactly one turn, which reads as continuous rotation. */
+.vp-helix { animation: vp-helix-turn 11s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The helix rests at phase zero rather than snapping to the loop end. */
+  .vp-helix { animation: none !important; }
+
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .vp-drift { animation: none !important; }
+}
+
+@media print {
+  .vp-no-print { display: none !important; }
+  body { background: #fff; }
+  .vp-card, .vp-card-flat { box-shadow: none; break-inside: avoid; }
+}

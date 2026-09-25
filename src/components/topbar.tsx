@@ -11,8 +11,8 @@ import { Sidebar } from "@/components/sidebar";
 import { Badge, PriorityBadge, StatusDot } from "@/components/ui";
 import { CURRENT_USER } from "@/data/workspace";
 import { useWorkspace } from "@/state/workspace";
-import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { cn } from "@/lib/utils";
+import { evidenceModeMeta } from "@/components/story/mode";
 import { RelativeTime } from "@/components/relative-time";
 
 /** Closes a popover on outside click and on Escape. */
@@ -70,7 +70,7 @@ export function Topbar() {
     .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Resolved");
 
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
-  const modeMeta = EVIDENCE_MODES[analysis.mode];
+  const modeMeta = evidenceModeMeta(analysis.mode);
 
   return (
     <>

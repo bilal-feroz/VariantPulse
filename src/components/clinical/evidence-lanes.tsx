@@ -33,13 +33,13 @@ export function EvidenceLanes({
   const { globalCode, regionalCode } = disagreement;
 
   return (
-    <figure className={cn("min-w-0", className)}>
+    <figure className={cn("@container min-w-0", className)}>
       <div
         className={cn(
-          "grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(56px,110px)_minmax(0,220px)] md:gap-0",
+          "grid grid-cols-1 gap-3 @2xl:grid-cols-[minmax(0,1fr)_minmax(56px,110px)_minmax(0,220px)] @2xl:gap-0",
         )}
       >
-        <div className={cn("flex flex-col", conflict ? "md:py-0" : "md:py-6")}>
+        <div className={cn("flex flex-col", conflict ? "@2xl:py-0" : "@2xl:py-6")}>
           <Lane
             icon={<Globe2 className="h-3.5 w-3.5" />}
             source="Global · ClinVar"
@@ -71,7 +71,7 @@ export function EvidenceLanes({
 
         <svg
           aria-hidden
-          className="hidden h-full w-full md:block"
+          className="hidden h-full w-full @2xl:block"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
         >

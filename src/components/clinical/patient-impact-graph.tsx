@@ -93,9 +93,10 @@ export function PatientImpactGraph({
   const centre = (i: number) => ((i + 0.5) / n) * 100;
 
   return (
-    <div className={cn("grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]", className)}>
+    <div className={cn("@container", className)}>
+    <div className="grid gap-5 @4xl:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
       <div
-        className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,190px)_minmax(48px,1fr)_minmax(0,210px)] sm:gap-0"
+        className="grid min-w-0 grid-cols-1 gap-3 @lg:grid-cols-[minmax(0,190px)_minmax(48px,1fr)_minmax(0,210px)] @lg:gap-0"
         style={{ minHeight: `${Math.max(n, 3) * 58}px` }}
       >
         {/* Variant node */}
@@ -123,7 +124,7 @@ export function PatientImpactGraph({
         {/* Links */}
         <svg
           aria-hidden
-          className="hidden h-full w-full overflow-visible sm:block"
+          className="hidden h-full w-full overflow-visible @lg:block"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
         >
@@ -149,7 +150,7 @@ export function PatientImpactGraph({
         <div
           role="group"
           aria-label={`Records carrying ${variant.gene} ${variant.hgvsCoding}. Use the arrow keys to move between records.`}
-          className="flex flex-col border-l border-line pl-3 sm:border-l-0 sm:pl-0"
+          className="flex flex-col border-l border-line pl-3 @lg:border-l-0 @lg:pl-0"
           onKeyDown={onKeyDown}
         >
           {patients.map((patient, i) => {
@@ -242,6 +243,7 @@ export function PatientImpactGraph({
           </Link>
         </div>
       ) : null}
+    </div>
     </div>
   );
 }

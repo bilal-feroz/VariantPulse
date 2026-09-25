@@ -112,6 +112,11 @@ export default function ReviewCasePage() {
         }
       />
 
+      <p className="mb-5 text-[13.5px] text-muted">
+        <span className="font-semibold text-ink">Your DNA didn&rsquo;t change. Science did.</span>{" "}
+        AI assists. Clinicians decide.
+      </p>
+
       {/* Three columns only once there is room for them. At the xl breakpoint
           the centre column drops to ~300px, which is too narrow for the
           evidence table and the reasoning trail. */}

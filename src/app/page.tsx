@@ -70,7 +70,7 @@ export default function HomePage() {
           {lead && leadPatients[0] ? (
             <div className="vp-float vp-drift mt-8 max-w-[23rem] p-4 xl:mt-10">
               <div className="flex items-start gap-3.5">
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#FFECF0] to-[#FDF0F3] text-accent">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                   <Dna className="h-6 w-6" strokeWidth={1.6} />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -216,7 +216,7 @@ export default function HomePage() {
                   key={patient.id}
                   href={`/patients/${patient.id}`}
                   title={`${patient.id} · ${patient.orderingDepartment}`}
-                  className="grid h-11 w-11 place-items-center rounded-full border-2 border-white bg-gradient-to-br from-[#FFEEF2] to-[#FDF1F4] text-[11px] font-semibold text-accent transition-transform hover:-translate-y-0.5"
+                  className="grid h-11 w-11 place-items-center rounded-full border-2 border-surface bg-accent-soft text-[11px] font-semibold text-accent transition-transform hover:-translate-y-0.5"
                   style={{ zIndex: 10 - index }}
                 >
                   {patient.id.slice(-3)}

@@ -13,8 +13,12 @@
  * lightness hierarchy is therefore shallow by design — size, case and tracking
  * carry it instead.
  *
- * The brand accent and the critical status colour are both red. They are
- * checked for separation so the alarm never reads as decoration.
+ * Garnet (brand), clinical red (critical) and vermilion (change) are all
+ * warm reds. They are checked for separation so the alarm and the change
+ * signal never read as decoration.
+ *
+ * Vermilion is only 3:1-capable on bone, so it is checked as a non-text /
+ * large-indicator colour and must never be used for small text.
  */
 
 import { readFileSync } from "node:fs";
@@ -58,21 +62,42 @@ const hue = (h) => {
 const t = tokens;
 /** Every background a foreground is actually painted on. */
 const SURFACES = [t.surface, t["surface-2"], t["surface-3"], t.canvas];
+/** Surfaces every small-text token must clear: bone, warm white, selected. */
+const TEXT_SURFACES = [...SURFACES, t.bone, t["warm-white"], t["selected-bg"]];
+/** Text allowed on the active navigation / accent-soft fill. */
+const ACTIVE_SURFACES = [t["active-bg"], t["accent-soft"]];
+const WHITE = "#ffffff";
 
 const checks = [
-  ["primary text", t.ink, SURFACES, 4.5],
-  ["secondary text", t["ink-2"], SURFACES, 4.5],
-  ["tertiary text", t.muted, SURFACES, 4.5],
-  ["label text", t.faint, SURFACES, 4.5],
-  ["accent text and links", t.accent, [...SURFACES, t["accent-soft"]], 4.5],
-  ["positive badge", t.ok, [t.surface, t["ok-soft"]], 4.5],
-  ["warning badge", t.warn, [t.surface, t["warn-soft"]], 4.5],
-  ["critical badge", t.crit, [t.surface, t["crit-soft"]], 4.5],
-  ["info badge", t.info, [t.surface, t["info-soft"]], 4.5],
-  ["white on critical fill", "#ffffff", [t.crit], 4.5],
-  ["white on primary button", "#ffffff", [t.ink], 4.5],
-  ["white on accent avatar", "#ffffff", [t.accent], 4.5],
-  ["focus ring", t.accent, SURFACES, 3.0],
+  // Text ramp on bone, warm white and the neutral fills.
+  ["primary text (carbon)", t.ink, [...TEXT_SURFACES, ...ACTIVE_SURFACES], 4.5],
+  ["secondary text", t["ink-2"], [...TEXT_SURFACES, ...ACTIVE_SURFACES], 4.5],
+  ["tertiary text", t.muted, [...TEXT_SURFACES, ...ACTIVE_SURFACES], 4.5],
+  ["label text (text-safe slate)", t.faint, TEXT_SURFACES, 4.5],
+
+  // Brand.
+  ["white on primary CTA (oxblood)", WHITE, [t.oxblood, t["accent-hover"]], 4.5],
+  ["white on CTA hover (garnet)", WHITE, [t.garnet, t.accent], 4.5],
+  [
+    "garnet text on bone / warm white / active / selected",
+    t.accent,
+    [...TEXT_SURFACES, ...ACTIVE_SURFACES],
+    4.5,
+  ],
+
+  // Semantic chips: text on its own soft background and on plain surfaces.
+  ["low / stable chip (clinical green)", t.ok, [t.surface, t.canvas, t["ok-soft"]], 4.5],
+  ["medium priority chip (text-safe amber)", t.warn, [t.surface, t.canvas, t["warn-soft"]], 4.5],
+  ["high priority chip (clinical red)", t.crit, [t.surface, t.canvas, t["crit-soft"]], 4.5],
+  ["evidence chip (evidence blue)", t.info, [t.surface, t.canvas, t["info-soft"]], 4.5],
+  ["white on critical fill", WHITE, [t.crit], 4.5],
+  ["white on connected fill", WHITE, [t.ok], 4.5],
+  ["white on medium fill", WHITE, [t.warn], 4.5],
+
+  // Non-text (1.4.11): focus ring, status dots and the change pulse.
+  ["focus ring (garnet)", t.accent, SURFACES, 3.0],
+  ["connected dot (clinical green)", t.ok, SURFACES.slice(0, 2).concat(t.canvas), 3.0],
+  ["change indicator (vermilion, non-text/large only)", t.vermilion, [t.surface, t.canvas], 3.0],
 ];
 
 const failures = [];
@@ -125,6 +150,57 @@ console.log(
 // guards against the two becoming literally the same colour.
 if (apart < 8 && accentVsCrit < 1.3) {
   failures.push("accent and critical are indistinguishable by both hue and lightness");
+}
+
+const vermVsCrit = Math.abs(hue(t.vermilion) - hue(t.crit));
+const vermApart = Math.min(vermVsCrit, 360 - vermVsCrit);
+console.log(
+  `  vermilion ${t.vermilion} (${hue(t.vermilion).toFixed(0)}deg) vs critical: ${vermApart.toFixed(0)}deg apart, ${contrast(t.vermilion, t.crit).toFixed(2)}:1`,
+);
+if (vermApart < 8 && contrast(t.vermilion, t.crit) < 1.3) {
+  failures.push("vermilion (change) and critical are indistinguishable");
+}
+
+/* -- Palette slate is non-text only -------------------------------------- */
+
+const TEXT_TOKENS = ["ink", "ink-2", "muted", "faint", "accent", "ok", "warn", "crit", "info"];
+for (const name of TEXT_TOKENS) {
+  if ((t[name] ?? "").toLowerCase() === t.slate.toLowerCase()) {
+    failures.push(`--color-${name} uses palette slate ${t.slate}, which fails 4.5:1 as small text`);
+  }
+}
+const slateOnBone = contrast(t.slate, t.bone);
+console.log(`  palette slate ${t.slate} on bone: ${slateOnBone.toFixed(2)}:1 (non-text only)`);
+if (slateOnBone < 3) failures.push("palette slate no longer clears 3:1 as a non-text colour");
+
+/* -- Palette fidelity: explicit tokens match docs/color-system.md --------- */
+
+const PALETTE = {
+  garnet: "#7a263a",
+  oxblood: "#481a27",
+  vermilion: "#e85d4a",
+  bone: "#f7f4ed",
+  "warm-white": "#fffefb",
+  carbon: "#17191c",
+  slate: "#74777d",
+  mineral: "#dddad2",
+  "clinical-green": "#277c66",
+  amber: "#d99a28",
+  "clinical-red": "#c63d3d",
+  "evidence-blue": "#416b8c",
+  "active-bg": "#f0dfe2",
+  "selected-bg": "#fff8f6",
+  "selected-border": "#e8c5cc",
+  canvas: "#f7f4ed",
+  surface: "#fffefb",
+  ink: "#17191c",
+  accent: "#7a263a",
+  "accent-hover": "#481a27",
+};
+for (const [name, hex] of Object.entries(PALETTE)) {
+  if ((t[name] ?? "").toLowerCase() !== hex) {
+    failures.push(`palette: --color-${name} is ${t[name] ?? "missing"}, expected ${hex}`);
+  }
 }
 
 if (failures.length > 0) {

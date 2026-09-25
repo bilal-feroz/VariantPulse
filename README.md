@@ -182,13 +182,28 @@ on every run rather than reporting a number it did not compute.
 
 ## The accent and the alarm
 
-The brand accent is the crimson of the mark. Critical status is also red, which is
-a hazard: in a triage tool the alarm colour must never read as decoration. Two
-things keep them apart. The accent is rose-leaning and held at a different hue from
-the vermillion used for critical, and — more reliably, since hue alone is weak here
-— only a `CRITICAL` priority is rendered as a **filled** badge. Everything else is
-tinted. The distinction is carried by weight, which survives both a projector and a
-colour-vision deficiency.
+The palette is defined in [docs/color-system.md](docs/color-system.md) and implemented as
+tokens in `src/app/globals.css`. The interface is mostly neutral — bone (`#F7F4ED`) canvas,
+warm-white (`#FFFEFB`) cards, carbon (`#17191C`) text, mineral-grey (`#DDDAD2`) borders — so
+that colour always means something:
+
+- **Garnet** (`#7A263A`) is VariantPulse itself: active navigation, selection, key numbers.
+  Primary actions are **oxblood** (`#481A27`) with a garnet hover.
+- **Vermilion** (`#E85D4A`) means one thing: *scientific knowledge changed*. It marks the
+  reclassification pulse and the change connector (VUS → Likely pathogenic), and nothing else.
+  It is used only as an indicator or large mark, never as small text.
+- **Clinical green** is a connected or healthy source, **amber** is human review required,
+  **clinical red** is high priority or a failed state, and **evidence blue** is neutral
+  citation metadata. None of them is used for branding.
+
+Garnet, vermilion and clinical red are all warm reds, which is a hazard in a triage tool. The
+distinction is carried by role and weight rather than hue alone: only a `CRITICAL` priority is a
+**filled** badge, everything else is tinted, and vermilion appears only at the moment of change.
+
+Every text pairing clears WCAG AA, enforced by `npm run verify:contrast`. Where an exact
+palette colour falls short as small text — slate `#74777D` is 4.09:1 on bone, amber text
+`#A86E11` is 4.05:1 on its soft background — a text-safe token derived from it is used for text
+(`faint` `#6B6E74`, `warn` `#94620F`) and the original is kept for icons, dots and fills.
 
 ## Clinician in the loop
 

@@ -113,17 +113,17 @@ const HELIX = buildHelix();
 const near = (z: number) => (z + 1) / 2;
 
 /**
- * Strand colour by depth band, far to near: paler with distance, as on a light
- * ground. Each band is opaque. Translucent segments would double up wherever
+ * Strand colour by depth band, far to near: garnet up close, paler with
+ * distance, as on a light ground. Each band is opaque. Translucent segments would double up wherever
  * neighbours overlap and ripple the strand with darker stripes.
  */
 const SHADES = [
-  ["#FDE6ED", "#F6BCCD", "#EC9EB6"],
-  ["#FDD5E0", "#F3A0B8", "#E27595"],
-  ["#FDC3D2", "#EF82A2", "#D5567C"],
-  ["#FFB2C5", "#EA5E87", "#C4365F"],
-  ["#FF9FB7", "#E53D6A", "#B0204A"],
-  ["#FF8FAB", "#E11D48", "#9F1239"],
+  ["#F6E8EB", "#E9C9D1", "#DCAAB6"],
+  ["#F1DCE1", "#DDADBA", "#C98C9C"],
+  ["#EBC9D1", "#C9798D", "#A95A6F"],
+  ["#E3AFBC", "#B04F68", "#8A3A4F"],
+  ["#D98FA2", "#96334D", "#6E2338"],
+  ["#CF7890", "#7A263A", "#481A27"],
 ];
 
 const shade = (n: number) => Math.min(SHADES.length - 1, Math.floor(n * SHADES.length));
@@ -209,8 +209,8 @@ export function HeroHelix({ className }: { className?: string }) {
         <ellipse
           rx={AMPLITUDE * 2.4}
           ry={LENGTH * 0.4}
-          fill="#F7A1BA"
-          opacity="0.42"
+          fill="#E8C5CC"
+          opacity="0.55"
           filter="url(#vp-hero-glow)"
         />
 
@@ -227,7 +227,7 @@ export function HeroHelix({ className }: { className?: string }) {
                     y1={piece.y1}
                     x2={piece.x2}
                     y2={piece.y2}
-                    stroke="#F39AB2"
+                    stroke="#D4A0AE"
                     strokeWidth={q(1.4 + 1.8 * n)}
                     strokeLinecap="round"
                     opacity={q(0.3 + 0.6 * n)}
@@ -247,7 +247,7 @@ export function HeroHelix({ className }: { className?: string }) {
                       y1={piece.y1}
                       x2={piece.x2}
                       y2={piece.y2}
-                      stroke="#FFF6F8"
+                      stroke="#FFFEFB"
                       strokeWidth={q(width + 4)}
                       strokeLinecap="butt"
                       opacity={q((n - 0.8) * 5)}
@@ -276,7 +276,7 @@ export function HeroHelix({ className }: { className?: string }) {
             cx={particle.x}
             cy={particle.y}
             r={particle.r}
-            fill="#E0245E"
+            fill="#E85D4A"
             opacity={particle.opacity}
             filter={particle.soft ? "url(#vp-hero-soft)" : undefined}
           />

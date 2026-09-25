@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, ClipboardCheck, Users } from "lucide-react";
 
+import { DecisionBadge } from "@/components/decision";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { SyncButton } from "@/components/sync";
 import {
@@ -15,6 +16,7 @@ import {
   PriorityBadge,
   VariantLabel,
 } from "@/components/ui";
+import { currentDecision } from "@/lib/decision";
 import { composeReviewReason } from "@/lib/narrative";
 import { cn } from "@/lib/utils";
 import { pick } from "@/lib/dto";
@@ -94,12 +96,14 @@ export default function ReviewPage() {
         <div className="space-y-3">
           {rows.map((assessment) => {
             const state = getCase(assessment.caseId as string);
+            const decision = currentDecision(state.decisions);
             return (
               <Card key={assessment.caseId} className="p-5 transition-shadow hover:border-line-2">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <PriorityBadge level={assessment.priority.level} />
                   <ChangeTypeBadge type={assessment.changeType} />
                   <Badge tone="muted">{assessment.caseId}</Badge>
+                  {decision ? <DecisionBadge decision={decision.decision} /> : null}
                   <span className="ml-auto text-[11.5px] text-faint">
                     Raised <RelativeTime value={analysis.checkedAt} />
                   </span>

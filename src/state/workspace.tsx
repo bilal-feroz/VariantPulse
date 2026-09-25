@@ -16,6 +16,12 @@
 import * as React from "react";
 import type { ClientAnalysis } from "@/lib/dto";
 import type { VariantAssessment } from "@/lib/analysis";
+import {
+  currentDecision,
+  isDecisionNoteValid,
+  type Decision,
+  type DecisionRecord,
+} from "@/lib/decision";
 import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { composeReviewReason, workspaceScope } from "@/lib/narrative";
 import { CURRENT_USER } from "@/data/workspace";
@@ -27,7 +33,14 @@ export interface CaseNote {
   author: string;
   body: string;
   at: string;
-  kind?: "note" | "review-opened" | "assignment" | "evidence-request" | "follow-up" | "review";
+  kind?:
+    | "note"
+    | "review-opened"
+    | "assignment"
+    | "evidence-request"
+    | "follow-up"
+    | "decision"
+    | "amendment";
 }
 
 export interface CaseState {
@@ -36,8 +49,11 @@ export interface CaseState {
   notes: CaseNote[];
   evidenceRequested: boolean;
   followUps: number;
-  /** The clinician note recorded with "Mark reviewed". Never a classification. */
-  reviewNote: string | null;
+  /**
+   * The clinician's decisions, oldest first: the decision as made, then each
+   * amendment. Appended to, never rewritten. Never a classification.
+   */
+  decisions: DecisionRecord[];
 }
 
 export interface ActivityEntry {
@@ -76,13 +92,15 @@ interface WorkspaceValue {
   requestEvidence: (caseId: string, detail: string) => void;
   assignReviewer: (caseId: string, assignee: string) => void;
   createFollowUp: (caseId: string, body: string) => void;
-  markReviewed: (caseId: string, clinicianNote: string) => void;
+  /** Records a decision, or an amendment when the case already has one. */
+  recordDecision: (caseId: string, decision: Decision, clinicianNote: string) => void;
   addNote: (caseId: string, body: string) => void;
 }
 
 const WorkspaceContext = React.createContext<WorkspaceValue | null>(null);
 
-const STORAGE_KEY = "variantpulse.session.v2";
+// v3: a case carries a decision history in place of a single review note.
+const STORAGE_KEY = "variantpulse.session.v3";
 
 const SYNC_STEPS = [
   { label: "Reading historical findings", detail: "Opening the connected record system" },
@@ -101,8 +119,13 @@ function defaultCase(): CaseState {
     notes: [],
     evidenceRequested: false,
     followUps: 0,
-    reviewNote: null,
+    decisions: [],
   };
+}
+
+/** Fills in any field a case saved by an earlier build does not carry. */
+function withDefaults(state: CaseState | undefined): CaseState {
+  return { ...defaultCase(), ...state };
 }
 
 const SYSTEM_ACTOR = "VariantPulse";
@@ -248,13 +271,13 @@ export function WorkspaceProvider({
   }, [analysis, log]);
 
   const getCase = React.useCallback(
-    (caseId: string) => cases[caseId] ?? defaultCase(),
+    (caseId: string) => withDefaults(cases[caseId]),
     [cases],
   );
 
   const mutate = React.useCallback(
     (caseId: string, fn: (state: CaseState) => CaseState) => {
-      setCases((prev) => ({ ...prev, [caseId]: fn(prev[caseId] ?? defaultCase()) }));
+      setCases((prev) => ({ ...prev, [caseId]: fn(withDefaults(prev[caseId])) }));
     },
     [],
   );
@@ -338,19 +361,36 @@ export function WorkspaceProvider({
     [mutate, note, log],
   );
 
-  const markReviewed = React.useCallback(
-    (caseId: string, clinicianNote: string) => {
-      mutate(caseId, (s) => ({ ...s, status: "Reviewed", reviewNote: clinicianNote }));
-      note(caseId, clinicianNote, "review");
+  /* A decision is appended, never written over. When the case already has one
+     the new entry is an amendment, and the trail says what it replaced. */
+  const recordDecision = React.useCallback(
+    (caseId: string, decision: Decision, clinicianNote: string) => {
+      const body = clinicianNote.trim();
+      if (!isDecisionNoteValid(body)) return;
+
+      const previous = currentDecision(withDefaults(cases[caseId]).decisions);
+      const record: DecisionRecord = {
+        decision,
+        note: body,
+        reviewer: CURRENT_USER.name,
+        at: new Date().toISOString(),
+      };
+
+      mutate(caseId, (s) => ({ ...s, status: "Reviewed", decisions: [...s.decisions, record] }));
+      note(caseId, `${decision}: ${body}`, previous ? "amendment" : "decision");
       log({
         kind: "review",
         actor: CURRENT_USER.name,
         caseId,
-        title: `${caseId} marked reviewed`,
-        detail: `Clinician note: ${clinicianNote}`,
+        title: previous
+          ? `Decision on ${caseId} amended to ${decision}`
+          : `Decision on ${caseId}: ${decision}`,
+        detail: previous
+          ? `Previously ${previous.decision}. Clinician note: ${body}`
+          : `Clinician note: ${body}`,
       });
     },
-    [mutate, note, log],
+    [cases, mutate, note, log],
   );
 
   const addNote = React.useCallback(
@@ -379,7 +419,7 @@ export function WorkspaceProvider({
       requestEvidence,
       assignReviewer,
       createFollowUp,
-      markReviewed,
+      recordDecision,
       addNote,
     }),
     [
@@ -393,7 +433,7 @@ export function WorkspaceProvider({
       requestEvidence,
       assignReviewer,
       createFollowUp,
-      markReviewed,
+      recordDecision,
       addNote,
     ],
   );

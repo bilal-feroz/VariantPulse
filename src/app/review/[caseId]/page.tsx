@@ -2,15 +2,9 @@
 
 import * as React from "react";
 import { notFound, useParams } from "next/navigation";
-import {
-  CheckCircle2,
-  ClipboardList,
-  FolderOpen,
-  ListPlus,
-  Search,
-  UserPlus,
-} from "lucide-react";
+import { FolderOpen, ListPlus, Search, UserPlus } from "lucide-react";
 
+import { DecisionBlock, DecisionButtons } from "@/components/decision";
 import { ThenNow } from "@/components/domain";
 import { EvidenceBriefButton } from "@/components/evidence-brief";
 import { PageHeader, PageShell } from "@/components/page-header";
@@ -35,6 +29,12 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { REVIEWERS } from "@/data/workspace";
+import {
+  DECISION_NOTE_MIN,
+  currentDecision,
+  isDecisionNoteValid,
+  type Decision,
+} from "@/lib/decision";
 import { composeRecommendation } from "@/lib/narrative";
 import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { useWorkspace, type CaseNote, type CaseStatus } from "@/state/workspace";
@@ -53,7 +53,8 @@ const NOTE_LABEL: Record<NonNullable<CaseNote["kind"]>, string> = {
   assignment: "Reviewer assigned",
   "evidence-request": "Evidence request",
   "follow-up": "Follow-up",
-  review: "Marked reviewed",
+  decision: "Decision",
+  amendment: "Decision amended",
 };
 
 const EVIDENCE_REQUEST =
@@ -65,11 +66,13 @@ const FOLLOW_UP_DEFAULT =
 export default function ReviewCasePage() {
   const params = useParams<{ caseId: string }>();
   const caseId = decodeURIComponent(params.caseId);
-  const { analysis, getCase, openReview, requestEvidence, assignReviewer, createFollowUp, markReviewed } =
+  const { analysis, getCase, openReview, requestEvidence, assignReviewer, createFollowUp, recordDecision } =
     useWorkspace();
 
   const assessment = analysis.assessments.find((a) => a.caseId === caseId);
   const [clinicianNote, setClinicianNote] = React.useState("");
+  const [amending, setAmending] = React.useState(false);
+  const noteRef = React.useRef<HTMLTextAreaElement>(null);
 
   if (!assessment) notFound();
 
@@ -80,19 +83,28 @@ export default function ReviewCasePage() {
     assessment.impactedRecordCount,
   );
   const reviewOpen = state.status === "In review" || state.status === "Reviewed";
-  const reviewed = state.status === "Reviewed";
   const trimmed = clinicianNote.trim();
+  const decision = currentDecision(state.decisions);
+  // The buttons are offered until a decision exists, and again while amending.
+  const deciding = !decision || amending;
+  const noteReady = isDecisionNoteValid(clinicianNote);
+  const remaining = DECISION_NOTE_MIN - trimmed.length;
 
   const followUp = () => {
     createFollowUp(caseId, trimmed || FOLLOW_UP_DEFAULT);
     setClinicianNote("");
   };
 
-  const submitReviewed = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!trimmed) return;
-    markReviewed(caseId, trimmed);
+  const decide = (value: Decision) => {
+    if (!noteReady) return;
+    recordDecision(caseId, value, trimmed);
     setClinicianNote("");
+    setAmending(false);
+  };
+
+  const startAmendment = () => {
+    setAmending(true);
+    noteRef.current?.focus();
   };
 
   return (
@@ -206,18 +218,11 @@ export default function ReviewCasePage() {
 
         {/* ── Right: the decision ─────────────────────────────────────── */}
         <div className="min-w-0 space-y-5">
+          <DecisionBlock history={state.decisions} amending={amending} onAmend={startAmendment} />
+
           <Card className="p-5">
             <SectionHeading title="Recommendation" />
             <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{recommendation}</p>
-            {reviewed ? (
-              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-ok-border bg-ok-soft p-3.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" />
-                <div className="min-w-0">
-                  <p className="text-[12.5px] font-medium text-ink">Reviewed</p>
-                  <p className="mt-0.5 text-[12px] leading-snug text-ink-2">{state.reviewNote}</p>
-                </div>
-              </div>
-            ) : null}
           </Card>
 
           <Card className="p-5">
@@ -270,7 +275,7 @@ export default function ReviewCasePage() {
               </select>
             </div>
 
-            <form onSubmit={submitReviewed} className="mt-4 border-t border-line pt-4">
+            <div className="mt-4 border-t border-line pt-4">
               <label
                 htmlFor="clinician-note"
                 className="text-[11px] font-medium uppercase tracking-[0.07em] text-faint"
@@ -278,28 +283,46 @@ export default function ReviewCasePage() {
                 Clinician note
               </label>
               <textarea
+                ref={noteRef}
                 id="clinician-note"
                 value={clinicianNote}
                 onChange={(event) => setClinicianNote(event.target.value)}
                 rows={3}
-                placeholder="Record your reasoning for the follow-up or the review..."
+                placeholder="Record your reasoning for the decision or the follow-up..."
+                aria-describedby="decision-help"
                 className="mt-2 w-full resize-y rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink outline-none transition-colors placeholder:text-faint focus:border-accent-ring focus:bg-surface"
               />
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 min-[1400px]:grid-cols-1">
-                <Button type="button" onClick={followUp}>
-                  <ListPlus className="h-4 w-4" />
-                  Create follow-up
-                </Button>
-                <Button type="submit" disabled={!trimmed}>
-                  <ClipboardList className="h-4 w-4" />
-                  Mark reviewed
-                </Button>
-              </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
-                Mark reviewed needs a clinician note. It records that the evidence was reviewed; it
-                does not write to any patient record or issue a diagnosis.
+              <Button type="button" className="mt-2 w-full" onClick={followUp}>
+                <ListPlus className="h-4 w-4" />
+                Create follow-up
+              </Button>
+
+              {deciding ? (
+                <div className="mt-4">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.07em] text-faint">
+                    {amending ? "Amend decision" : "Decision"}
+                  </p>
+                  <DecisionButtons disabled={!noteReady} onDecide={decide} className="mt-2" />
+                  {amending ? (
+                    <button
+                      type="button"
+                      onClick={() => setAmending(false)}
+                      className="mt-2 text-[12px] font-medium text-muted transition-colors hover:text-accent"
+                    >
+                      Cancel amendment
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <p id="decision-help" className="mt-2 text-[11.5px] leading-relaxed text-faint">
+                {deciding
+                  ? `A decision needs a clinician note of at least ${DECISION_NOTE_MIN} characters${
+                      trimmed && remaining > 0 ? ` (${remaining} more)` : ""
+                    }. It records the outcome of the review; it does not write to any patient record or issue a diagnosis.`
+                  : "Decision recorded. Amend it from the Decision panel; the original stays on file."}
               </p>
-            </form>
+            </div>
 
             <div className="mt-4 border-t border-line pt-4">
               <EvidenceBriefButton assessment={assessment} state={state} />

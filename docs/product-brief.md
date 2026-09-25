@@ -26,19 +26,23 @@ Design and colour rules live in [`docs/color-system.md`](./color-system.md). It 
 | Normalised taxonomy and clinical bands | `src/lib/classification.ts` |
 | Deterministic change detection (`CLASSIFICATION_DRIFT`, `EVIDENCE_STRENGTHENED`, `EVIDENCE_WEAKENED`, `CONSENSUS_CONFLICT`, `REGIONAL_CONFLICT`, `NO_MATERIAL_CHANGE`) | `src/lib/analysis.ts`, `src/lib/priority.ts` |
 | Live NCBI ClinVar read (6 s timeout) with fallback to the bundled snapshot; mode reported as `live` / `cached` | `src/lib/clinvar.ts`, `src/data/evidence-snapshot.json` |
-| Synthetic hospital data: 32 patients (`VP-xxxxx`), 12 monitored variants, modelled regional index | `src/data/workspace.ts`, `src/data/regional.ts` |
+| Verified demo dataset: 15 monitored variants whose "then" is ClinVar's January 2023 release and whose "now" is current ClinVar; 26 synthetic patients (`VP-xxxxx`); real gnomAD v4 Middle Eastern frequencies with modelled regional assertions | `src/data/workspace.ts`, `src/data/regional.ts`, `src/data/provenance.json` |
 | Pages | `/`, `/patients`, `/patients/[id]`, `/variants`, `/variants/[key]`, `/evidence`, `/regional`, `/review`, `/review/[caseId]`, `/activity`, `/sources`, `/settings`; APIs `/api/analysis`, `/api/sync` |
 | Evidence brief, audit trail, review actions, command palette (Ctrl/Cmd+K) | `src/components/*`, `/activity` |
 | Quality gates | `npm run verify` = type-check + lint + `verify:data` + `verify:contrast` |
 
 ## The demo story (real data, synthetic patients)
 
-- Variant **BRCA1 c.5522G>T** (p.Ser1841Ile), ClinVar **VCV000869004**.
-- Hospital record: reported **VUS** on 2023-04-18.
-- ClinVar today: **Likely pathogenic** — criteria provided, multiple submitters, no conflicts;
-  last evaluated **2025-11-06**. Show the real evaluation date; never invent one.
-- **4** historical patients carry it: **VP-10283, VP-10491, VP-10822, VP-11034** (tested 2023),
+- Variant **BRCA1 c.5056C>T** (p.His1686Tyr), ClinVar **VCV000531444**.
+- Hospital record: reported **VUS** on 2023-03-14 — which is what ClinVar said in its
+  January 2023 release.
+- ClinVar history: VUS (Jan 2023) → Conflicting (Jan 2024, Jan 2025) → **Likely pathogenic**,
+  reviewed by expert panel, last evaluated **2025-08-18**. Show the real dates; never invent one.
+- **4** historical patients carry it: **VP-10247, VP-10284, VP-10321, VP-10358** (tested 2023),
   all "Not reviewed".
+- Every "then" value in the dataset is backed by `src/data/provenance.json` (ClinVar status in
+  Jan 2023, 2024, 2025 and Sep 2026, plus gnomAD frequencies). Do not edit historical values by
+  hand. Derive the headline case from the analysis rather than hard-coding these IDs.
 
 ---
 
@@ -114,12 +118,13 @@ End state: **Your DNA didn't change. Science did.** · **AI assists. Clinicians 
   identical every time. Live mode is an enhancement. The UI always shows which is active. No API
   failure may break a page.
 - Numbers must agree. The home story is BRCA1 → 4 patients. Wherever workspace totals appear
-  (e.g. 11 records across all changed variants), label them so they never contradict the story.
-- Keep the dataset shape: ~30 synthetic patients, 12 variants, ≥ 2 classification changes,
-  2 regional conflicts, unchanged controls, several patients sharing a changed variant. IDs are
+  (e.g. 23 records across all changed variants), label them so they never contradict the story.
+- The dataset is the verified set (15 variants, 26 patients, provenance in
+  `src/data/provenance.json`). It already includes reclassifications in both directions
+  (VUS → pathogenic, pathogenic → VUS), reassuring VUS → benign changes, a conflicting case,
+  controls and 2 regional conflicts. Don't change historical values without provenance. IDs are
   `VP-xxxxx` only — never Emirates IDs. Show "Synthetic demonstration data" wherever patients appear.
 - Optional, only if cheap and safe: MyVariant.info enrichment behind the same fallback.
-- Fix the stale comment in `src/data/workspace.ts` (`BRCA1:c.5309G>T` → `BRCA1:c.5522G>T`).
 
 ## Workstream D — QA and demo readiness
 
@@ -140,7 +145,7 @@ End state: **Your DNA didn't change. Science did.** · **AI assists. Clinicians 
 
 Must pass from a clean page load, every time, with the network disabled:
 
-1. Open `/` → historical patient **VP-10283**: BRCA1, 2023, VUS.
+1. Open `/` → historical patient **VP-10247**: BRCA1, 2023, VUS.
 2. Click **Run evidence sync**.
 3. Evidence flows from the sources into VariantPulse.
 4. "New evidence found."

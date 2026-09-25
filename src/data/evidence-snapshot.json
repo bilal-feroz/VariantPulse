@@ -1,8 +1,29 @@
 {
+  "generatedAt": null,
   "source": "NCBI ClinVar (E-utilities)",
   "sourceUrl": "https://www.ncbi.nlm.nih.gov/clinvar/",
-  "capturedAt": "2026-09-25T00:00:00.000Z",
   "recordCount": 15,
+  "provenance": {
+    "origin": "Captured from NCBI ClinVar E-utilities and supplied with the final demonstration dataset",
+    "importedAt": "2026-09-25T11:59:29.408Z",
+    "notes": [
+      "Records imported verbatim from the supplied snapshot.",
+      "The supplied snapshot carries no capture timestamp; verifiedAgainstLive records when its content was last confirmed identical to a live read."
+    ],
+    "verifiedAgainstLive": {
+      "at": "2026-09-25T11:59:29.408Z",
+      "compared": 15,
+      "matched": 15,
+      "fields": [
+        "classification",
+        "reviewStatus",
+        "lastEvaluated",
+        "rsid",
+        "submissionCount"
+      ],
+      "differences": []
+    }
+  },
   "records": {
     "BRCA1:c.5056C>T": {
       "clinvarId": "531444",

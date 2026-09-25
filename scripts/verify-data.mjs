@@ -3,323 +3,341 @@
  *
  *   node scripts/verify-data.mjs
  *
- * These catch the failure modes that type-checking cannot see: a monitored
- * variant with no evidence record behind it, a patient pointing at a variant
- * that is not on the panel, or a reclassification whose evidence predates the
- * report it is supposed to have superseded.
+ * These catch the failure modes type-checking cannot see: a monitored variant
+ * with no evidence behind it, identifiers that disagree between sources, a
+ * patient pointing at a variant that is not on the panel, historical and current
+ * evidence mixed up, a frequency outside 0–1, or a reclassification that the
+ * supplied historical and current data cannot reproduce.
  *
- * The last one matters most. If a hospital reported a variant in 2023 and the
- * source last evaluated it in 2018, then nothing changed after the report and
- * the whole premise of the case is wrong.
+ * The data modules are imported as the application imports them, and the counts
+ * at the end come from the application's own engine run against the bundled
+ * snapshot — so they are the numbers the interface shows with the network off.
  */
 
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import "./lib/load-ts.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const root = (p) => resolve(HERE, "..", p);
-// Normalised so the block parser below behaves the same on CRLF checkouts.
-const read = (p) => readFileSync(root(p), "utf8").replace(/\r\n/g, "\n");
+const { CLINVAR_JAN_2023, MONITORED_VARIANTS, PATIENTS, REVIEWERS } = await import("@/data/workspace");
+const { PROVENANCE } = await import("@/data/provenance");
+const { REGIONAL_EVIDENCE } = await import("@/data/regional");
+const { CLASSIFICATIONS, detectChange, meta, normaliseClassification } = await import(
+  "@/lib/classification"
+);
+const { readSnapshotEvidence } = await import("@/lib/clinvar");
+const { buildAnalysis } = await import("@/lib/analysis");
+const snapshot = (await import("@/data/evidence-snapshot.json")).default;
 
 const failures = [];
-const notes = [];
 const fail = (message) => failures.push(message);
-
-/* -- Parse the literals out of the data modules --------------------------- */
-
-const workspaceSource = read("src/data/workspace.ts");
-const regionalSource = read("src/data/regional.ts");
-const snapshot = JSON.parse(read("src/data/evidence-snapshot.json"));
-
-/** Pulls `field: "value"` pairs out of a TypeScript object literal list. */
-function collectObjects(source, startMarker, fields) {
-  const start = source.indexOf(startMarker);
-  if (start === -1) throw new Error(`Could not find ${startMarker}`);
-  // Bound the slice at the array's closing bracket so the next declaration in
-  // the file is not swept in with it.
-  const rest = source.slice(start + startMarker.length);
-  const end = rest.indexOf("\n];");
-  if (end === -1) throw new Error(`Could not find the end of ${startMarker}`);
-  const blocks = rest.slice(0, end).split(/\n {2}\{\n/).slice(1);
-
-  return blocks.map((block) => {
-    const record = {};
-    for (const field of fields) {
-      const match = new RegExp(`${field}:\\s*"([^"]*)"`).exec(block);
-      if (match) record[field] = match[1];
-    }
-    return record;
-  });
-}
-
-const variants = collectObjects(workspaceSource, "MONITORED_VARIANTS: MonitoredVariant[] = [", [
-  "key",
-  "gene",
-  "hgvsCoding",
-  "clinvarId",
-  "recordedClassification",
-  "recordedOn",
-]);
-
-const patients = collectObjects(workspaceSource, "PATIENTS: PatientRecord[] = [", [
-  "id",
-  "variantKey",
-  "testedOn",
-]);
-
-const regional = collectObjects(regionalSource, "REGIONAL_EVIDENCE: RegionalEvidence[] = [", [
-  "variantKey",
-  "assertion",
-  "lastUpdated",
-]);
-
-const panelKeys = new Set(variants.map((v) => v.key));
-
-/* -- Checks ---------------------------------------------------------------- */
-
-if (variants.length === 0) fail("No monitored variants were parsed.");
-if (patients.length === 0) fail("No patient records were parsed.");
-
-for (const variant of variants) {
-  const record = snapshot.records[variant.key];
-  if (!record) {
-    fail(`${variant.key} is on the panel but has no evidence snapshot record.`);
-    continue;
-  }
-  if (record.clinvarId !== variant.clinvarId) {
-    fail(
-      `${variant.key} points at ClinVar ${variant.clinvarId} but the snapshot holds ${record.clinvarId}.`,
-    );
-  }
-  // ClinVar sometimes carries the fully qualified form (NM_...:c.123A>G) in
-  // this field, so a suffix match is the right comparison.
-  if (record.cdnaChange && !record.cdnaChange.endsWith(variant.hgvsCoding)) {
-    fail(
-      `${variant.key} declares ${variant.hgvsCoding} but ClinVar reports ${record.cdnaChange}.`,
-    );
-  }
-}
-
-for (const key of Object.keys(snapshot.records)) {
-  if (!panelKeys.has(key)) {
-    fail(`Snapshot holds ${key}, which is no longer on the monitored panel.`);
-  }
-  for (const citation of snapshot.records[key].citations ?? []) {
-    // A citation with no title renders as a link with no accessible name.
-    if (!citation.title?.trim()) {
-      fail(`${key} cites PMID ${citation.pmid} with no title.`);
-    }
-  }
-}
-
-for (const patient of patients) {
-  if (!panelKeys.has(patient.variantKey)) {
-    fail(`Patient ${patient.id} references ${patient.variantKey}, which is not on the panel.`);
-  }
-}
-
-for (const entry of regional) {
-  if (!panelKeys.has(entry.variantKey)) {
-    fail(`Regional index holds ${entry.variantKey}, which is not on the panel.`);
-  }
-}
-
-/* -- Narrative coherence --------------------------------------------------- */
-
-const BAND = {
-  PATHOGENIC: "pathogenic",
-  LIKELY_PATHOGENIC: "pathogenic",
-  VUS: "uncertain",
-  LIKELY_BENIGN: "benign",
-  BENIGN: "benign",
-  CONFLICTING: "indeterminate",
-  NOT_PROVIDED: "indeterminate",
+const check = (condition, message) => {
+  if (!condition) fail(message);
 };
 
-function normalise(raw) {
-  const value = (raw ?? "").toLowerCase();
-  if (value.includes("conflicting")) return "CONFLICTING";
-  if (value.includes("pathogenic/likely pathogenic")) return "PATHOGENIC";
-  if (value.includes("benign/likely benign")) return "BENIGN";
-  if (value.includes("likely pathogenic")) return "LIKELY_PATHOGENIC";
-  if (value.includes("likely benign")) return "LIKELY_BENIGN";
-  if (value.includes("pathogenic")) return "PATHOGENIC";
-  if (value.includes("benign")) return "BENIGN";
-  if (value === "vus" || value.includes("uncertain")) return "VUS";
-  return "NOT_PROVIDED";
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** HGVS coding notation for the change types a single-variant panel carries. */
+const HGVS_CODING =
+  /^c\.[*-]?\d+(?:[+-]\d+)?(?:_[*-]?\d+(?:[+-]\d+)?)?(?:[ACGT]>[ACGT]|del(?:ins[ACGT]+)?|dup|ins[ACGT]+)$/;
+const label = (key) => key.replace(":", " ");
+
+/* -- 1. The rules themselves ------------------------------------------------ */
+
+const NORMALISATION = [
+  ["Pathogenic", "PATHOGENIC"],
+  ["pathogenic", "PATHOGENIC"],
+  ["Likely pathogenic", "LIKELY_PATHOGENIC"],
+  ["LIKELY_PATHOGENIC", "LIKELY_PATHOGENIC"],
+  ["Pathogenic/Likely pathogenic", "PATHOGENIC"],
+  ["Likely Pathogenic, Pathogenic", "PATHOGENIC"],
+  ["Pathogenic, low penetrance", "PATHOGENIC"],
+  ["Benign", "BENIGN"],
+  ["Likely benign", "LIKELY_BENIGN"],
+  ["LIKELY_BENIGN", "LIKELY_BENIGN"],
+  ["Benign/Likely benign", "BENIGN"],
+  ["Uncertain significance", "VUS"],
+  ["uncertain  significance", "VUS"],
+  ["VUS", "VUS"],
+  ["Conflicting classifications of pathogenicity", "CONFLICTING"],
+  ["Conflicting interpretations of pathogenicity", "CONFLICTING"],
+  ["Benign, Likely Pathogenic, Pathogenic, Uncertain Significance", "CONFLICTING"],
+  ["not provided", "NOT_PROVIDED"],
+  ["drug response", "NOT_PROVIDED"],
+  ["", "NOT_PROVIDED"],
+];
+for (const [input, expected] of NORMALISATION) {
+  const actual = normaliseClassification(input);
+  check(actual === expected, `Normaliser maps "${input}" to ${actual}, expected ${expected}.`);
 }
 
-let changed = 0;
-let conflicts = 0;
-
-for (const variant of variants) {
-  const record = snapshot.records[variant.key];
-  if (!record) continue;
-
-  const current = normalise(record.classification);
-  const recorded = variant.recordedClassification;
-  const moved = current !== recorded;
-
-  if (moved) {
-    changed += 1;
-    if (record.lastEvaluated && record.lastEvaluated < variant.recordedOn) {
-      fail(
-        `${variant.key} is presented as reclassified since ${variant.recordedOn}, but the source last ` +
-          `evaluated it on ${record.lastEvaluated}. Nothing changed after the report, so the case premise is false.`,
-      );
-    }
-  }
-
-  const regionalEntry = regional.find((r) => r.variantKey === variant.key);
-  if (regionalEntry) {
-    const a = BAND[current];
-    const b = BAND[regionalEntry.assertion];
-    if (a !== "indeterminate" && b !== "indeterminate" && a !== b) conflicts += 1;
-  }
-
-  // Every patient on a variant must have been tested before the evidence moved,
-  // or the record would already carry the current interpretation.
-  for (const patient of patients.filter((p) => p.variantKey === variant.key)) {
-    if (moved && record.lastEvaluated && patient.testedOn > record.lastEvaluated) {
-      fail(
-        `Patient ${patient.id} was tested on ${patient.testedOn}, after ${variant.key} was ` +
-          `re-evaluated on ${record.lastEvaluated}. That record would not carry the old interpretation.`,
-      );
-    }
-  }
+const DETECTION = [
+  ["VUS", "LIKELY_PATHOGENIC", "CLASSIFICATION_DRIFT"],
+  ["PATHOGENIC", "VUS", "CLASSIFICATION_DRIFT"],
+  ["CONFLICTING", "PATHOGENIC", "CLASSIFICATION_DRIFT"],
+  ["LIKELY_PATHOGENIC", "PATHOGENIC", "EVIDENCE_STRENGTHENED"],
+  ["VUS", "BENIGN", "EVIDENCE_WEAKENED"],
+  ["VUS", "CONFLICTING", "CONSENSUS_CONFLICT"],
+  ["BENIGN", "BENIGN", "NO_MATERIAL_CHANGE"],
+  ["LIKELY_BENIGN", "BENIGN", "NO_MATERIAL_CHANGE"],
+  ["PATHOGENIC", "PATHOGENIC", "NO_MATERIAL_CHANGE"],
+  ["VUS", "NOT_PROVIDED", "NO_MATERIAL_CHANGE"],
+];
+for (const [recorded, current, expected] of DETECTION) {
+  const actual = detectChange(recorded, current).type;
+  check(actual === expected, `${recorded} → ${current} is ${actual}, expected ${expected}.`);
 }
 
-const impacted = new Set(
-  patients
-    .filter((p) => {
-      const variant = variants.find((v) => v.key === p.variantKey);
-      const record = variant && snapshot.records[variant.key];
-      if (!variant || !record) return false;
-      const current = normalise(record.classification);
-      const regionalEntry = regional.find((r) => r.variantKey === variant.key);
-      const a = BAND[current];
-      const b = regionalEntry ? BAND[regionalEntry.assertion] : null;
-      const regionalConflict =
-        b !== null && a !== "indeterminate" && b !== "indeterminate" && a !== b;
-      return current !== variant.recordedClassification || regionalConflict;
-    })
-    .map((p) => p.id),
-);
+/* -- 2. The monitored panel ------------------------------------------------- */
 
-/* -- Demo story invariants ------------------------------------------------ */
+const panelKeys = new Set();
+const clinvarIds = new Set();
+for (const v of MONITORED_VARIANTS) {
+  check(!panelKeys.has(v.key), `Duplicate variant key ${v.key}.`);
+  check(!clinvarIds.has(v.clinvarId), `Duplicate ClinVar ID ${v.clinvarId}.`);
+  panelKeys.add(v.key);
+  clinvarIds.add(v.clinvarId);
 
-// Historical and current values come from data/provenance.json, never from
-// literals here. The story is whichever VUS now reads (likely) pathogenic for
-// the most records on file; ties would make the headline ambiguous.
-const provenance = JSON.parse(read("src/data/provenance.json"));
-const MONTHS = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
-const provenanceCode = (raw) => (raw ?? "").split(" (")[0].trim();
-const provenanceDate = (raw) => {
-  const m = /^([A-Z][a-z]{2}) (\d{2}), (\d{4})$/.exec(raw ?? "");
-  return m ? `${m[3]}-${MONTHS[m[1]]}-${m[2]}` : null;
-};
-const carriers = (key) => patients.filter((p) => p.variantKey === key).map((p) => p.id).sort();
+  check(/^[A-Z0-9-]+$/.test(v.gene), `${v.key} has a malformed gene symbol.`);
+  check(HGVS_CODING.test(v.hgvsCoding), `${v.key} has malformed HGVS coding notation "${v.hgvsCoding}".`);
+  check(v.key === `${v.gene}:${v.hgvsCoding}`, `${v.key} is not keyed as GENE:hgvsCoding.`);
+  check(/^\d+$/.test(v.clinvarId), `${v.key} has a malformed ClinVar ID.`);
+  check(v.rsid === null || /^rs\d+$/.test(v.rsid), `${v.key} has a malformed rsID.`);
+  check(v.proteinChange === null || /^p\./.test(v.proteinChange), `${v.key} protein change is not p. notation.`);
+  check(ISO_DATE.test(v.recordedOn), `${v.key} has a malformed report date.`);
 
-for (const entry of provenance) {
-  const variant = variants.find((v) => v.key === entry.key);
-  const record = snapshot.records[entry.key];
-  if (!variant || !record) {
-    fail(`Provenance entry ${entry.key} is missing from the panel or the snapshot.`);
+  check(v.historicalClassification in CLASSIFICATIONS, `${v.key} has unsupported historical code ${v.historicalClassification}.`);
+  check(v.historicalClassification !== "NOT_PROVIDED", `${v.key} has no historical classification.`);
+
+  if (v.historicalSource.kind === "clinvar-release") {
+    check(v.historicalSource.release === CLINVAR_JAN_2023.release, `${v.key} cites a historical release other than ${CLINVAR_JAN_2023.release}.`);
+    check(Boolean(v.historicalReviewStatus), `${v.key} has no historical review status.`);
+    check(
+      normaliseClassification(v.historicalClinvarText) === v.historicalClassification,
+      `${v.key}: historical text "${v.historicalClinvarText}" does not normalise to ${v.historicalClassification}.`,
+    );
+  } else {
+    check(v.historicalSource.kind === "modelled-report", `${v.key} has an unknown historical source kind.`);
+    check(
+      v.historicalClinvarText === null && v.historicalReviewStatus === null,
+      `${v.key} is a modelled report but carries ClinVar wording or review status.`,
+    );
+  }
+}
+check(panelKeys.size > 0, "No monitored variants were loaded.");
+
+/* -- 3. The snapshot: current evidence, and only current evidence ---------- */
+
+const records = snapshot.records ?? {};
+check(snapshot.recordCount === Object.keys(records).length, "Snapshot recordCount disagrees with its records.");
+check(Object.keys(records).length === panelKeys.size, `Snapshot holds ${Object.keys(records).length} records for a panel of ${panelKeys.size}.`);
+for (const key of Object.keys(records)) {
+  check(panelKeys.has(key), `Snapshot holds ${key}, which is not on the panel.`);
+}
+check(Boolean(snapshot.provenance?.verifiedAgainstLive?.at), "Snapshot does not record when it was verified against live ClinVar.");
+
+for (const v of MONITORED_VARIANTS) {
+  const r = records[v.key];
+  if (!r) {
+    fail(`${v.key} is on the panel but has no evidence snapshot record.`);
     continue;
   }
-  const then = provenanceCode(entry.clinvar_2023_01);
-  if (then in BAND && variant.recordedClassification !== then) {
-    fail(`${entry.key} is recorded as ${variant.recordedClassification}; provenance says ${then} in Jan 2023.`);
-  }
-  const now = provenanceCode(entry.clinvar_2026_09);
-  if (now in BAND && normalise(record.classification) !== now) {
-    fail(`${entry.key} snapshot reads ${record.classification}; provenance says ${now}.`);
-  }
-  const evaluated = provenanceDate(entry.currentLastEvaluated);
-  if (evaluated && record.lastEvaluated !== evaluated) {
-    fail(`${entry.key} snapshot was last evaluated ${record.lastEvaluated}; provenance says ${evaluated}.`);
-  }
-  if (typeof entry.patients === "number" && carriers(entry.key).length !== entry.patients) {
-    fail(`${entry.key} is carried by ${carriers(entry.key).length} patients; provenance says ${entry.patients}.`);
-  }
-}
-
-const headlineCandidates = variants
-  .filter((v) => {
-    const record = snapshot.records[v.key];
-    return (
-      record &&
-      v.recordedClassification === "VUS" &&
-      BAND[normalise(record.classification)] === "pathogenic" &&
-      carriers(v.key).length > 0
-    );
-  })
-  .sort((a, b) => carriers(b.key).length - carriers(a.key).length);
-
-const story = headlineCandidates[0];
-const storyPatients = story ? carriers(story.key) : [];
-if (!story) {
-  fail("No VUS -> (likely) pathogenic change carries patients, so the demo has no story.");
-} else {
-  const runnerUp = headlineCandidates[1];
-  if (runnerUp && carriers(runnerUp.key).length === storyPatients.length) {
-    fail(`${story.key} and ${runnerUp.key} tie for the headline story.`);
-  }
-  if (storyPatients.length !== 4) {
-    fail(`The demo story ${story.key} should reach exactly 4 patients; found ${storyPatients.length}.`);
-  }
-  if (!provenance.some((e) => e.key === story.key)) {
-    fail(`The demo story ${story.key} has no provenance entry.`);
-  }
-}
-
-for (const patient of patients) {
-  if (!/^VP-\d{5}$/.test(patient.id ?? "")) fail(`Patient id ${patient.id} is not in VP-xxxxx form.`);
-}
-if (new Set(patients.map((p) => p.id)).size !== patients.length) fail("Patient ids are not unique.");
-
-if (!snapshot.capturedAt || Number.isNaN(Date.parse(snapshot.capturedAt))) {
-  fail("The evidence snapshot has no valid capturedAt timestamp, so demo mode cannot be deterministic.");
-}
-
-/* -- Dataset shape --------------------------------------------------------- */
-
-const shared = variants.filter((v) => {
-  const record = snapshot.records[v.key];
-  return (
-    record &&
-    normalise(record.classification) !== v.recordedClassification &&
-    patients.filter((p) => p.variantKey === v.key).length >= 2
+  check(r.clinvarId === v.clinvarId, `${v.key}: panel ClinVar ${v.clinvarId}, snapshot ${r.clinvarId}.`);
+  check(r.accession === `VCV${v.clinvarId.padStart(9, "0")}`, `${v.key}: accession ${r.accession} does not match ClinVar ${v.clinvarId}.`);
+  check(r.gene === v.gene, `${v.key}: snapshot gene ${r.gene}.`);
+  // ClinVar sometimes carries the fully qualified form (NM_...:c.123A>G).
+  check(!r.cdnaChange || r.cdnaChange.endsWith(v.hgvsCoding), `${v.key}: ClinVar reports ${r.cdnaChange}.`);
+  check(r.title.includes(`(${v.gene}):${v.hgvsCoding}`), `${v.key}: ClinVar title "${r.title}" names a different change.`);
+  check(!v.proteinChange || r.title.includes(`(${v.proteinChange})`), `${v.key}: ClinVar title does not carry ${v.proteinChange}.`);
+  check(r.rsid === v.rsid, `${v.key}: panel rsID ${v.rsid}, ClinVar ${r.rsid}.`);
+  check(normaliseClassification(r.classification) !== "NOT_PROVIDED", `${v.key}: snapshot classification "${r.classification}" is unsupported.`);
+  check(Boolean(r.reviewStatus), `${v.key}: snapshot has no review status.`);
+  check(r.lastEvaluated === null || ISO_DATE.test(r.lastEvaluated), `${v.key}: malformed lastEvaluated.`);
+  check(
+    !Object.keys(r).some((field) => field.startsWith("historical")),
+    `${v.key}: the current-evidence snapshot carries historical fields.`,
   );
-});
-const unchangedControls = variants.filter((v) => {
-  const record = snapshot.records[v.key];
-  return record && normalise(record.classification) === v.recordedClassification;
-});
-
-if (variants.length !== provenance.length) {
-  fail(`Expected ${provenance.length} monitored variants (one per provenance entry), found ${variants.length}.`);
+  const pmids = new Set();
+  for (const c of r.citations ?? []) {
+    // A citation with no title renders as a link with no accessible name.
+    check(Boolean(c.title?.trim()), `${v.key} cites PMID ${c.pmid} with no title.`);
+    check(/^\d+$/.test(c.pmid), `${v.key} cites a malformed PMID "${c.pmid}".`);
+    check(!pmids.has(c.pmid), `${v.key} cites PMID ${c.pmid} twice.`);
+    pmids.add(c.pmid);
+  }
 }
-if (patients.length < 25 || patients.length > 40) {
-  fail(`Expected about 30 synthetic patients, found ${patients.length}.`);
-}
-if (changed < 2) fail(`Expected at least 2 classification changes, found ${changed}.`);
-if (conflicts !== 2) fail(`Expected 2 regional conflicts, found ${conflicts}.`);
-if (unchangedControls.length === 0) fail("Expected at least one unchanged control variant.");
-if (shared.length < 2) fail("Expected several patients sharing a changed variant.");
 
-notes.push(`${variants.length} variants on the panel, all backed by a ClinVar record`);
-notes.push(
-  `Demo story: ${story?.key} VUS -> ${story ? snapshot.records[story.key].classification : "?"} for ${storyPatients.length} patients (${storyPatients.join(", ")})`,
+/* -- 4. Provenance: the supplied release history --------------------------- */
+
+const provenanceByKey = new Map(PROVENANCE.map((p) => [p.key, p]));
+check(provenanceByKey.size === panelKeys.size, `provenance.json covers ${provenanceByKey.size} variants for a panel of ${panelKeys.size}.`);
+for (const v of MONITORED_VARIANTS) {
+  const p = provenanceByKey.get(v.key);
+  if (!p) {
+    fail(`${v.key} has no provenance record.`);
+    continue;
+  }
+  check(p.clinvarId === v.clinvarId, `${v.key}: provenance ClinVar ${p.clinvarId}, panel ${v.clinvarId}.`);
+  const first = p.releases.find((r) => r.release === CLINVAR_JAN_2023.release);
+  const last = p.releases.at(-1);
+  check(Boolean(first), `${v.key}: provenance has no ${CLINVAR_JAN_2023.release} entry.`);
+  if (first) {
+    // Historical and current evidence must never be swapped or blended.
+    if (v.historicalSource.kind === "clinvar-release") {
+      check(first.code === v.historicalClassification, `${v.key}: provenance says ${first.code} in ${first.release}, panel says ${v.historicalClassification}.`);
+    } else {
+      check(first.code === null, `${v.key} is modelled as absent from ClinVar in ${first.release}, but provenance holds ${first.code}.`);
+    }
+  }
+  const record = records[v.key];
+  if (last && record) {
+    check(
+      last.code === normaliseClassification(record.classification),
+      `${v.key}: provenance says ${last.code} in ${last.release}, the snapshot says "${record.classification}".`,
+    );
+  }
+  const carriers = PATIENTS.filter((patient) => patient.variantKey === v.key).length;
+  check(p.patients === carriers, `${v.key}: provenance expects ${p.patients} patients, the records hold ${carriers}.`);
+}
+
+/* -- 5. Synthetic patients -------------------------------------------------- */
+
+const patientIds = new Set();
+const owners = new Set(REVIEWERS.map((r) => r.name));
+for (const patient of PATIENTS) {
+  check(!patientIds.has(patient.id), `Duplicate patient ID ${patient.id}.`);
+  patientIds.add(patient.id);
+  check(/^VP-\d{5}$/.test(patient.id), `Patient ${patient.id} does not use the synthetic VP-xxxxx form.`);
+  check(panelKeys.has(patient.variantKey), `Patient ${patient.id} references ${patient.variantKey}, which is not on the panel.`);
+  check(ISO_DATE.test(patient.testedOn) && ISO_DATE.test(patient.lastContact), `Patient ${patient.id} has a malformed date.`);
+  check(patient.lastContact >= patient.testedOn, `Patient ${patient.id} was last contacted before being tested.`);
+  check(owners.has(patient.clinicalOwner), `Patient ${patient.id} is owned by ${patient.clinicalOwner}, who is not on the care team.`);
+}
+for (const key of panelKeys) {
+  check(PATIENTS.some((p) => p.variantKey === key), `${key} is monitored but no record carries it.`);
+}
+
+/* -- 6. Regional evidence --------------------------------------------------- */
+
+const regionalKeys = new Set();
+for (const entry of REGIONAL_EVIDENCE) {
+  check(panelKeys.has(entry.variantKey), `Regional evidence holds ${entry.variantKey}, which is not on the panel.`);
+  check(!regionalKeys.has(entry.variantKey), `Regional evidence holds ${entry.variantKey} twice.`);
+  regionalKeys.add(entry.variantKey);
+  check(entry.inGnomad === (entry.callSet !== null), `${entry.variantKey}: gnomAD presence and call set disagree.`);
+  for (const [name, f] of [["global", entry.global], ["Middle Eastern", entry.middleEastern]]) {
+    if (!f) {
+      check(!entry.inGnomad, `${entry.variantKey}: in gnomAD but has no ${name} counts.`);
+      continue;
+    }
+    check(Number.isInteger(f.alleleCount) && Number.isInteger(f.alleleNumber), `${entry.variantKey}: ${name} counts are not whole numbers.`);
+    check(f.alleleCount >= 0 && f.alleleCount <= f.alleleNumber, `${entry.variantKey}: ${name} allele count exceeds allele number.`);
+    if (f.frequency !== null) {
+      check(f.frequency >= 0 && f.frequency <= 1, `${entry.variantKey}: ${name} frequency ${f.frequency} is outside 0–1.`);
+      check(Math.abs(f.frequency - f.alleleCount / f.alleleNumber) < 1e-12, `${entry.variantKey}: ${name} frequency does not equal AC/AN.`);
+    }
+  }
+  const p = provenanceByKey.get(entry.variantKey);
+  if (p && entry.global && entry.middleEastern) {
+    check(
+      entry.global.alleleCount === p.gnomad.global.alleleCount &&
+        entry.global.alleleNumber === p.gnomad.global.alleleNumber &&
+        entry.middleEastern.alleleCount === p.gnomad.middleEastern.alleleCount &&
+        entry.middleEastern.alleleNumber === p.gnomad.middleEastern.alleleNumber,
+      `${entry.variantKey}: gnomAD counts differ from the supplied provenance.`,
+    );
+  }
+  if (entry.catalogue) {
+    check(normaliseClassification(entry.catalogue.significance) !== "NOT_PROVIDED", `${entry.variantKey}: CTGA significance is unreadable.`);
+    check(entry.catalogue.url.startsWith("https://cags.org.ae/"), `${entry.variantKey}: CTGA link is not a CTGA page.`);
+    check(ISO_DATE.test(entry.catalogue.listedSince), `${entry.variantKey}: malformed CTGA listing date.`);
+  }
+  for (const c of entry.context?.citations ?? []) {
+    check(/^\d+$/.test(c.pmid) && Boolean(c.title), `${entry.variantKey}: regional citation ${c.pmid} is incomplete.`);
+  }
+}
+
+/* -- 7. The engine: every verdict reproducible from the supplied data ------ */
+
+const analysis = buildAnalysis(readSnapshotEvidence("verify-data"), new Date("2026-09-25T00:00:00Z"));
+check(analysis.assessments.length === panelKeys.size, `The engine assessed ${analysis.assessments.length} of ${panelKeys.size} variants.`);
+
+const caseIds = new Set();
+for (const a of analysis.assessments) {
+  const key = a.variant.key;
+  const record = records[key];
+  const expected = detectChange(a.variant.historicalClassification, normaliseClassification(record.classification)).type;
+  check(a.verdict.type === expected, `${key}: engine verdict ${a.verdict.type} cannot be reproduced (${expected}).`);
+
+  const p = provenanceByKey.get(key);
+  const first = p?.releases.find((r) => r.release === CLINVAR_JAN_2023.release)?.code;
+  const last = p?.releases.at(-1)?.code;
+  if (first && last) {
+    const moved = meta(first).band !== meta(last).band;
+    check(
+      moved === (a.verdict.type !== "NO_MATERIAL_CHANGE"),
+      `${key}: provenance ${first} → ${last} but the engine says ${a.verdict.type}.`,
+    );
+  }
+
+  const carriers = PATIENTS.filter((patient) => patient.variantKey === key).map((patient) => patient.id);
+  check(
+    JSON.stringify(a.impactedPatients.map((patient) => patient.id)) === JSON.stringify(carriers),
+    `${key}: impacted records do not match the patients carrying it.`,
+  );
+
+  // No false alarms: an unchanged classification with no regional signal opens nothing.
+  if (a.verdict.type === "NO_MATERIAL_CHANGE" && !a.regionalSignal.flagged) {
+    check(a.caseId === null && !a.requiresReview, `${key} changed nothing but opened a review case.`);
+  }
+  if (a.caseId) {
+    check(!caseIds.has(a.caseId), `Duplicate case ID ${a.caseId}.`);
+    caseIds.add(a.caseId);
+    check(a.impactedRecordCount > 0, `${key} opened a case with no records.`);
+  }
+
+  // The premise: evidence moved after the classification on record, and before
+  // every record carrying it was reported with the old reading.
+  if (a.verdict.type !== "NO_MATERIAL_CHANGE" && record.lastEvaluated) {
+    const since =
+      a.variant.historicalSource.kind === "clinvar-release"
+        ? `${CLINVAR_JAN_2023.release}-01`
+        : a.variant.recordedOn;
+    check(
+      record.lastEvaluated >= since,
+      `${key} is presented as reclassified since ${since}, but ClinVar last evaluated it on ${record.lastEvaluated}.`,
+    );
+    for (const patient of a.impactedPatients) {
+      check(
+        patient.testedOn <= record.lastEvaluated,
+        `Patient ${patient.id} was tested after ${key} was re-evaluated, so the record would not carry the old reading.`,
+      );
+    }
+  }
+}
+
+/* -- Report ----------------------------------------------------------------- */
+
+const m = analysis.metrics;
+const byVerdict = (type) => analysis.assessments.filter((a) => a.verdict.type === type);
+const changes = analysis.assessments.filter((a) =>
+  ["CLASSIFICATION_DRIFT", "EVIDENCE_STRENGTHENED", "EVIDENCE_WEAKENED"].includes(a.verdict.type),
 );
-notes.push(`${unchangedControls.length} unchanged controls, ${shared.length} changed variants shared by several patients`);
-notes.push(`${patients.length} patient records, ${impacted.size} on a variant that moved`);
-notes.push(`${changed} reclassifications, ${conflicts} regional conflicts`);
+const againstRelease = changes.filter((a) => a.variant.historicalSource.kind === "clinvar-release");
+const unchanged = byVerdict("NO_MATERIAL_CHANGE");
+const silent = unchanged.filter((a) => !a.caseId);
+const lead = analysis.reviewable[0];
+const list = (items) => items.map((a) => label(a.variant.key)).join(", ");
+const fromRelease = MONITORED_VARIANTS.filter((v) => v.historicalSource.kind === "clinvar-release").length;
 
-/* -- Report ---------------------------------------------------------------- */
-
-for (const note of notes) console.log(`  ${note}`);
+console.log(`  ${MONITORED_VARIANTS.length} monitored ClinVar variants (${fromRelease} classified in ClinVar's ${CLINVAR_JAN_2023.label} release, ${MONITORED_VARIANTS.length - fromRelease} modelled hospital report)`);
+console.log(`  ${PATIENTS.length} synthetic patient records`);
+console.log(`  ${changes.length} reclassifications (${againstRelease.length} against the ${CLINVAR_JAN_2023.label} release, ${changes.length - againstRelease.length} against a modelled hospital report)`);
+console.log(`  ${m.consensusConflicts} consensus conflict${m.consensusConflicts === 1 ? "" : "s"} (${list(byVerdict("CONSENSUS_CONFLICT"))})`);
+console.log(`  ${m.regionalConflicts} regional evidence signal${m.regionalConflicts === 1 ? "" : "s"} (${list(analysis.regionalConflicts)})`);
+console.log(`  ${unchanged.length} unchanged classifications: ${silent.length} raise nothing (${list(silent)})${unchanged.length > silent.length ? `, ${unchanged.length - silent.length} a regional signal only (${list(unchanged.filter((a) => a.caseId))})` : ""}`);
+console.log(`  ${m.openCases} review cases covering ${m.patientsImpacted} synthetic patients`);
+if (lead) {
+  console.log(
+    `  Lead case ${lead.caseId}: ${label(lead.variant.key)}, ${meta(lead.recordedCode).label} → ${meta(lead.currentCode).label}, ${lead.impactedRecordCount} patients, ${lead.priority.level}`,
+  );
+}
 
 if (failures.length > 0) {
   console.error(`\n${failures.length} problem${failures.length === 1 ? "" : "s"}:\n`);

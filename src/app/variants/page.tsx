@@ -23,7 +23,7 @@ const FILTERS: { id: Filter; label: string; matches: (type: ChangeType) => boole
   },
   {
     id: "conflict",
-    label: "Conflicting",
+    label: "Conflict or regional",
     matches: (t) => t === "REGIONAL_CONFLICT" || t === "CONSENSUS_CONFLICT",
   },
   { id: "stable", label: "Unchanged", matches: (t) => t === "NO_MATERIAL_CHANGE" },
@@ -103,7 +103,7 @@ export default function VariantsPage() {
 
         <div className="hidden items-center gap-4 border-b border-line bg-surface-2 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-faint lg:flex">
           <span className="flex-1">Variant</span>
-          <span className="hidden md:block">As reported → current</span>
+          <span className="hidden md:block">On record → current</span>
           <span className="w-20 text-right">Records</span>
           <span className="w-[132px] text-right">Change</span>
           <span className="w-[86px] text-right">Priority</span>

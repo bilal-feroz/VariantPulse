@@ -279,7 +279,7 @@
   "key": "HBB:c.364G>C",
   "clinvarVariationId": "15152",
   "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/15152/",
-  "name": "NM_000518.5(HBB):c.364G>C (p.Glu122Gln), Hb D-Punjab",
+  "name": "NM_000518.5(HBB):c.364G>C (p.Glu122Gln) \u2014 Hb D-Punjab",
   "clinvar_2023_01": "CONFLICTING",
   "clinvar_2026_09": "PATHOGENIC (Pathogenic/Likely pathogenic, Mar 2026)",
   "ctga": "UAE records; CTGA: Likely pathogenic, Pathogenic (sickle cell anaemia; beta-thalassaemia)",

@@ -43,7 +43,7 @@ export default function EvidencePage() {
         <span className="inline-flex items-center gap-2">
           <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
           <span className="text-[13px] font-medium text-ink">
-            {live ? "Reading live from ClinVar" : "Serving cached evidence"}
+            {live ? "Live ClinVar evidence" : "Cached verified evidence"}
           </span>
         </span>
         <span className="text-[12.5px] text-muted">

@@ -63,7 +63,7 @@ export function PageShell({
       <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
         <p className="text-[11.5px] text-faint">VariantPulse · Built by Team Kanban</p>
         <p className="text-[11.5px] text-faint">
-          Synthetic patient dataset · Variant evidence read from ClinVar
+          Synthetic patient records · Real public genomic evidence
         </p>
       </footer>
     </div>

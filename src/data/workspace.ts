@@ -4,31 +4,84 @@
  * Every patient, record identifier, clinician and department below is
  * fabricated. None of it derives from a real person or a real health system.
  *
- * The variants are the opposite: each one is a real ClinVar record, and the
- * `recordedClassification` field is exactly what ClinVar itself said about that
- * variant in its January 2023 public release (NCBI archive
- * variant_summary_2023-01). Every "drift" in this workspace is therefore a real,
- * dated reclassification that anyone can verify. See data/provenance.json. The gap between that field and the
- * live classification is the thing VariantPulse exists to surface.
+ * The variants are the opposite: each one is a real ClinVar record, and for
+ * fourteen of the fifteen the historical classification is exactly what ClinVar
+ * itself said about that variant in its January 2023 public release (NCBI
+ * archive variant_summary_2023-01). Their classification, review status and
+ * dbSNP identifier were re-checked against the GRCh38 rows of that archive on
+ * 2026-09-25, so every drift on them is a real, dated reclassification that
+ * anyone can verify; the release-by-release history is in `provenance.json`.
+ *
+ * The fifteenth, MYBPC3:c.776delinsTT, was not in ClinVar at all in January
+ * 2023. Its "uncertain significance" is this synthetic hospital's own report of
+ * a novel variant, and `historicalSource` says so rather than borrowing
+ * ClinVar's authority.
+ *
+ * Two dates are kept apart on purpose. `historicalSource` is when ClinVar said
+ * it; `recordedOn` and each patient's `testedOn` are when this synthetic
+ * hospital reported it. The gap between the historical classification and the
+ * live one is the thing VariantPulse exists to surface.
  */
 
 import type { ClassificationCode } from "@/lib/classification";
 
-/** Findings held in the connected record system, including the detailed set below. */
-export const MONITORED_FINDING_COUNT = 12_482;
+/** Where a historical classification came from. */
+export interface HistoricalSource {
+  /**
+   * `clinvar-release`: read from a dated public ClinVar release.
+   * `modelled-report`: no public classification existed, so the value is the
+   * synthetic hospital's own report.
+   */
+  kind: "clinvar-release" | "modelled-report";
+  name: string;
+  /** Release identifier, `YYYY-MM`, for ClinVar releases. */
+  release: string | null;
+  label: string;
+  shortLabel: string;
+  file: string | null;
+  /** Public directory the release file is archived in. */
+  url: string | null;
+}
+
+export const CLINVAR_JAN_2023: HistoricalSource = {
+  kind: "clinvar-release",
+  name: "NCBI ClinVar",
+  release: "2023-01",
+  label: "January 2023",
+  shortLabel: "Jan 2023",
+  file: "variant_summary_2023-01.txt.gz",
+  url: "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/archive/2023/",
+};
+
+export const MODELLED_HOSPITAL_REPORT: HistoricalSource = {
+  kind: "modelled-report",
+  name: "Synthetic hospital report",
+  release: null,
+  label: "Hospital report (modelled; not in ClinVar in January 2023)",
+  shortLabel: "Hospital report",
+  file: null,
+  url: null,
+};
 
 export interface MonitoredVariant {
-  /** `GENE:cDNA`, the join key across evidence sources. */
+  /** `GENE:cDNA` — the join key across evidence sources. */
   key: string;
   gene: string;
   hgvsCoding: string;
   proteinChange: string | null;
   clinvarId: string;
-  /** What this hospital reported when the results were issued. */
-  recordedClassification: ClassificationCode;
-  /** When this interpretation was last affirmed internally. */
+  /** dbSNP identifier carried by the ClinVar record. */
+  rsid: string | null;
+  /** The interpretation on record, as given by `historicalSource`. */
+  historicalClassification: ClassificationCode;
+  /** The same classification exactly as ClinVar worded it; null when ClinVar held no record. */
+  historicalClinvarText: string | null;
+  /** ClinVar review status in that release; null when ClinVar held no record. */
+  historicalReviewStatus: string | null;
+  historicalSource: HistoricalSource;
+  /** When this synthetic hospital issued its report. Not the ClinVar release date. */
   recordedOn: string;
-  /** The internal note that accompanied the original report. */
+  /** The internal note that accompanied the original report. Synthetic. */
   recordedEvidenceNote: string;
   condition: string;
   panel: string;
@@ -41,8 +94,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.5056C>T",
     proteinChange: "p.His1686Tyr",
     clinvarId: "531444",
-    // ClinVar January 2023 release: VUS (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "VUS",
+    rsid: "rs1555579648",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-03-14",
     recordedEvidenceNote:
       "Missense change in the BRCT domain. Public submissions were limited and in agreement on uncertain significance at the time of reporting.",
@@ -55,8 +111,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.7847C>T",
     proteinChange: "p.Ser2616Phe",
     clinvarId: "630829",
-    // ClinVar January 2023 release: VUS (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "VUS",
+    rsid: "rs1174303167",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-06-19",
     recordedEvidenceNote:
       "Missense change in the DNA-binding domain. Classified as uncertain significance; functional data not yet available.",
@@ -69,8 +128,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.589G>A",
     proteinChange: "p.Val197Met",
     clinvarId: "188060",
-    // ClinVar January 2023 release: VUS (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "VUS",
+    rsid: "rs786204041",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-02-07",
     recordedEvidenceNote:
       "Missense change in the DNA-binding domain. Multiple submitters agreed on uncertain significance at the time of reporting.",
@@ -83,8 +145,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.1381G>T",
     proteinChange: "p.Gly461Cys",
     clinvarId: "183113",
-    // ClinVar January 2023 release: VUS (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "VUS",
+    rsid: "rs193922568",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-10-11",
     recordedEvidenceNote:
       "Missense change in the EGF-precursor homology domain. Reported as uncertain; segregation data not available.",
@@ -97,8 +162,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.149T>C",
     proteinChange: "p.Ile50Thr",
     clinvarId: "492727",
-    // ClinVar January 2023 release: VUS (criteria provided, single submitter)
-    recordedClassification: "VUS",
+    rsid: "rs1554893824",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, single submitter",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-12-05",
     recordedEvidenceNote:
       "Missense change reported by a single submitter as uncertain significance.",
@@ -111,8 +179,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.26-2A>G",
     proteinChange: null,
     clinvarId: "42644",
-    // ClinVar January 2023 release: PATHOGENIC (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "PATHOGENIC",
+    rsid: "rs376395543",
+    historicalClassification: "PATHOGENIC",
+    historicalClinvarText: "Pathogenic/Likely pathogenic",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-08-16",
     recordedEvidenceNote:
       "Canonical splice-site change reported as pathogenic; family cascade testing and cardiac surveillance initiated.",
@@ -125,8 +196,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.380T>G",
     proteinChange: "p.Val127Gly",
     clinvarId: "15483",
-    // ClinVar January 2023 release: PATHOGENIC (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "PATHOGENIC",
+    rsid: "rs33925391",
+    historicalClassification: "PATHOGENIC",
+    historicalClinvarText: "Pathogenic/Likely pathogenic",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-01-30",
     recordedEvidenceNote:
       "Reported as pathogenic following abnormal haemoglobin studies. Carrier status communicated for reproductive planning.",
@@ -139,8 +213,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.9538C>T",
     proteinChange: "p.Leu3180Phe",
     clinvarId: "52865",
-    // ClinVar January 2023 release: VUS (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "VUS",
+    rsid: "rs200598289",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-04-24",
     recordedEvidenceNote:
       "Missense change in the C-terminal region. Reported as uncertain significance.",
@@ -153,8 +230,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.784G>A",
     proteinChange: "p.Gly262Ser",
     clinvarId: "141228",
-    // ClinVar January 2023 release: VUS (reviewed by expert panel)
-    recordedClassification: "VUS",
+    rsid: "rs200579969",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "reviewed by expert panel",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-09-13",
     recordedEvidenceNote:
       "Reported as uncertain significance by expert-panel criteria at the time.",
@@ -167,8 +247,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.5123C>T",
     proteinChange: "p.Ala1708Val",
     clinvarId: "37640",
-    // ClinVar January 2023 release: VUS (criteria provided, multiple submitters, no conflicts)
-    recordedClassification: "VUS",
+    rsid: "rs28897696",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "criteria provided, multiple submitters, no conflicts",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-11-21",
     recordedEvidenceNote:
       "Missense change in the BRCT domain. Submitters agreed on uncertain significance at the time of reporting.",
@@ -181,8 +264,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.2479G>A",
     proteinChange: "p.Val827Ile",
     clinvarId: "36462",
-    // ClinVar January 2023 release: VUS (reviewed by expert panel)
-    recordedClassification: "VUS",
+    rsid: "rs137853964",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "reviewed by expert panel",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-07-04",
     recordedEvidenceNote:
       "Reported as uncertain significance by expert-panel criteria.",
@@ -195,24 +281,31 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.601G>A",
     proteinChange: "p.Val201Met",
     clinvarId: "54022",
-    // ClinVar January 2023 release: VUS (reviewed by expert panel)
-    recordedClassification: "VUS",
+    rsid: "rs138338446",
+    historicalClassification: "VUS",
+    historicalClinvarText: "Uncertain significance",
+    historicalReviewStatus: "reviewed by expert panel",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-05-02",
     recordedEvidenceNote:
       "Reported as uncertain significance by expert-panel criteria. No change to reproductive advice at the time.",
     condition: "Cystic fibrosis (carrier screening)",
     panel: "Carrier screening panel",
   },
-  // -- Regional (CTGA) cases: variants recorded in UAE patients in the
-  // Catalogue of Transmission Genetics in Arabs (CTGA). --
+
+  // -- Recorded in UAE patients in the Catalogue for Transmission Genetics in
+  // Arabs (CTGA, Centre for Arab Genomic Studies). --
   {
     key: "HBB:c.364G>C",
     gene: "HBB",
     hgvsCoding: "c.364G>C",
     proteinChange: "p.Glu122Gln",
     clinvarId: "15152",
-    // ClinVar January 2023 release: CONFLICTING. Now Pathogenic/Likely pathogenic (Mar 2026).
-    recordedClassification: "CONFLICTING",
+    rsid: "rs33946267",
+    historicalClassification: "CONFLICTING",
+    historicalClinvarText: "Conflicting interpretations of pathogenicity",
+    historicalReviewStatus: "criteria provided, conflicting interpretations",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2023-02-14",
     recordedEvidenceNote:
       "Haemoglobin D-Punjab. Global submitters disagreed at the time of reporting, so the result was filed without a firm classification. CTGA already recorded it in UAE patients with sickle cell disease and beta-thalassaemia.",
@@ -225,9 +318,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.776delinsTT",
     proteinChange: "p.Ala259fs",
     clinvarId: "4689837",
-    // Not yet in ClinVar in January 2023 (first public classification: Likely pathogenic, Jul 2025).
-    // Hospital modelled as having reported it as a novel VUS; CTGA listed it in a UAE patient from 2020.
-    recordedClassification: "VUS",
+    rsid: null,
+    historicalClassification: "VUS",
+    historicalClinvarText: null,
+    historicalReviewStatus: null,
+    historicalSource: MODELLED_HOSPITAL_REPORT,
     recordedOn: "2023-03-20",
     recordedEvidenceNote:
       "Novel frameshift change with no public submissions at the time of reporting. Classified as uncertain pending further evidence.",
@@ -240,8 +335,11 @@ export const MONITORED_VARIANTS: MonitoredVariant[] = [
     hgvsCoding: "c.1140dup",
     proteinChange: "p.Lys381fs",
     clinvarId: "231732",
-    // ClinVar January 2023 release: PATHOGENIC (expert panel). Unchanged.
-    recordedClassification: "PATHOGENIC",
+    rsid: "rs876659327",
+    historicalClassification: "PATHOGENIC",
+    historicalClinvarText: "Pathogenic",
+    historicalReviewStatus: "reviewed by expert panel",
+    historicalSource: CLINVAR_JAN_2023,
     recordedOn: "2022-10-03",
     recordedEvidenceNote:
       "Frameshift change reported as pathogenic by expert-panel criteria. Surveillance and cascade testing offered.",
@@ -279,6 +377,8 @@ const LAB = {
 } as const;
 
 export const PATIENTS: PatientRecord[] = [
+  // BRCA1:c.5056C>T — the headline: uncertain in January 2023, likely pathogenic
+  // after expert-panel review. Four records, none reassessed since.
   {
     id: "VP-10247",
     ageBand: "45-54",
@@ -331,6 +431,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Cascade testing following a family result",
   },
+
+  // BRCA2:c.7847C>T — uncertain to pathogenic.
   {
     id: "VP-10395",
     ageBand: "35-44",
@@ -357,6 +459,9 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Family history of pancreatic cancer",
   },
+
+  // TP53:c.589G>A — uncertain to likely pathogenic, including a child tested
+  // through cascade testing.
   {
     id: "VP-10469",
     ageBand: "25-34",
@@ -383,6 +488,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Cascade testing following a family result",
   },
+
+  // LDLR:c.1381G>T — uncertain to likely pathogenic.
   {
     id: "VP-10543",
     ageBand: "35-44",
@@ -409,6 +516,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Cascade testing following a family result",
   },
+
+  // PTEN:c.149T>C — uncertain to pathogenic, in a paediatric record.
   {
     id: "VP-10617",
     ageBand: "5-11",
@@ -422,6 +531,9 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Macrocephaly with developmental delay",
   },
+
+  // MYBPC3:c.26-2A>G — the reverse case: pathogenic/likely pathogenic in
+  // January 2023, uncertain now, while a family is on cardiac surveillance.
   {
     id: "VP-10654",
     ageBand: "45-54",
@@ -448,6 +560,9 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Cascade testing following a family result",
   },
+
+  // HBB:c.380T>G — pathogenic/likely pathogenic to uncertain, on a carrier
+  // result from premarital screening. Carries regional context.
   {
     id: "VP-10728",
     ageBand: "25-34",
@@ -461,6 +576,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Premarital screening follow-up",
   },
+
+  // BRCA2:c.9538C>T — uncertain to benign.
   {
     id: "VP-10765",
     ageBand: "45-54",
@@ -487,6 +604,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Family history of ovarian cancer",
   },
+
+  // TP53:c.784G>A — uncertain to likely benign.
   {
     id: "VP-10839",
     ageBand: "55-64",
@@ -500,6 +619,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Treatment planning",
   },
+
+  // BRCA1:c.5123C>T — uncertain to conflicting: submitters now disagree.
   {
     id: "VP-10876",
     ageBand: "35-44",
@@ -513,6 +634,10 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Family history of breast cancer",
   },
+
+  // -- Classification unchanged since January 2023. ------------------------
+
+  // LDLR:c.2479G>A — the control: nothing moved, so nothing is raised.
   {
     id: "VP-10913",
     ageBand: "45-54",
@@ -539,6 +664,9 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Reviewed",
     indication: "Cascade testing following a family result",
   },
+
+  // CFTR:c.601G>A — classification unchanged; its Middle Eastern frequency in
+  // gnomAD v4 is what differs.
   {
     id: "VP-10987",
     ageBand: "25-34",
@@ -552,6 +680,11 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Reviewed",
     indication: "Premarital screening follow-up",
   },
+
+  // -- CTGA-backed cases. --
+
+  // HBB:c.364G>C — Hb D-Punjab: conflicting in January 2023, now
+  // pathogenic/likely pathogenic.
   {
     id: "VP-10701",
     ageBand: "25-34",
@@ -578,6 +711,9 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Anaemia work-up",
   },
+
+  // MYBPC3:c.776delinsTT — reported by the hospital as a novel VUS; ClinVar's
+  // first and only classification, years later, is likely pathogenic.
   {
     id: "VP-10775",
     ageBand: "35-44",
@@ -604,6 +740,8 @@ export const PATIENTS: PatientRecord[] = [
     reviewState: "Not reviewed",
     indication: "Cascade testing following a family result",
   },
+
+  // BRCA1:c.1140dup — pathogenic then and now: the second control.
   {
     id: "VP-10849",
     ageBand: "45-54",

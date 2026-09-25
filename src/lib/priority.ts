@@ -66,7 +66,7 @@ export interface PriorityInput {
   current: ClassificationCode;
   /** Records on file that carry this variant. */
   impactedRecords: number;
-  /** Set when regional evidence disagrees with the global consensus. */
+  /** Set when regional evidence is flagged for review. */
   regionalConflict?: boolean;
   /** 0-4 review confidence of the current classification. */
   confidenceStars?: number;
@@ -139,8 +139,8 @@ export function assessPriority(input: PriorityInput): PriorityAssessment {
   if (regionalConflict) {
     score += 30;
     factors.push({
-      label: "Regional evidence conflicts",
-      detail: "Regional and global sources reach different conclusions.",
+      label: "Regional evidence flagged",
+      detail: "Regional population or catalogue evidence deserves a clinician's review.",
       weight: 30,
     });
   }
@@ -149,7 +149,7 @@ export function assessPriority(input: PriorityInput): PriorityAssessment {
     const weight = Math.min(25, impactedRecords * 5);
     score += weight;
     factors.push({
-      label: `${impactedRecords} record${impactedRecords === 1 ? "" : "s"} on file`,
+      label: `${impactedRecords} synthetic record${impactedRecords === 1 ? "" : "s"} on file`,
       detail: "Historical results carrying this variant that a reviewer would reassess.",
       weight,
     });

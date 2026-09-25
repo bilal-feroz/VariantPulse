@@ -27,7 +27,7 @@ import {
 } from "@/components/ui";
 import { PATIENT_BY_ID } from "@/data/workspace";
 import { CHANGE_TYPES } from "@/lib/classification";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatMonth } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 
 export default function PatientPage() {
@@ -138,12 +138,25 @@ export default function PatientPage() {
             <Field label="ClinVar" value={evidence.accession ?? `VCV${evidence.clinvarId}`} mono />
             <Field label="dbSNP" value={evidence.rsid ?? "Not linked"} mono />
             <Field
-              label="As reported"
+              label="Classification on record"
               value={<ClassificationBadge code={assessment.recordedCode} full />}
             />
-            <Field label="Reported on" value={formatDate(variant.recordedOn)} />
+            <Field
+              label="Source of that classification"
+              value={
+                variant.historicalSource.kind === "clinvar-release"
+                  ? `ClinVar, ${variant.historicalSource.label} release`
+                  : `Hospital report, ${formatMonth(variant.recordedOn)}`
+              }
+            />
+            <Field
+              label="Review status then"
+              value={variant.historicalReviewStatus ?? "Not in ClinVar in January 2023"}
+            />
+            <Field label="Reported on (synthetic)" value={formatDate(variant.recordedOn)} />
           </dl>
           <p className="mt-4 border-t border-line pt-3 text-[12.5px] leading-relaxed text-muted">
+            <span className="font-medium text-ink-2">Original report note (synthetic): </span>
             {variant.recordedEvidenceNote}
           </p>
         </Card>
@@ -153,7 +166,11 @@ export default function PatientPage() {
         <SectionHeading
           title="Current interpretation"
           icon={<Stethoscope className="h-4 w-4" />}
-          description="Read from ClinVar at the last evidence sync."
+          description={
+            assessment.evidenceMode === "live"
+              ? "Read live from NCBI ClinVar at the last evidence sync."
+              : "From the cached, verified ClinVar snapshot; live ClinVar was not reachable."
+          }
         />
         <dl className="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field

@@ -2,11 +2,17 @@
  * Refreshes the bundled ClinVar evidence snapshot.
  *
  * VariantPulse reads current evidence live from NCBI ClinVar at runtime. This
- * script captures the same records to disk so the workspace keeps working,
- * with an honest "cached" badge, when the upstream service is unreachable.
+ * script captures the same records to disk so the workspace keeps working —
+ * with an honest "cached" badge — when the upstream service is unreachable.
  *
- *   node scripts/refresh-evidence.mjs
+ *   npm run evidence:refresh
+ *
+ * The panel is read from src/data/workspace.ts, the one place it is defined.
+ * Refreshing is a deliberate step: the application never writes the snapshot,
+ * and this script refuses to replace a complete snapshot with a partial one.
  */
+
+import "./lib/load-ts.mjs";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -16,23 +22,8 @@ const OUT = resolve(HERE, "../src/data/evidence-snapshot.json");
 const EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
 /** The variant panel this workspace monitors. Every id is a real ClinVar VCV record. */
-const PANEL = [
-  { key: "BRCA1:c.5056C>T", clinvarId: "531444" },
-  { key: "BRCA2:c.7847C>T", clinvarId: "630829" },
-  { key: "TP53:c.589G>A", clinvarId: "188060" },
-  { key: "LDLR:c.1381G>T", clinvarId: "183113" },
-  { key: "PTEN:c.149T>C", clinvarId: "492727" },
-  { key: "MYBPC3:c.26-2A>G", clinvarId: "42644" },
-  { key: "HBB:c.380T>G", clinvarId: "15483" },
-  { key: "BRCA2:c.9538C>T", clinvarId: "52865" },
-  { key: "TP53:c.784G>A", clinvarId: "141228" },
-  { key: "BRCA1:c.5123C>T", clinvarId: "37640" },
-  { key: "LDLR:c.2479G>A", clinvarId: "36462" },
-  { key: "CFTR:c.601G>A", clinvarId: "54022" },
-  { key: "HBB:c.364G>C", clinvarId: "15152" },
-  { key: "MYBPC3:c.776delinsTT", clinvarId: "4689837" },
-  { key: "BRCA1:c.1140dup", clinvarId: "231732" },
-];
+const { MONITORED_VARIANTS } = await import("@/data/workspace");
+const PANEL = MONITORED_VARIANTS.map((v) => ({ key: v.key, clinvarId: v.clinvarId }));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -44,7 +35,7 @@ async function getJSON(url) {
 
 async function fetchSummaries(ids) {
   const data = await getJSON(
-    `${EUTILS}/esummary.fcgi?db=clinvar&retmode=json&id=${ids.join(",")}`,
+    `${EUTILS}/esummary.fcgi?db=clinvar&retmode=json&tool=variantpulse&id=${ids.join(",")}`,
   );
   return data.result ?? {};
 }
@@ -52,7 +43,7 @@ async function fetchSummaries(ids) {
 async function fetchCitations(id) {
   try {
     const data = await getJSON(
-      `${EUTILS}/elink.fcgi?dbfrom=clinvar&db=pubmed&retmode=json&id=${id}`,
+      `${EUTILS}/elink.fcgi?dbfrom=clinvar&db=pubmed&retmode=json&tool=variantpulse&id=${id}`,
     );
     const sets = data.linksets?.[0]?.linksetdbs ?? [];
     const links = sets.find((s) => s.linkname?.includes("pubmed"))?.links ?? [];
@@ -66,7 +57,7 @@ async function fetchArticles(pmids) {
   if (!pmids.length) return [];
   try {
     const data = await getJSON(
-      `${EUTILS}/esummary.fcgi?db=pubmed&retmode=json&id=${pmids.join(",")}`,
+      `${EUTILS}/esummary.fcgi?db=pubmed&retmode=json&tool=variantpulse&id=${pmids.join(",")}`,
     );
     const r = data.result ?? {};
     return (r.uids ?? [])
@@ -153,10 +144,12 @@ async function main() {
   const summaries = await fetchSummaries(ids);
 
   const records = {};
+  const missing = [];
   for (const entry of PANEL) {
     const raw = summaries[entry.clinvarId];
-    if (!raw || raw.error) {
-      console.warn(`  ! no record for ${entry.key} (${entry.clinvarId})`);
+    if (!raw || raw.error || !raw.germline_classification?.description) {
+      missing.push(entry.key);
+      console.warn(`  ! no usable record for ${entry.key} (${entry.clinvarId})`);
       continue;
     }
     await sleep(350);
@@ -170,16 +163,36 @@ async function main() {
     );
   }
 
+  // A partial capture would silently turn a known-good fallback into a broken one.
+  if (missing.length > 0) {
+    console.error(`\nNot writing: ${missing.length} record(s) missing. The existing snapshot is unchanged.`);
+    process.exit(1);
+  }
+
+  const generatedAt = new Date().toISOString();
+  const recordCount = Object.keys(records).length;
   const snapshot = {
+    generatedAt,
     source: "NCBI ClinVar (E-utilities)",
     sourceUrl: "https://www.ncbi.nlm.nih.gov/clinvar/",
-    capturedAt: new Date().toISOString(),
-    recordCount: Object.keys(records).length,
+    recordCount,
+    provenance: {
+      origin: "Captured live from NCBI ClinVar E-utilities by scripts/refresh-evidence.mjs",
+      importedAt: generatedAt,
+      notes: [],
+      verifiedAgainstLive: {
+        at: generatedAt,
+        compared: recordCount,
+        matched: recordCount,
+        fields: ["classification", "reviewStatus", "lastEvaluated", "rsid", "submissionCount"],
+        differences: [],
+      },
+    },
     records,
   };
 
   writeFileSync(OUT, `${JSON.stringify(snapshot, null, 2)}\n`);
-  console.log(`\nWrote ${snapshot.recordCount} records to ${OUT}`);
+  console.log(`\nWrote ${recordCount} records to ${OUT}`);
 }
 
 main().catch((err) => {

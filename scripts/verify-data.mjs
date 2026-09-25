@@ -207,7 +207,85 @@ const impacted = new Set(
     .map((p) => p.id),
 );
 
+/* -- Demo story invariants ------------------------------------------------ */
+
+const STORY = {
+  key: "BRCA1:c.5522G>T",
+  accession: "VCV000869004",
+  recordedClassification: "VUS",
+  recordedOn: "2023-04-18",
+  current: "LIKELY_PATHOGENIC",
+  lastEvaluated: "2025-11-06",
+  patients: ["VP-10283", "VP-10491", "VP-10822", "VP-11034"],
+};
+
+const storyVariant = variants.find((v) => v.key === STORY.key);
+const storyRecord = snapshot.records[STORY.key];
+
+if (!storyVariant || !storyRecord) {
+  fail(`Demo story variant ${STORY.key} is missing from the panel or the snapshot.`);
+} else {
+  if (storyRecord.accession !== STORY.accession) {
+    fail(`${STORY.key} should resolve to ${STORY.accession}, found ${storyRecord.accession}.`);
+  }
+  if (storyVariant.recordedClassification !== STORY.recordedClassification) {
+    fail(`${STORY.key} should be recorded as ${STORY.recordedClassification}.`);
+  }
+  if (storyVariant.recordedOn !== STORY.recordedOn) {
+    fail(`${STORY.key} should be recorded on ${STORY.recordedOn}, found ${storyVariant.recordedOn}.`);
+  }
+  if (normalise(storyRecord.classification) !== STORY.current) {
+    fail(`${STORY.key} snapshot should read Likely pathogenic, found ${storyRecord.classification}.`);
+  }
+  if (storyRecord.lastEvaluated !== STORY.lastEvaluated) {
+    fail(`${STORY.key} should be last evaluated ${STORY.lastEvaluated}, found ${storyRecord.lastEvaluated}.`);
+  }
+}
+
+const storyPatients = patients
+  .filter((p) => p.variantKey === STORY.key)
+  .map((p) => p.id)
+  .sort();
+if (storyPatients.join(",") !== STORY.patients.join(",")) {
+  fail(`${STORY.key} should be carried by exactly ${STORY.patients.join(", ")}; found ${storyPatients.join(", ")}.`);
+}
+
+for (const patient of patients) {
+  if (!/^VP-\d{5}$/.test(patient.id ?? "")) fail(`Patient id ${patient.id} is not in VP-xxxxx form.`);
+}
+if (new Set(patients.map((p) => p.id)).size !== patients.length) fail("Patient ids are not unique.");
+
+if (!snapshot.capturedAt || Number.isNaN(Date.parse(snapshot.capturedAt))) {
+  fail("The evidence snapshot has no valid capturedAt timestamp, so demo mode cannot be deterministic.");
+}
+
+/* -- Dataset shape --------------------------------------------------------- */
+
+const shared = variants.filter((v) => {
+  const record = snapshot.records[v.key];
+  return (
+    record &&
+    normalise(record.classification) !== v.recordedClassification &&
+    patients.filter((p) => p.variantKey === v.key).length >= 2
+  );
+});
+const unchangedControls = variants.filter((v) => {
+  const record = snapshot.records[v.key];
+  return record && normalise(record.classification) === v.recordedClassification;
+});
+
+if (variants.length !== 12) fail(`Expected 12 monitored variants, found ${variants.length}.`);
+if (patients.length < 25 || patients.length > 40) {
+  fail(`Expected about 30 synthetic patients, found ${patients.length}.`);
+}
+if (changed < 2) fail(`Expected at least 2 classification changes, found ${changed}.`);
+if (conflicts !== 2) fail(`Expected 2 regional conflicts, found ${conflicts}.`);
+if (unchangedControls.length === 0) fail("Expected at least one unchanged control variant.");
+if (shared.length < 2) fail("Expected several patients sharing a changed variant.");
+
 notes.push(`${variants.length} variants on the panel, all backed by a ClinVar record`);
+notes.push(`Demo story: ${STORY.key} VUS -> Likely pathogenic for ${storyPatients.length} patients`);
+notes.push(`${unchangedControls.length} unchanged controls, ${shared.length} changed variants shared by several patients`);
 notes.push(`${patients.length} patient records, ${impacted.size} on a variant that moved`);
 notes.push(`${changed} reclassifications, ${conflicts} regional conflicts`);
 

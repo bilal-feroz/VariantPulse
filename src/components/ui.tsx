@@ -278,6 +278,23 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   danger: "bg-crit text-white hover:bg-crit/90",
 };
 
+/** Button styling for elements that are not buttons, such as links. */
+export function buttonClasses(
+  variant: ButtonVariant = "secondary",
+  size: "sm" | "md" | "lg" = "md",
+  className?: string,
+): string {
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors",
+    "disabled:pointer-events-none disabled:opacity-45",
+    size === "sm" && "h-8 px-3 text-[12.5px]",
+    size === "md" && "h-10 px-4 text-[13.5px]",
+    size === "lg" && "h-12 px-6 text-[14.5px]",
+    BUTTON_VARIANT[variant],
+    className,
+  );
+}
+
 export const Button = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -289,18 +306,7 @@ export const Button = React.forwardRef<
   ref,
 ) {
   return (
-    <button
-      ref={ref}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors",
-        "disabled:pointer-events-none disabled:opacity-45",
-        size === "sm" && "h-8 px-3 text-[12.5px]",
-        size === "md" && "h-10 px-4 text-[13.5px]",
-        size === "lg" && "h-12 px-6 text-[14.5px]",
-        BUTTON_VARIANT[variant],
-        className,
-      )}
-      {...props}
+    <button ref={ref} className={buttonClasses(variant, size, className)} {...props}
     >
       {children}
     </button>

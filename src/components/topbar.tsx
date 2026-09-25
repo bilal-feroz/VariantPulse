@@ -12,6 +12,7 @@ import { Badge, PriorityBadge, StatusDot } from "@/components/ui";
 import { CURRENT_USER } from "@/data/workspace";
 import { useWorkspace } from "@/state/workspace";
 import { cn } from "@/lib/utils";
+import { evidenceModeMeta } from "@/components/story/mode";
 import { RelativeTime } from "@/components/relative-time";
 
 /** Closes a popover on outside click and on Escape. */
@@ -69,7 +70,7 @@ export function Topbar() {
     .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Resolved");
 
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
-  const live = analysis.mode === "live";
+  const mode = evidenceModeMeta(analysis.mode);
 
   return (
     <>
@@ -91,16 +92,10 @@ export function Topbar() {
         <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
           <span
             className="hidden items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 xl:inline-flex"
-            title={
-              live
-                ? "Evidence is being read live from ClinVar."
-                : `Serving the bundled snapshot. ${analysis.reason ?? "The live source was unavailable."}`
-            }
+            title={analysis.reason ? `${mode.detail} ${analysis.reason}` : mode.detail}
           >
-            <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
-            <span className="text-[12px] font-medium text-ink-2">
-              {live ? "Evidence monitor live" : "Cached evidence"}
-            </span>
+            <StatusDot tone={mode.tone} pulse={analysis.mode === "live"} />
+            <span className="text-[12px] font-medium text-ink-2">{mode.label}</span>
             <RelativeTime value={lastChecked} className="text-[11.5px] text-faint vp-num" />
           </span>
 

@@ -107,7 +107,7 @@ function buildPipeline(input: {
   return [
     {
       label: "Historical record retrieved",
-      detail: `${variant.gene} ${variant.hgvsCoding} reported as ${meta(variant.recordedClassification).label} on ${variant.recordedOn}.`,
+      detail: `${variant.gene} ${variant.hgvsCoding} reported as ${meta(variant.historicalClassification).label} on ${variant.recordedOn}.`,
     },
     {
       label: "Variant normalised",
@@ -150,7 +150,7 @@ function assessVariant(
   scan: CorpusScan,
   mode: EvidenceResult["mode"],
 ): Omit<VariantAssessment, "caseId"> {
-  const recordedCode = variant.recordedClassification;
+  const recordedCode = variant.historicalClassification;
   const currentCode = normaliseClassification(evidence.classification);
   const verdict = detectChange(recordedCode, currentCode);
   const confidence = reviewConfidence(evidence.reviewStatus);

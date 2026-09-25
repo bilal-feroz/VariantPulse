@@ -57,7 +57,7 @@ export function getCorpus(): CorpusFinding[] {
   const findings: CorpusFinding[] = PATIENTS.map((patient) => ({
     recordId: patient.id,
     variantKey: patient.variantKey,
-    recordedCode: VARIANT_BY_KEY.get(patient.variantKey)?.recordedClassification ?? "NOT_PROVIDED",
+    recordedCode: VARIANT_BY_KEY.get(patient.variantKey)?.historicalClassification ?? "NOT_PROVIDED",
     reportedOn: patient.testedOn,
     monitored: true,
   }));

@@ -58,7 +58,7 @@ const variants = collectObjects(workspaceSource, "MONITORED_VARIANTS: MonitoredV
   "gene",
   "hgvsCoding",
   "clinvarId",
-  "recordedClassification",
+  "historicalClassification",
   "recordedOn",
 ]);
 
@@ -158,7 +158,7 @@ for (const variant of variants) {
   if (!record) continue;
 
   const current = normalise(record.classification);
-  const recorded = variant.recordedClassification;
+  const recorded = variant.historicalClassification;
   const moved = current !== recorded;
 
   if (moved) {
@@ -202,7 +202,7 @@ const impacted = new Set(
       const b = regionalEntry ? BAND[regionalEntry.assertion] : null;
       const regionalConflict =
         b !== null && a !== "indeterminate" && b !== "indeterminate" && a !== b;
-      return current !== variant.recordedClassification || regionalConflict;
+      return current !== variant.historicalClassification || regionalConflict;
     })
     .map((p) => p.id),
 );

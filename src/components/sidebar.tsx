@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/state/workspace";
 
 interface NavItem {
   href: string;
@@ -74,6 +75,12 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { analysis } = useWorkspace();
+
+  // The story card opens whichever change the engine ranked first, so it can
+  // never point at a variant the dataset no longer holds.
+  const leadKey = analysis.reviewableKeys[0];
+  const storyHref = leadKey ? `/variants/${encodeURIComponent(leadKey)}` : "/variants";
 
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-surface">
@@ -121,7 +128,7 @@ export function Sidebar() {
 
       <div className="px-3 pb-3">
         <Link
-          href="/variants/BRCA1:c.5522G>T"
+          href={storyHref}
           className="group relative block overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-[#FFF0F3] to-[#FDF3F5] p-4 transition-shadow hover:shadow-[0_10px_28px_-18px_rgba(40,42,120,0.5)]"
         >
           <HelixMotif className="pointer-events-none absolute -right-3 -top-4 h-28 w-24 opacity-70" />

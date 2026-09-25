@@ -17,18 +17,18 @@ const EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
 /** The variant panel this workspace monitors. Every id is a real ClinVar VCV record. */
 const PANEL = [
-  { key: "BRCA1:c.5522G>T", clinvarId: "869004" },
-  { key: "GLRA1:c.1214G>A", clinvarId: "352307" },
-  { key: "LDLR:c.1706-10G>A", clinvarId: "226368" },
-  { key: "TP53:c.440T>G", clinvarId: "3602769" },
-  { key: "SCN5A:c.3287A>G", clinvarId: "4758118" },
-  { key: "MSH2:c.1006C>G", clinvarId: "4532893" },
-  { key: "BRCA1:c.5585A>G", clinvarId: "462678" },
-  { key: "PALB2:c.682C>T", clinvarId: "484222" },
-  { key: "APC:c.4399C>T", clinvarId: "411419" },
-  { key: "MLH1:c.1612T>G", clinvarId: "633500" },
-  { key: "BRCA2:c.9028C>A", clinvarId: "4919695" },
-  { key: "MSH2:c.2083G>A", clinvarId: "633496" },
+  { key: "BRCA1:c.5056C>T", clinvarId: "531444" },
+  { key: "BRCA2:c.7847C>T", clinvarId: "630829" },
+  { key: "TP53:c.589G>A", clinvarId: "188060" },
+  { key: "LDLR:c.1381G>T", clinvarId: "183113" },
+  { key: "PTEN:c.149T>C", clinvarId: "492727" },
+  { key: "MYBPC3:c.26-2A>G", clinvarId: "42644" },
+  { key: "HBB:c.380T>G", clinvarId: "15483" },
+  { key: "BRCA2:c.9538C>T", clinvarId: "52865" },
+  { key: "TP53:c.784G>A", clinvarId: "141228" },
+  { key: "BRCA1:c.5123C>T", clinvarId: "37640" },
+  { key: "LDLR:c.2479G>A", clinvarId: "36462" },
+  { key: "CFTR:c.601G>A", clinvarId: "54022" },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

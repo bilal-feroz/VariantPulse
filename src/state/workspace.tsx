@@ -16,24 +16,28 @@
 import * as React from "react";
 import type { ClientAnalysis } from "@/lib/dto";
 import type { VariantAssessment } from "@/lib/analysis";
-import { composeReviewReason } from "@/lib/narrative";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { composeReviewReason, workspaceScope } from "@/lib/narrative";
 import { CURRENT_USER } from "@/data/workspace";
 
-export type CaseStatus = "Needs review" | "Assigned" | "In progress" | "Resolved";
+export type CaseStatus = "Needs review" | "Assigned" | "In review" | "Reviewed";
 
 export interface CaseNote {
   id: string;
   author: string;
   body: string;
   at: string;
+  kind?: "note" | "review-opened" | "assignment" | "evidence-request" | "follow-up" | "review";
 }
 
 export interface CaseState {
   status: CaseStatus;
   assignee: string | null;
   notes: CaseNote[];
-  escalated: boolean;
-  resolution: string | null;
+  evidenceRequested: boolean;
+  followUps: number;
+  /** The clinician note recorded with "Mark reviewed". Never a classification. */
+  reviewNote: string | null;
 }
 
 export interface ActivityEntry {
@@ -41,7 +45,19 @@ export interface ActivityEntry {
   at: string;
   title: string;
   detail?: string;
-  kind: "sync" | "detection" | "impact" | "case" | "assignment" | "note" | "decision";
+  /** Who performed the action: a named clinician, or VariantPulse for engine events. */
+  actor: string;
+  caseId?: string;
+  kind:
+    | "sync"
+    | "detection"
+    | "impact"
+    | "case"
+    | "assignment"
+    | "note"
+    | "evidence-request"
+    | "follow-up"
+    | "review";
 }
 
 export type SyncStage =
@@ -56,16 +72,17 @@ interface WorkspaceValue {
   sync: SyncStage;
   runSync: () => Promise<void>;
   getCase: (caseId: string) => CaseState;
-  assign: (caseId: string, assignee: string) => void;
-  setStatus: (caseId: string, status: CaseStatus) => void;
+  openReview: (caseId: string) => void;
+  requestEvidence: (caseId: string, detail: string) => void;
+  assignReviewer: (caseId: string, assignee: string) => void;
+  createFollowUp: (caseId: string, body: string) => void;
+  markReviewed: (caseId: string, clinicianNote: string) => void;
   addNote: (caseId: string, body: string) => void;
-  escalate: (caseId: string) => void;
-  resolve: (caseId: string, resolution: string) => void;
 }
 
 const WorkspaceContext = React.createContext<WorkspaceValue | null>(null);
 
-const STORAGE_KEY = "variantpulse.session.v1";
+const STORAGE_KEY = "variantpulse.session.v2";
 
 const SYNC_STEPS = [
   { label: "Reading historical findings", detail: "Opening the connected record system" },
@@ -78,8 +95,17 @@ const SYNC_STEPS = [
 ];
 
 function defaultCase(): CaseState {
-  return { status: "Needs review", assignee: null, notes: [], escalated: false, resolution: null };
+  return {
+    status: "Needs review",
+    assignee: null,
+    notes: [],
+    evidenceRequested: false,
+    followUps: 0,
+    reviewNote: null,
+  };
 }
+
+const SYSTEM_ACTOR = "VariantPulse";
 
 /** Seeds the trail with the work the engine has already done. */
 function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
@@ -90,8 +116,9 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       id: "seed-sync",
       at: at(0),
       kind: "sync",
+      actor: SYSTEM_ACTOR,
       title: "Evidence sync completed",
-      detail: `${analysis.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${analysis.mode === "live" ? "live" : "cached"} evidence`,
+      detail: `${analysis.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${EVIDENCE_MODES[analysis.mode].noun} evidence`,
     },
   ];
 
@@ -104,6 +131,8 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       id: `seed-detect-${assessment.variant.key}`,
       at: at(30 + index * 22),
       kind: "detection",
+      actor: SYSTEM_ACTOR,
+      caseId: assessment.caseId ?? undefined,
       title: composeReviewReason(assessment.changeType, assessment.variant.gene),
       detail: `${assessment.variant.gene} ${assessment.variant.hgvsCoding}`,
     });
@@ -111,6 +140,8 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       id: `seed-impact-${assessment.variant.key}`,
       at: at(38 + index * 22),
       kind: "impact",
+      actor: SYSTEM_ACTOR,
+      caseId: assessment.caseId ?? undefined,
       title: `${assessment.impactedRecordCount} historical record${assessment.impactedRecordCount === 1 ? "" : "s"} mapped`,
       detail: `${assessment.variant.gene} ${assessment.variant.hgvsCoding}`,
     });
@@ -118,6 +149,8 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       id: `seed-case-${assessment.variant.key}`,
       at: at(46 + index * 22),
       kind: "case",
+      actor: SYSTEM_ACTOR,
+      caseId: assessment.caseId ?? undefined,
       title: `Clinical review case ${assessment.caseId} created`,
       detail: `Priority ${assessment.priority.level.toLowerCase()}`,
     });
@@ -208,8 +241,9 @@ export function WorkspaceProvider({
 
     log({
       kind: "sync",
+      actor: SYSTEM_ACTOR,
       title: "Evidence sync completed",
-      detail: `${result.scan.findingsChecked.toLocaleString("en-US")} findings checked · ${result.metrics.evidenceChanges} change${result.metrics.evidenceChanges === 1 ? "" : "s"} · ${result.metrics.regionalConflicts} regional conflict${result.metrics.regionalConflicts === 1 ? "" : "s"}`,
+      detail: `${result.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${EVIDENCE_MODES[result.mode].noun} evidence · ${workspaceScope(result.metrics)}`,
     });
   }, [analysis, log]);
 
@@ -225,54 +259,112 @@ export function WorkspaceProvider({
     [],
   );
 
-  const assign = React.useCallback(
+  /* -- Review actions ------------------------------------------------------
+     The only actions a reviewer can take. None of them changes a
+     classification or a diagnosis; each one is written to the audit trail with
+     the acting clinician and a timestamp. */
+
+  const note = React.useCallback(
+    (caseId: string, body: string, kind: CaseNote["kind"]) => {
+      const entry: CaseNote = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        author: CURRENT_USER.name,
+        body,
+        at: new Date().toISOString(),
+        kind,
+      };
+      mutate(caseId, (s) => ({ ...s, notes: [...s.notes, entry] }));
+    },
+    [mutate],
+  );
+
+  const openReview = React.useCallback(
+    (caseId: string) => {
+      mutate(caseId, (s) => ({
+        ...s,
+        status: s.status === "Reviewed" ? s.status : "In review",
+      }));
+      note(caseId, "Clinical review opened.", "review-opened");
+      log({ kind: "case", actor: CURRENT_USER.name, caseId, title: `Clinical review opened on ${caseId}` });
+    },
+    [mutate, note, log],
+  );
+
+  const requestEvidence = React.useCallback(
+    (caseId: string, detail: string) => {
+      mutate(caseId, (s) => ({ ...s, evidenceRequested: true }));
+      note(caseId, detail, "evidence-request");
+      log({
+        kind: "evidence-request",
+        actor: CURRENT_USER.name,
+        caseId,
+        title: `More evidence requested for ${caseId}`,
+        detail,
+      });
+    },
+    [mutate, note, log],
+  );
+
+  const assignReviewer = React.useCallback(
     (caseId: string, assignee: string) => {
       mutate(caseId, (s) => ({
         ...s,
         assignee,
         status: s.status === "Needs review" ? "Assigned" : s.status,
       }));
-      log({ kind: "assignment", title: `${assignee} assigned to ${caseId}` });
+      note(caseId, `${assignee} assigned as reviewer.`, "assignment");
+      log({
+        kind: "assignment",
+        actor: CURRENT_USER.name,
+        caseId,
+        title: `${assignee} assigned as reviewer on ${caseId}`,
+      });
     },
-    [mutate, log],
+    [mutate, note, log],
   );
 
-  const setStatus = React.useCallback(
-    (caseId: string, status: CaseStatus) => {
-      mutate(caseId, (s) => ({ ...s, status }));
-      log({ kind: "decision", title: `${caseId} moved to ${status.toLowerCase()}` });
+  const createFollowUp = React.useCallback(
+    (caseId: string, body: string) => {
+      mutate(caseId, (s) => ({ ...s, followUps: s.followUps + 1 }));
+      note(caseId, body, "follow-up");
+      log({
+        kind: "follow-up",
+        actor: CURRENT_USER.name,
+        caseId,
+        title: `Follow-up created on ${caseId}`,
+        detail: body,
+      });
     },
-    [mutate, log],
+    [mutate, note, log],
+  );
+
+  const markReviewed = React.useCallback(
+    (caseId: string, clinicianNote: string) => {
+      mutate(caseId, (s) => ({ ...s, status: "Reviewed", reviewNote: clinicianNote }));
+      note(caseId, clinicianNote, "review");
+      log({
+        kind: "review",
+        actor: CURRENT_USER.name,
+        caseId,
+        title: `${caseId} marked reviewed`,
+        detail: `Clinician note: ${clinicianNote}`,
+      });
+    },
+    [mutate, note, log],
   );
 
   const addNote = React.useCallback(
     (caseId: string, body: string) => {
-      const note: CaseNote = {
-        id: `${Date.now()}`,
-        author: CURRENT_USER.name,
-        body,
-        at: new Date().toISOString(),
-      };
-      mutate(caseId, (s) => ({ ...s, notes: [...s.notes, note] }));
-      log({ kind: "note", title: `Note added to ${caseId}`, detail: body.slice(0, 96) });
+      note(caseId, body, "note");
+      log({
+        kind: "note",
+        actor: CURRENT_USER.name,
+        caseId,
+        title: `Note added to ${caseId}`,
+        detail: body.slice(0, 96),
+      });
     },
-    [mutate, log],
-  );
-
-  const escalate = React.useCallback(
-    (caseId: string) => {
-      mutate(caseId, (s) => ({ ...s, escalated: true, status: "In progress" }));
-      log({ kind: "decision", title: `${caseId} escalated for specialist opinion` });
-    },
-    [mutate, log],
-  );
-
-  const resolve = React.useCallback(
-    (caseId: string, resolution: string) => {
-      mutate(caseId, (s) => ({ ...s, status: "Resolved", resolution }));
-      log({ kind: "decision", title: `${caseId} marked reviewed`, detail: resolution });
-    },
-    [mutate, log],
+    [note, log],
   );
 
   const value = React.useMemo<WorkspaceValue>(
@@ -283,13 +375,27 @@ export function WorkspaceProvider({
       sync,
       runSync,
       getCase,
-      assign,
-      setStatus,
+      openReview,
+      requestEvidence,
+      assignReviewer,
+      createFollowUp,
+      markReviewed,
       addNote,
-      escalate,
-      resolve,
     }),
-    [analysis, cases, activity, sync, runSync, getCase, assign, setStatus, addNote, escalate, resolve],
+    [
+      analysis,
+      cases,
+      activity,
+      sync,
+      runSync,
+      getCase,
+      openReview,
+      requestEvidence,
+      assignReviewer,
+      createFollowUp,
+      markReviewed,
+      addNote,
+    ],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

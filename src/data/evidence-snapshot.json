@@ -1,36 +1,72 @@
 {
   "source": "NCBI ClinVar (E-utilities)",
   "sourceUrl": "https://www.ncbi.nlm.nih.gov/clinvar/",
-  "recordCount": 12,
+  "capturedAt": "2026-09-25T00:00:00.000Z",
+  "recordCount": 15,
   "records": {
-    "BRCA1:c.5522G>T": {
-      "clinvarId": "869004",
-      "accession": "VCV000869004",
-      "title": "NM_007294.4(BRCA1):c.5522G>T (p.Ser1841Ile)",
+    "BRCA1:c.5056C>T": {
+      "clinvarId": "531444",
+      "accession": "VCV000531444",
+      "title": "NM_007294.4(BRCA1):c.5056C>T (p.His1686Tyr)",
       "gene": "BRCA1",
-      "cdnaChange": "c.5522G>T",
+      "cdnaChange": "c.5056C>T",
       "variantType": "single nucleotide variant",
       "molecularConsequence": "missense variant",
-      "proteinChange": "S1794I",
-      "rsid": "rs80357368",
+      "proteinChange": "H1686Y",
+      "rsid": "rs1555579648",
       "classification": "Likely pathogenic",
-      "reviewStatus": "criteria provided, multiple submitters, no conflicts",
-      "lastEvaluated": "2025-11-06",
-      "fdaRecognised": false,
-      "submissionCount": 3,
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2025-08-18",
+      "fdaRecognised": true,
+      "submissionCount": 10,
       "conditions": [
-        "Hereditary breast ovarian cancer syndrome",
-        "Inherited breast cancer and ovarian cancer"
+        "BRCA1-related cancer predisposition"
       ],
       "location": {
         "assembly": "GRCh38",
         "chr": "17",
         "band": "17q21.31",
-        "start": "43045748",
-        "stop": "43045748"
+        "start": "43067626",
+        "stop": "43067626"
       },
       "peakAlleleFrequency": null,
       "citations": [
+        {
+          "pmid": "39142283",
+          "title": "Evidence-based recommendations for gene-specific ACMG/AMP variant classification from the ClinGen ENIGMA BRCA1 and BRCA2 Variant Curation Expert Panel.",
+          "journal": "Am J Hum Genet",
+          "year": "2024"
+        },
+        {
+          "pmid": "38645101",
+          "title": "Defining and Reducing Variant Classification Disparities.",
+          "journal": "medRxiv",
+          "year": "2024"
+        },
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "34793697",
+          "title": "Closing the gap: Systematic integration of multiplexed functional data resolves variants of uncertain significance in BRCA1, TP53, and PTEN.",
+          "journal": "Am J Hum Genet",
+          "year": "2021"
+        },
+        {
+          "pmid": "34242744",
+          "title": "Customizing local and systemic therapies for women with early breast cancer: the St. Gallen International Consensus Guidelines for treatment of early breast cancer 2021.",
+          "journal": "Ann Oncol",
+          "year": "2021"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
         {
           "pmid": "33410258",
           "title": "Risk assessment and genetic counseling for hereditary breast and ovarian cancer syndromes-Practice resource of the National Society of Genetic Counselors.",
@@ -38,27 +74,314 @@
           "year": "2021"
         },
         {
-          "pmid": "32885271",
-          "title": "Multigene panel testing for hereditary breast and ovarian cancer in the province of Ontario.",
-          "journal": "J Cancer Res Clin Oncol",
-          "year": "2021"
-        },
-        {
           "pmid": "31479213",
           "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA1/2-Related Cancer in Women: A Systematic Review for the U.S. Preventive Services Task Force",
           "journal": "Agency for Healthcare Research and Quality (US)",
           "year": "2019"
+        }
+      ]
+    },
+    "BRCA2:c.7847C>T": {
+      "clinvarId": "630829",
+      "accession": "VCV000630829",
+      "title": "NM_000059.4(BRCA2):c.7847C>T (p.Ser2616Phe)",
+      "gene": "BRCA2",
+      "cdnaChange": "c.7847C>T",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "S2616F",
+      "rsid": "rs1174303167",
+      "classification": "Pathogenic",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2026-07-06",
+      "fdaRecognised": true,
+      "submissionCount": 7,
+      "conditions": [
+        "BRCA2-related cancer predisposition"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "13",
+        "band": "13q13.1",
+        "start": "32362564",
+        "stop": "32362564"
+      },
+      "peakAlleleFrequency": {
+        "value": 0,
+        "source": "The Genome Aggregation Database (gnomAD), exomes"
+      },
+      "citations": [
+        {
+          "pmid": "41856558",
+          "title": "Comprehensive evidence for the pathogenicity of the BRCA2 c.7847C>T (p.Ser2616Phe) variant specific to the Japanese population.",
+          "journal": "J Med Genet",
+          "year": "2026"
         },
         {
-          "pmid": "31429903",
-          "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA-Related Cancer: US Preventive Services Task Force Recommendation Statement.",
-          "journal": "JAMA",
+          "pmid": "40035318",
+          "title": "The Time Lag Associated With the Reclassification of Germline BRCA Variants' Pathogenicity Is Critical for Cancer Patients.",
+          "journal": "Cancer Sci",
+          "year": "2025"
+        },
+        {
+          "pmid": "39779857",
+          "title": "Functional evaluation and clinical classification of BRCA2 variants.",
+          "journal": "Nature",
+          "year": "2025"
+        },
+        {
+          "pmid": "39779848",
+          "title": "Saturation genome editing-based clinical classification of BRCA2 variants.",
+          "journal": "Nature",
+          "year": "2025"
+        },
+        {
+          "pmid": "39142283",
+          "title": "Evidence-based recommendations for gene-specific ACMG/AMP variant classification from the ClinGen ENIGMA BRCA1 and BRCA2 Variant Curation Expert Panel.",
+          "journal": "Am J Hum Genet",
+          "year": "2024"
+        },
+        {
+          "pmid": "38417439",
+          "title": "Functional analysis and clinical classification of 462 germline BRCA2 missense variants affecting the DNA binding domain.",
+          "journal": "Am J Hum Genet",
+          "year": "2024"
+        },
+        {
+          "pmid": "38409497",
+          "title": "The frequency and pathogenicity of BRCA1 and BRCA2 variants in the general Japanese population.",
+          "journal": "J Hum Genet",
+          "year": "2024"
+        },
+        {
+          "pmid": "37731132",
+          "title": "Functional evaluation of BRCA1/2 variants of unknown significance with homologous recombination assay and integrative in silico prediction model.",
+          "journal": "J Hum Genet",
+          "year": "2023"
+        }
+      ]
+    },
+    "TP53:c.589G>A": {
+      "clinvarId": "188060",
+      "accession": "VCV000188060",
+      "title": "NM_000546.6(TP53):c.589G>A (p.Val197Met)",
+      "gene": "TP53",
+      "cdnaChange": "c.589G>A",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "V158M",
+      "rsid": "rs786204041",
+      "classification": "Likely pathogenic",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2025-12-05",
+      "fdaRecognised": true,
+      "submissionCount": 11,
+      "conditions": [
+        "Li-Fraumeni syndrome"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "17",
+        "band": "17p13.1",
+        "start": "7674942",
+        "stop": "7674942"
+      },
+      "peakAlleleFrequency": null,
+      "citations": [
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "35101336",
+          "title": "Standards for the classification of pathogenicity of somatic variants in cancer (oncogenicity): Joint recommendations of Clinical Genome Resource (ClinGen), Cancer Genomics Consortium (CGC), and Variant Interpretation for Cancer Consortium (VICC).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "34131312",
+          "title": "Chromosomal microarray analysis, including constitutional and neoplastic disease applications, 2021 revision: a technical standard of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "33818021",
+          "title": "Clinical Features of Breast Cancer in South Korean Patients with Germline TP53 Gene Mutations.",
+          "journal": "J Breast Cancer",
+          "year": "2021"
+        },
+        {
+          "pmid": "31321604",
+          "title": "TP53 variants of uncertain significance: increasing challenges in variant interpretation and genetic counseling.",
+          "journal": "Fam Cancer",
           "year": "2019"
         },
         {
-          "pmid": "30209399",
-          "title": "Accurate classification of BRCA1 variants with saturation genome editing.",
-          "journal": "Nature",
+          "pmid": "30224644",
+          "title": "Mutational processes shape the landscape of TP53 mutations in human cancer.",
+          "journal": "Nat Genet",
+          "year": "2018"
+        },
+        {
+          "pmid": "29979965",
+          "title": "A Systematic p53 Mutation Library Links Differential Functional Impact to Cancer Mutation Pattern and Evolutionary Conservation.",
+          "journal": "Mol Cell",
+          "year": "2018"
+        }
+      ]
+    },
+    "LDLR:c.1381G>T": {
+      "clinvarId": "183113",
+      "accession": "VCV000183113",
+      "title": "NM_000527.5(LDLR):c.1381G>T (p.Gly461Cys)",
+      "gene": "LDLR",
+      "cdnaChange": "c.1381G>T",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "G461C",
+      "rsid": "rs193922568",
+      "classification": "Likely pathogenic",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2024-02-23",
+      "fdaRecognised": true,
+      "submissionCount": 10,
+      "conditions": [
+        "Hypercholesterolemia, familial, 1"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "19",
+        "band": "19p13.2",
+        "start": "11113557",
+        "stop": "11113557"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.00001,
+        "source": "The Genome Aggregation Database (gnomAD)"
+      },
+      "citations": [
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "35339733",
+          "title": "Diagnosis of familial hypercholesterolemia in a large cohort of Italian genotyped hypercholesterolemic patients.",
+          "journal": "Atherosclerosis",
+          "year": "2022"
+        },
+        {
+          "pmid": "35047021",
+          "title": "Low Detection Rates of Genetic FH in Cohort of Patients With Severe Hypercholesterolemia in the United Arabic Emirates.",
+          "journal": "Front Genet",
+          "year": "2021"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "28492532",
+          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
+          "journal": "Genet Med",
+          "year": "2017"
+        },
+        {
+          "pmid": "27854360",
+          "title": "Recommendations for reporting of secondary findings in clinical exome and genome sequencing, 2016 update (ACMG SF v2.0): a policy statement of the American College of Medical Genetics and Genomics.",
+          "journal": "Genet Med",
+          "year": "2017"
+        },
+        {
+          "pmid": "27578104",
+          "title": "Genetic causes of monogenic familial hypercholesterolemia in the Greek population: Lessons, mistakes, and the way forward.",
+          "journal": "J Clin Lipidol",
+          "year": "2016"
+        },
+        {
+          "pmid": "25741868",
+          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
+          "journal": "Genet Med",
+          "year": "2015"
+        }
+      ]
+    },
+    "PTEN:c.149T>C": {
+      "clinvarId": "492727",
+      "accession": "VCV000492727",
+      "title": "NM_000314.8(PTEN):c.149T>C (p.Ile50Thr)",
+      "gene": "PTEN",
+      "cdnaChange": "c.149T>C",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "I50T",
+      "rsid": "rs1554893824",
+      "classification": "Pathogenic",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2024-02-09",
+      "fdaRecognised": true,
+      "submissionCount": 9,
+      "conditions": [
+        "PTEN hamartoma tumor syndrome"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "10",
+        "band": "10q23.31",
+        "start": "87894094",
+        "stop": "87894094"
+      },
+      "peakAlleleFrequency": {
+        "value": 0,
+        "source": "The Genome Aggregation Database (gnomAD), exomes"
+      },
+      "citations": [
+        {
+          "pmid": "42716728",
+          "title": "Phenotypic manifestations and variant reclassification of germline PTEN variants: a nationwide Danish study.",
+          "journal": "J Med Genet",
+          "year": "2026"
+        },
+        {
+          "pmid": "36959127",
+          "title": "Investigation into the genetics of fetal congenital lymphatic anomalies.",
+          "journal": "Prenat Diagn",
+          "year": "2023"
+        },
+        {
+          "pmid": "35982159",
+          "title": "Integrating de novo and inherited variants in 42,607 autism cases identifies mutations in new moderate-risk genes.",
+          "journal": "Nat Genet",
+          "year": "2022"
+        },
+        {
+          "pmid": "30311380",
+          "title": "Gene-specific criteria for PTEN variant curation: Recommendations from the ClinGen PTEN Expert Panel.",
+          "journal": "Hum Mutat",
+          "year": "2018"
+        },
+        {
+          "pmid": "29785012",
+          "title": "Multiplex assessment of protein variant abundance by massively parallel sequencing.",
+          "journal": "Nat Genet",
+          "year": "2018"
+        },
+        {
+          "pmid": "29706350",
+          "title": "A Saturation Mutagenesis Approach to Understanding PTEN Lipid Phosphatase Activity and Genotype-Phenotype Relationships.",
+          "journal": "Am J Hum Genet",
           "year": "2018"
         },
         {
@@ -72,108 +395,45 @@
           "title": "Recommendations for reporting of secondary findings in clinical exome and genome sequencing, 2016 update (ACMG SF v2.0): a policy statement of the American College of Medical Genetics and Genomics.",
           "journal": "Genet Med",
           "year": "2017"
-        },
-        {
-          "pmid": "26389258",
-          "title": "Cancer Genetics Risk Assessment and Counseling (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
         }
       ]
     },
-    "GLRA1:c.1214G>A": {
-      "clinvarId": "352307",
-      "accession": "VCV000352307",
-      "title": "NM_000171.4(GLRA1):c.1214G>A (p.Arg405Gln)",
-      "gene": "GLRA1",
-      "cdnaChange": "c.1214G>A",
+    "MYBPC3:c.26-2A>G": {
+      "clinvarId": "42644",
+      "accession": "VCV000042644",
+      "title": "NM_000256.3(MYBPC3):c.26-2A>G",
+      "gene": "MYBPC3",
+      "cdnaChange": "NM_000256.3(MYBPC3):c.26-2A>G",
       "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "R405Q",
-      "rsid": "rs199561280",
-      "classification": "Benign/Likely benign",
-      "reviewStatus": "criteria provided, multiple submitters, no conflicts",
-      "lastEvaluated": "2026-02-03",
-      "fdaRecognised": false,
-      "submissionCount": 4,
-      "conditions": [
-        "Hereditary hyperekplexia",
-        "Hyperekplexia 1"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "5",
-        "band": "5q33.1",
-        "start": "151822809",
-        "stop": "151822809"
-      },
-      "peakAlleleFrequency": {
-        "value": 0.00031,
-        "source": "Trans-Omics for Precision Medicine (TOPMed)"
-      },
-      "citations": [
-        {
-          "pmid": "28492532",
-          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
-          "journal": "Genet Med",
-          "year": "2017"
-        },
-        {
-          "pmid": "27435318",
-          "title": "Exome sequencing in mostly consanguineous Arab families with neurologic disease provides a high potential molecular diagnosis rate.",
-          "journal": "BMC Med Genomics",
-          "year": "2016"
-        },
-        {
-          "pmid": "27391121",
-          "title": "Whole exome sequencing diagnosis of inborn errors of metabolism and other disorders in United Arab Emirates.",
-          "journal": "Orphanet J Rare Dis",
-          "year": "2016"
-        },
-        {
-          "pmid": "25741868",
-          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
-          "journal": "Genet Med",
-          "year": "2015"
-        },
-        {
-          "pmid": "20301437",
-          "title": "Hereditary Hyperekplexia Overview.",
-          "journal": "University of Washington, Seattle",
-          "year": "1993"
-        }
-      ]
-    },
-    "LDLR:c.1706-10G>A": {
-      "clinvarId": "226368",
-      "accession": "VCV000226368",
-      "title": "NM_000527.5(LDLR):c.1706-10G>A",
-      "gene": "LDLR",
-      "cdnaChange": "NM_000527.5(LDLR):c.1706-10G>A",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "intron variant",
+      "molecularConsequence": "splice acceptor variant",
       "proteinChange": null,
-      "rsid": "rs17248882",
-      "classification": "Likely benign",
+      "rsid": "rs376395543",
+      "classification": "Uncertain significance",
       "reviewStatus": "reviewed by expert panel",
-      "lastEvaluated": "2022-03-16",
+      "lastEvaluated": "2025-11-13",
       "fdaRecognised": true,
-      "submissionCount": 32,
+      "submissionCount": 36,
       "conditions": [
-        "Hypercholesterolemia, familial, 1"
+        "Hypertrophic cardiomyopathy"
       ],
       "location": {
         "assembly": "GRCh38",
-        "chr": "19",
-        "band": "19p13.2",
-        "start": "11116849",
-        "stop": "11116849"
+        "chr": "11",
+        "band": "11p11.2",
+        "start": "47351507",
+        "stop": "47351507"
       },
       "peakAlleleFrequency": {
-        "value": 0.00253,
-        "source": "Exome Aggregation Consortium (ExAC)"
+        "value": 0.00008,
+        "source": "NHLBI Exome Sequencing Project (ESP) Exome Variant Server"
       },
       "citations": [
+        {
+          "pmid": "37652022",
+          "title": "The penetrance of rare variants in cardiomyopathy-associated genes: A cross-sectional approach to estimating penetrance for secondary findings.",
+          "journal": "Am J Hum Genet",
+          "year": "2023"
+        },
         {
           "pmid": "35802134",
           "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
@@ -181,8 +441,233 @@
           "year": "2022"
         },
         {
-          "pmid": "34906454",
-          "title": "The Clinical Genome Resource (ClinGen) Familial Hypercholesterolemia Variant Curation Expert Panel consensus guidelines for LDLR variant classification.",
+          "pmid": "34211152",
+          "title": "Exome and genome sequencing for pediatric patients with congenital anomalies or intellectual disability: an evidence-based clinical guideline of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "34131312",
+          "title": "Chromosomal microarray analysis, including constitutional and neoplastic disease applications, 2021 revision: a technical standard of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "33258288",
+          "title": "Diagnostic power and clinical impact of exome sequencing in a cohort of 500 patients with rare diseases.",
+          "journal": "Am J Med Genet C Semin Med Genet",
+          "year": "2020"
+        },
+        {
+          "pmid": "32841044",
+          "title": "Spatial and Functional Distribution of MYBPC3 Pathogenic Variants and Clinical Outcomes in Patients With Hypertrophic Cardiomyopathy.",
+          "journal": "Circ Genom Precis Med",
+          "year": "2020"
+        },
+        {
+          "pmid": "32686758",
+          "title": "Secondary findings in inherited heart conditions: a genotype-first feasibility study to assess phenotype, behavioural and psychosocial outcomes.",
+          "journal": "Eur J Hum Genet",
+          "year": "2020"
+        }
+      ]
+    },
+    "HBB:c.380T>G": {
+      "clinvarId": "15483",
+      "accession": "VCV000015483",
+      "title": "NM_000518.5(HBB):c.380T>G (p.Val127Gly)",
+      "gene": "HBB",
+      "cdnaChange": "c.380T>G",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "V127G",
+      "rsid": "rs33925391",
+      "classification": "Uncertain significance",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2026-04-30",
+      "fdaRecognised": true,
+      "submissionCount": 9,
+      "conditions": [
+        "Beta-thalassemia HBB/LCRB"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "11",
+        "band": "11p15.4",
+        "start": "5225662",
+        "stop": "5225662"
+      },
+      "peakAlleleFrequency": null,
+      "citations": [
+        {
+          "pmid": "35543019",
+          "title": "Strong Positive Dichlorophenolindophenol Precipitation Suggests Hb Dhonburi (or Hb Neapolis) (HBB: c.380T>G) Inheritance in a Couple at Risk for Severe β-Thalassemia.",
+          "journal": "Hemoglobin",
+          "year": "2022"
+        },
+        {
+          "pmid": "31589614",
+          "title": "Optimizing clinical exome design and parallel gene-testing for recessive genetic conditions in preconception carrier screening: Translational research genomic data from 14,125 exomes.",
+          "journal": "PLoS Genet",
+          "year": "2019"
+        },
+        {
+          "pmid": "31240559",
+          "title": "Molecular characteristics of thalassemia and hemoglobin variants in prenatal diagnosis program in northern Thailand.",
+          "journal": "Int J Hematol",
+          "year": "2019"
+        },
+        {
+          "pmid": "28492532",
+          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
+          "journal": "Genet Med",
+          "year": "2017"
+        },
+        {
+          "pmid": "28125089",
+          "title": "Next-generation sequencing improves thalassemia carrier screening among premarital adults in a high prevalence population: the Dai nationality, China.",
+          "journal": "Genet Med",
+          "year": "2017"
+        },
+        {
+          "pmid": "26467025",
+          "title": "A Standardized DNA Variant Scoring System for Pathogenicity Assessments in Mendelian Disorders.",
+          "journal": "Hum Mutat",
+          "year": "2016"
+        },
+        {
+          "pmid": "25052315",
+          "title": "EMQN Best Practice Guidelines for molecular and haematology methods for carrier identification and prenatal diagnosis of the haemoglobinopathies.",
+          "journal": "Eur J Hum Genet",
+          "year": "2015"
+        },
+        {
+          "pmid": "23525874",
+          "title": "Problems in determining thalassemia carrier status in a program for prevention and control of severe thalassemia syndromes: a lesson from Thailand.",
+          "journal": "Clin Chem Lab Med",
+          "year": "2013"
+        }
+      ]
+    },
+    "BRCA2:c.9538C>T": {
+      "clinvarId": "52865",
+      "accession": "VCV000052865",
+      "title": "NM_000059.4(BRCA2):c.9538C>T (p.Leu3180Phe)",
+      "gene": "BRCA2",
+      "cdnaChange": "c.9538C>T",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "L3180F",
+      "rsid": "rs200598289",
+      "classification": "Benign",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2025-08-18",
+      "fdaRecognised": true,
+      "submissionCount": 13,
+      "conditions": [
+        "BRCA2-related cancer predisposition"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "13",
+        "band": "13q13.1",
+        "start": "32396934",
+        "stop": "32396934"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.0002,
+        "source": "1000 Genomes Project"
+      },
+      "citations": [
+        {
+          "pmid": "35924163",
+          "title": "Genetic Testing and Its Clinical Application in Prostate Cancer Management: Consensus Statements from the Hong Kong Urological Association and Hong Kong Society of Uro-Oncology.",
+          "journal": "Front Oncol",
+          "year": "2022"
+        },
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "34242744",
+          "title": "Customizing local and systemic therapies for women with early breast cancer: the St. Gallen International Consensus Guidelines for treatment of early breast cancer 2021.",
+          "journal": "Ann Oncol",
+          "year": "2021"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "33497248",
+          "title": "Initial Management of Noncastrate Advanced, Recurrent, or Metastatic Prostate Cancer: ASCO Guideline Update.",
+          "journal": "J Clin Oncol",
+          "year": "2021"
+        },
+        {
+          "pmid": "33410258",
+          "title": "Risk assessment and genetic counseling for hereditary breast and ovarian cancer syndromes-Practice resource of the National Society of Genetic Counselors.",
+          "journal": "J Genet Couns",
+          "year": "2021"
+        },
+        {
+          "pmid": "33314489",
+          "title": "Epidemiological and ES cell-based functional evaluation of BRCA2 variants identified in families with breast cancer.",
+          "journal": "Hum Mutat",
+          "year": "2021"
+        },
+        {
+          "pmid": "32352694",
+          "title": "WT1 Disorder.",
+          "journal": "University of Washington, Seattle",
+          "year": "1993"
+        }
+      ]
+    },
+    "TP53:c.784G>A": {
+      "clinvarId": "141228",
+      "accession": "VCV000141228",
+      "title": "NM_000546.6(TP53):c.784G>A (p.Gly262Ser)",
+      "gene": "TP53",
+      "cdnaChange": "c.784G>A",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "G130S",
+      "rsid": "rs200579969",
+      "classification": "Likely benign",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2025-04-03",
+      "fdaRecognised": true,
+      "submissionCount": 13,
+      "conditions": [
+        "Li-Fraumeni syndrome"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "17",
+        "band": "17p13.1",
+        "start": "7673836",
+        "stop": "7673836"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.00002,
+        "source": "The Genome Aggregation Database (gnomAD)"
+      },
+      "citations": [
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
           "journal": "Genet Med",
           "year": "2022"
         },
@@ -193,65 +678,11 @@
           "year": "2021"
         },
         {
-          "pmid": "33111339",
-          "title": "Development of a new expanded next-generation sequencing panel for genetic diseases involved in dyslipidemia.",
-          "journal": "Clin Genet",
-          "year": "2020"
+          "pmid": "32095738",
+          "title": "Returning Individual Genetic Research Results to Research Participants: Uptake and Outcomes Among Patients With Breast Cancer.",
+          "journal": "JCO Precis Oncol",
+          "year": "2018"
         },
-        {
-          "pmid": "28492532",
-          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
-          "journal": "Genet Med",
-          "year": "2017"
-        },
-        {
-          "pmid": "28145427",
-          "title": "Variability in assigning pathogenicity to incidental findings: insights from LDLR sequence linked to the electronic health record in 1013 individuals.",
-          "journal": "Eur J Hum Genet",
-          "year": "2017"
-        },
-        {
-          "pmid": "27854360",
-          "title": "Recommendations for reporting of secondary findings in clinical exome and genome sequencing, 2016 update (ACMG SF v2.0): a policy statement of the American College of Medical Genetics and Genomics.",
-          "journal": "Genet Med",
-          "year": "2017"
-        },
-        {
-          "pmid": "27680772",
-          "title": "Genetic diagnosis of familial hypercholesterolaemia using a rapid biochip array assay for 40 common LDLR, APOB and PCSK9 mutations.",
-          "journal": "Atherosclerosis",
-          "year": "2016"
-        }
-      ]
-    },
-    "TP53:c.440T>G": {
-      "clinvarId": "3602769",
-      "accession": "VCV003602769",
-      "title": "NM_000546.6(TP53):c.440T>G (p.Val147Gly)",
-      "gene": "TP53",
-      "cdnaChange": "c.440T>G",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "V108G",
-      "rsid": null,
-      "classification": "Pathogenic/Likely pathogenic",
-      "reviewStatus": "criteria provided, multiple submitters, no conflicts",
-      "lastEvaluated": "2025-10-07",
-      "fdaRecognised": false,
-      "submissionCount": 2,
-      "conditions": [
-        "Hereditary cancer-predisposing syndrome",
-        "Li-Fraumeni syndrome"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "17",
-        "band": "17p13.1",
-        "start": "7675172",
-        "stop": "7675172"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
         {
           "pmid": "30224644",
           "title": "Mutational processes shape the landscape of TP53 mutations in human cancer.",
@@ -265,177 +696,6 @@
           "year": "2018"
         },
         {
-          "pmid": "26389258",
-          "title": "Cancer Genetics Risk Assessment and Counseling (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "26389210",
-          "title": "Genetics of Breast and Gynecologic Cancers (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "25741868",
-          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
-          "journal": "Genet Med",
-          "year": "2015"
-        },
-        {
-          "pmid": "25394175",
-          "title": "A practice guideline from the American College of Medical Genetics and Genomics and the National Society of Genetic Counselors: referral indications for cancer predisposition assessment.",
-          "journal": "Genet Med",
-          "year": "2015"
-        },
-        {
-          "pmid": "24493721",
-          "title": "American Society of Clinical Oncology Expert Statement: collection and use of a cancer family history for oncology providers.",
-          "journal": "J Clin Oncol",
-          "year": "2014"
-        },
-        {
-          "pmid": "20301488",
-          "title": "Li-Fraumeni Syndrome.",
-          "journal": "University of Washington, Seattle",
-          "year": "1993"
-        }
-      ]
-    },
-    "SCN5A:c.3287A>G": {
-      "clinvarId": "4758118",
-      "accession": "VCV004758118",
-      "title": "NM_000335.5(SCN5A):c.3287A>G (p.Gln1096Arg)",
-      "gene": "LOC110121269",
-      "cdnaChange": "c.3287A>G",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "Q1096R",
-      "rsid": null,
-      "classification": "Likely benign",
-      "reviewStatus": "criteria provided, single submitter",
-      "lastEvaluated": "2025-09-30",
-      "fdaRecognised": false,
-      "submissionCount": 1,
-      "conditions": [
-        "Cardiac arrhythmia"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "3",
-        "band": "3p22.2",
-        "start": "38579434",
-        "stop": "38579434"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
-        {
-          "pmid": "25741868",
-          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
-          "journal": "Genet Med",
-          "year": "2015"
-        }
-      ]
-    },
-    "MSH2:c.1006C>G": {
-      "clinvarId": "4532893",
-      "accession": "VCV004532893",
-      "title": "NM_000251.3(MSH2):c.1006C>G (p.Pro336Ala)",
-      "gene": "MSH2",
-      "cdnaChange": "c.1006C>G",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "P196A",
-      "rsid": null,
-      "classification": "Conflicting classifications of pathogenicity",
-      "reviewStatus": "criteria provided, conflicting classifications",
-      "lastEvaluated": "2025-11-04",
-      "fdaRecognised": false,
-      "submissionCount": 2,
-      "conditions": [
-        "Hereditary cancer-predisposing syndrome"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "2",
-        "band": "2p21",
-        "start": "47416359",
-        "stop": "47416359"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
-        {
-          "pmid": "34906453",
-          "title": "Quantifying prediction of pathogenicity for within-codon concordance (PM5) using 7541 functional classifications of BRCA1 and MSH2 missense variants.",
-          "journal": "Genet Med",
-          "year": "2022"
-        },
-        {
-          "pmid": "33357406",
-          "title": "Massively parallel functional testing of MSH2 missense variants conferring Lynch syndrome risk.",
-          "journal": "Am J Hum Genet",
-          "year": "2021"
-        },
-        {
-          "pmid": "26467025",
-          "title": "A Standardized DNA Variant Scoring System for Pathogenicity Assessments in Mendelian Disorders.",
-          "journal": "Hum Mutat",
-          "year": "2016"
-        },
-        {
-          "pmid": "25394175",
-          "title": "A practice guideline from the American College of Medical Genetics and Genomics and the National Society of Genetic Counselors: referral indications for cancer predisposition assessment.",
-          "journal": "Genet Med",
-          "year": "2015"
-        }
-      ]
-    },
-    "BRCA1:c.5585A>G": {
-      "clinvarId": "462678",
-      "accession": "VCV000462678",
-      "title": "NM_007294.4(BRCA1):c.5585A>G (p.His1862Arg)",
-      "gene": "BRCA1",
-      "cdnaChange": "c.5585A>G",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "H1862R",
-      "rsid": "rs80357183",
-      "classification": "Uncertain significance",
-      "reviewStatus": "criteria provided, single submitter",
-      "lastEvaluated": "2017-06-30",
-      "fdaRecognised": false,
-      "submissionCount": 1,
-      "conditions": [
-        "Hereditary breast ovarian cancer syndrome"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "17",
-        "band": "17q21.31",
-        "start": "43045685",
-        "stop": "43045685"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
-        {
-          "pmid": "33410258",
-          "title": "Risk assessment and genetic counseling for hereditary breast and ovarian cancer syndromes-Practice resource of the National Society of Genetic Counselors.",
-          "journal": "J Genet Couns",
-          "year": "2021"
-        },
-        {
-          "pmid": "31479213",
-          "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA1/2-Related Cancer in Women: A Systematic Review for the U.S. Preventive Services Task Force",
-          "journal": "Agency for Healthcare Research and Quality (US)",
-          "year": "2019"
-        },
-        {
-          "pmid": "31429903",
-          "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA-Related Cancer: US Preventive Services Task Force Recommendation Statement.",
-          "journal": "JAMA",
-          "year": "2019"
-        },
-        {
           "pmid": "28492532",
           "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
           "journal": "Genet Med",
@@ -448,59 +708,421 @@
           "year": "2017"
         },
         {
-          "pmid": "26389258",
-          "title": "Cancer Genetics Risk Assessment and Counseling (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "26324357",
-          "title": "American Society of Clinical Oncology Policy Statement Update: Genetic and Genomic Testing for Cancer Susceptibility.",
-          "journal": "J Clin Oncol",
-          "year": "2015"
-        },
-        {
-          "pmid": "25356965",
-          "title": "ACMG policy statement: updated recommendations regarding analysis and reporting of secondary findings in clinical genome-scale sequencing.",
-          "journal": "Genet Med",
-          "year": "2015"
+          "pmid": "26534844",
+          "title": "Targeted massively parallel sequencing of a panel of putative breast cancer susceptibility genes in a large cohort of multiple-case breast and ovarian cancer families.",
+          "journal": "J Med Genet",
+          "year": "2016"
         }
       ]
     },
-    "PALB2:c.682C>T": {
-      "clinvarId": "484222",
-      "accession": "VCV000484222",
-      "title": "NM_024675.4(PALB2):c.682C>T (p.Gln228Ter)",
-      "gene": "PALB2",
-      "cdnaChange": "c.682C>T",
+    "BRCA1:c.5123C>T": {
+      "clinvarId": "37640",
+      "accession": "VCV000037640",
+      "title": "NM_007294.4(BRCA1):c.5123C>T (p.Ala1708Val)",
+      "gene": "BRCA1",
+      "cdnaChange": "c.5123C>T",
       "variantType": "single nucleotide variant",
-      "molecularConsequence": "nonsense",
-      "proteinChange": "Q228*",
-      "rsid": "rs1327399690",
-      "classification": "Pathogenic",
-      "reviewStatus": "reviewed by expert panel",
-      "lastEvaluated": "2023-04-05",
-      "fdaRecognised": true,
-      "submissionCount": 6,
+      "molecularConsequence": "missense variant",
+      "proteinChange": "A1708V",
+      "rsid": "rs28897696",
+      "classification": "Conflicting classifications of pathogenicity",
+      "reviewStatus": "criteria provided, conflicting classifications",
+      "lastEvaluated": "2026-01-31",
+      "fdaRecognised": false,
+      "submissionCount": 25,
       "conditions": [
-        "PALB2-related cancer predisposition"
+        "Pancreatic cancer, susceptibility to, 4",
+        "Fanconi anemia, complementation group S",
+        "Breast-ovarian cancer, familial, susceptibility to, 1",
+        "BRCA1-related cancer predisposition",
+        "Hereditary cancer-predisposing syndrome",
+        "Hereditary breast ovarian cancer syndrome",
+        "Breast-ovarian cancer, familial, susceptibility to, 1"
       ],
       "location": {
         "assembly": "GRCh38",
-        "chr": "16",
-        "band": "16p12.2",
-        "start": "23635864",
-        "stop": "23635864"
+        "chr": "17",
+        "band": "17q21.31",
+        "start": "43063903",
+        "stop": "43063903"
       },
       "peakAlleleFrequency": {
-        "value": 0.00001,
-        "source": "The Genome Aggregation Database (gnomAD)"
+        "value": 0.00023,
+        "source": "NHLBI Exome Sequencing Project (ESP) Exome Variant Server"
+      },
+      "citations": [
+        {
+          "pmid": "42258614",
+          "title": "ATM-Related Cancer Predisposition.",
+          "journal": "University of Washington, Seattle",
+          "year": "1993"
+        },
+        {
+          "pmid": "39142283",
+          "title": "Evidence-based recommendations for gene-specific ACMG/AMP variant classification from the ClinGen ENIGMA BRCA1 and BRCA2 Variant Curation Expert Panel.",
+          "journal": "Am J Hum Genet",
+          "year": "2024"
+        },
+        {
+          "pmid": "38645101",
+          "title": "Defining and Reducing Variant Classification Disparities.",
+          "journal": "medRxiv",
+          "year": "2024"
+        },
+        {
+          "pmid": "37719058",
+          "title": "BRCA1 and BRCA2 mutations and their clinical relevance in selected women diagnosed with triple-negative breast cancer in Kenya: a descriptive cross-sectional study.",
+          "journal": "Pan Afr Med J",
+          "year": "2023"
+        },
+        {
+          "pmid": "37085799",
+          "title": "Functional analyses of rare germline BRCA1 variants by transcriptional activation and homologous recombination repair assays.",
+          "journal": "BMC Cancer",
+          "year": "2023"
+        },
+        {
+          "pmid": "36451132",
+          "title": "The germline mutational landscape of genitourinary cancers and its indication for prognosis and risk.",
+          "journal": "BMC Urol",
+          "year": "2022"
+        },
+        {
+          "pmid": "35918668",
+          "title": "Germline variants profiling of BRCA1 and BRCA2 in Chinese Hakka breast and ovarian cancer patients.",
+          "journal": "BMC Cancer",
+          "year": "2022"
+        },
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        }
+      ]
+    },
+    "LDLR:c.2479G>A": {
+      "clinvarId": "36462",
+      "accession": "VCV000036462",
+      "title": "NM_000527.5(LDLR):c.2479G>A (p.Val827Ile)",
+      "gene": "LDLR",
+      "cdnaChange": "c.2479G>A",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "V827I",
+      "rsid": "rs137853964",
+      "classification": "Uncertain significance",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2021-06-22",
+      "fdaRecognised": true,
+      "submissionCount": 39,
+      "conditions": [
+        "Hypercholesterolemia, familial, 1"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "19",
+        "band": "19p13.2",
+        "start": "11129602",
+        "stop": "11129602"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.00077,
+        "source": "NHLBI Exome Sequencing Project (ESP) Exome Variant Server"
       },
       "citations": [
         {
           "pmid": "35802134",
           "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
           "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "35460704",
+          "title": "Whole-exome sequencing reveals damaging gene variants associated with hypoalphalipoproteinemia.",
+          "journal": "J Lipid Res",
+          "year": "2022"
+        },
+        {
+          "pmid": "35339733",
+          "title": "Diagnosis of familial hypercholesterolemia in a large cohort of Italian genotyped hypercholesterolemic patients.",
+          "journal": "Atherosclerosis",
+          "year": "2022"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "33508743",
+          "title": "Comparison of the mutation spectrum and association with pre and post treatment lipid measures of children with heterozygous familial hypercholesterolaemia (FH) from eight European countries.",
+          "journal": "Atherosclerosis",
+          "year": "2021"
+        },
+        {
+          "pmid": "33418990",
+          "title": "The LDLR, APOB, and PCSK9 Variants of Index Patients with Familial Hypercholesterolemia in Russia.",
+          "journal": "Genes (Basel)",
+          "year": "2021"
+        },
+        {
+          "pmid": "33303402",
+          "title": "Combined hyperlipidemia is genetically similar to isolated hypertriglyceridemia.",
+          "journal": "J Clin Lipidol",
+          "year": "2021"
+        },
+        {
+          "pmid": "33079599",
+          "title": "Polygenic Contribution to Low-Density Lipoprotein Cholesterol Levels and Cardiovascular Risk in Monogenic Familial Hypercholesterolemia.",
+          "journal": "Circ Genom Precis Med",
+          "year": "2020"
+        }
+      ]
+    },
+    "CFTR:c.601G>A": {
+      "clinvarId": "54022",
+      "accession": "VCV000054022",
+      "title": "NM_000492.4(CFTR):c.601G>A (p.Val201Met)",
+      "gene": "CFTR",
+      "cdnaChange": "c.601G>A",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "V201M",
+      "rsid": "rs138338446",
+      "classification": "Uncertain significance",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2017-03-03",
+      "fdaRecognised": false,
+      "submissionCount": 21,
+      "conditions": [
+        "Cystic fibrosis"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "7",
+        "band": "7q31.2",
+        "start": "117535269",
+        "stop": "117535269"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.00124,
+        "source": "Trans-Omics for Precision Medicine (TOPMed)"
+      },
+      "citations": [
+        {
+          "pmid": "39570414",
+          "title": "Four-year evaluation of neonatal cystic fibrosis screening in Southern Belgium.",
+          "journal": "Eur J Pediatr",
+          "year": "2024"
+        },
+        {
+          "pmid": "39402445",
+          "title": "Genetic diagnosis and outcomes of intracytoplasmic sperm injection in South Chinese patients with congenital bilateral aplasia of the vas deferens.",
+          "journal": "Basic Clin Androl",
+          "year": "2024"
+        },
+        {
+          "pmid": "38695616",
+          "title": "Genetic counseling access and service delivery in New York State is variable for parents of infants with complex CFTR genotypes conferring uncertain phenotypes.",
+          "journal": "Pediatr Pulmonol",
+          "year": "2024"
+        },
+        {
+          "pmid": "38388235",
+          "title": "In vitro modulator responsiveness of 655 CFTR variants found in people with cystic fibrosis.",
+          "journal": "J Cyst Fibros",
+          "year": "2024"
+        },
+        {
+          "pmid": "37431359",
+          "title": "Variability of Clinical Presentation in Patients Heterozygous for the F508del Cystic Fibrosis Variant: A Series of Three Cases and a Review of the Literature.",
+          "journal": "Cureus",
+          "year": "2023"
+        },
+        {
+          "pmid": "36982273",
+          "title": "CFTR Modulators Rescue the Activity of CFTR in Colonoids Expressing the Complex Allele p.[R74W;V201M;D1270N]/dele22_24.",
+          "journal": "Int J Mol Sci",
+          "year": "2023"
+        },
+        {
+          "pmid": "36834620",
+          "title": "Rescue of Rare CFTR Trafficking Mutants Highlights a Structural Location-Dependent Pattern for Correction.",
+          "journal": "Int J Mol Sci",
+          "year": "2023"
+        },
+        {
+          "pmid": "36832409",
+          "title": "CFTR-Related Metabolic Syndrome: Genetic Variants Increasing Pancreatitis Risk in the Pediatric Puerto Rican Population.",
+          "journal": "Children (Basel)",
+          "year": "2023"
+        }
+      ]
+    },
+    "HBB:c.364G>C": {
+      "clinvarId": "15152",
+      "accession": "VCV000015152",
+      "title": "NM_000518.4(HBB):c.364G>C (p.Glu122Gln)",
+      "gene": "HBB",
+      "cdnaChange": "c.364G>C",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "E122Q",
+      "rsid": "rs33946267",
+      "classification": "Pathogenic/Likely pathogenic",
+      "reviewStatus": "criteria provided, multiple submitters, no conflicts",
+      "lastEvaluated": "2026-03-06",
+      "fdaRecognised": false,
+      "submissionCount": 23,
+      "conditions": [
+        "Hemoglobin D disease",
+        "beta Thalassemia",
+        "Hereditary persistence of fetal hemoglobin",
+        "Malaria, susceptibility to",
+        "Hb SS disease",
+        "Heinz body anemia",
+        "Erythrocytosis, familial, 6",
+        "Beta-thalassemia HBB/LCRB",
+        "METHEMOGLOBINEMIA, BETA TYPE",
+        "Dominant beta-thalassemia",
+        "Hb SS disease",
+        "HBB-related disorder",
+        "Heinz body anemia",
+        "Beta-thalassemia HBB/LCRB"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "11",
+        "band": "11p15.4",
+        "start": "5225678",
+        "stop": "5225678"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.0006,
+        "source": "1000 Genomes Project"
+      },
+      "citations": [
+        {
+          "pmid": "33867742",
+          "title": "Hb Brugg [HBA1:c.63C>A]: Report of an Ultra-Rare Variant Hemoglobin and Its Co-inheritance with Hb D-Punjab.",
+          "journal": "Indian J Hematol Blood Transfus",
+          "year": "2021"
+        },
+        {
+          "pmid": "31973650",
+          "title": "An Unusual Compound Heterozygosity for Hb O-Arab (HBB: c.364G>A) and Hb D-Los Angeles (HBB: c.364G>C).",
+          "journal": "Hemoglobin",
+          "year": "2020"
+        },
+        {
+          "pmid": "31553106",
+          "title": "Curating the gnomAD database: Report of novel variants in the globin-coding genes and bioinformatics analysis.",
+          "journal": "Hum Mutat",
+          "year": "2020"
+        },
+        {
+          "pmid": "30626242",
+          "title": "Rare Association of Hb D-Los Angeles (HBB: c.364G>C) with Hb H Disease: Diagnosis and Clinical Implications.",
+          "journal": "Hemoglobin",
+          "year": "2018"
+        },
+        {
+          "pmid": "28492532",
+          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
+          "journal": "Genet Med",
+          "year": "2017"
+        },
+        {
+          "pmid": "26467025",
+          "title": "A Standardized DNA Variant Scoring System for Pathogenicity Assessments in Mendelian Disorders.",
+          "journal": "Hum Mutat",
+          "year": "2016"
+        },
+        {
+          "pmid": "25818823",
+          "title": "Hemoglobin D-Punjab: origin, distribution and laboratory diagnosis.",
+          "journal": "Rev Bras Hematol Hemoter",
+          "year": "2015"
+        },
+        {
+          "pmid": "25741868",
+          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
+          "journal": "Genet Med",
+          "year": "2015"
+        }
+      ]
+    },
+    "MYBPC3:c.776delinsTT": {
+      "clinvarId": "4689837",
+      "accession": "VCV004689837",
+      "title": "NM_000256.3(MYBPC3):c.776delinsTT (p.Ala259fs)",
+      "gene": "MYBPC3",
+      "cdnaChange": "c.776delinsTT",
+      "variantType": "Indel",
+      "molecularConsequence": "frameshift variant",
+      "proteinChange": "A259fs",
+      "rsid": null,
+      "classification": "Likely pathogenic",
+      "reviewStatus": "criteria provided, single submitter",
+      "lastEvaluated": "2025-07-31",
+      "fdaRecognised": false,
+      "submissionCount": 1,
+      "conditions": [],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "11",
+        "band": "11p11.2",
+        "start": "47347902",
+        "stop": "47347902"
+      },
+      "peakAlleleFrequency": null,
+      "citations": []
+    },
+    "BRCA1:c.1140dup": {
+      "clinvarId": "231732",
+      "accession": "VCV000231732",
+      "title": "NM_007294.4(BRCA1):c.1140dup (p.Lys381fs)",
+      "gene": "BRCA1",
+      "cdnaChange": "c.1140dup",
+      "variantType": "Duplication",
+      "molecularConsequence": "frameshift variant",
+      "proteinChange": "K334fs",
+      "rsid": "rs876659327",
+      "classification": "Pathogenic",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2017-12-15",
+      "fdaRecognised": false,
+      "submissionCount": 12,
+      "conditions": [
+        "Breast-ovarian cancer, familial, susceptibility to, 1"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "17",
+        "band": "17q21.31",
+        "start": "43094390",
+        "stop": "43094391"
+      },
+      "peakAlleleFrequency": null,
+      "citations": [
+        {
+          "pmid": "42258614",
+          "title": "ATM-Related Cancer Predisposition.",
+          "journal": "University of Washington, Seattle",
+          "year": "1993"
+        },
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "34980015",
+          "title": "Assessing frequency and clinical outcomes of BRCA mutated ovarian cancer in Saudi women.",
+          "journal": "BMC Cancer",
           "year": "2022"
         },
         {
@@ -522,12 +1144,6 @@
           "year": "2021"
         },
         {
-          "pmid": "31841383",
-          "title": "Cancer Risks Associated With Germline PALB2 Pathogenic Variants: An International Study of 524 Families.",
-          "journal": "J Clin Oncol",
-          "year": "2020"
-        },
-        {
           "pmid": "31479213",
           "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA1/2-Related Cancer in Women: A Systematic Review for the U.S. Preventive Services Task Force",
           "journal": "Agency for Healthcare Research and Quality (US)",
@@ -538,279 +1154,6 @@
           "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA-Related Cancer: US Preventive Services Task Force Recommendation Statement.",
           "journal": "JAMA",
           "year": "2019"
-        },
-        {
-          "pmid": "28492532",
-          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
-          "journal": "Genet Med",
-          "year": "2017"
-        }
-      ]
-    },
-    "APC:c.4399C>T": {
-      "clinvarId": "411419",
-      "accession": "VCV000411419",
-      "title": "NM_000038.6(APC):c.4399C>T (p.Pro1467Ser)",
-      "gene": "APC",
-      "cdnaChange": "c.4399C>T",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "P1467S",
-      "rsid": "rs749142480",
-      "classification": "Benign",
-      "reviewStatus": "reviewed by expert panel",
-      "lastEvaluated": "2023-02-26",
-      "fdaRecognised": true,
-      "submissionCount": 11,
-      "conditions": [
-        "Familial adenomatous polyposis 1"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "5",
-        "band": "5q22.2",
-        "start": "112839993",
-        "stop": "112839993"
-      },
-      "peakAlleleFrequency": {
-        "value": 0.00005,
-        "source": "The Genome Aggregation Database (gnomAD), exomes"
-      },
-      "citations": [
-        {
-          "pmid": "35802134",
-          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
-          "journal": "Genet Med",
-          "year": "2022"
-        },
-        {
-          "pmid": "34043773",
-          "title": "European guidelines from the EHTG and ESCP for Lynch syndrome: an updated third edition of the Mallorca guidelines based on gene and gender.",
-          "journal": "Br J Surg",
-          "year": "2021"
-        },
-        {
-          "pmid": "34012068",
-          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
-          "journal": "Genet Med",
-          "year": "2021"
-        },
-        {
-          "pmid": "28492532",
-          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
-          "journal": "Genet Med",
-          "year": "2017"
-        },
-        {
-          "pmid": "27854360",
-          "title": "Recommendations for reporting of secondary findings in clinical exome and genome sequencing, 2016 update (ACMG SF v2.0): a policy statement of the American College of Medical Genetics and Genomics.",
-          "journal": "Genet Med",
-          "year": "2017"
-        },
-        {
-          "pmid": "26467025",
-          "title": "A Standardized DNA Variant Scoring System for Pathogenicity Assessments in Mendelian Disorders.",
-          "journal": "Hum Mutat",
-          "year": "2016"
-        },
-        {
-          "pmid": "26389505",
-          "title": "Genetics of Colorectal Cancer (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "26389258",
-          "title": "Cancer Genetics Risk Assessment and Counseling (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        }
-      ]
-    },
-    "MLH1:c.1612T>G": {
-      "clinvarId": "633500",
-      "accession": "VCV000633500",
-      "title": "NM_000249.4(MLH1):c.1612T>G (p.Trp538Gly)",
-      "gene": "MLH1",
-      "cdnaChange": "c.1612T>G",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "W538G",
-      "rsid": "rs1559575214",
-      "classification": "Uncertain significance",
-      "reviewStatus": "reviewed by expert panel",
-      "lastEvaluated": "2018-12-19",
-      "fdaRecognised": false,
-      "submissionCount": 1,
-      "conditions": [
-        "Lynch syndrome"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "3",
-        "band": "3p22.2",
-        "start": "37040239",
-        "stop": "37040239"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
-        {
-          "pmid": "34043773",
-          "title": "European guidelines from the EHTG and ESCP for Lynch syndrome: an updated third edition of the Mallorca guidelines based on gene and gender.",
-          "journal": "Br J Surg",
-          "year": "2021"
-        },
-        {
-          "pmid": "31672839",
-          "title": "Management of patients with increased risk for familial pancreatic cancer: updated recommendations from the International Cancer of the Pancreas Screening (CAPS) Consortium.",
-          "journal": "Gut",
-          "year": "2020"
-        },
-        {
-          "pmid": "31302137",
-          "title": "Lynch Syndrome in Urologic Malignancies - What Does the Urologist Need to Know?",
-          "journal": "Urology",
-          "year": "2019"
-        },
-        {
-          "pmid": "27854360",
-          "title": "Recommendations for reporting of secondary findings in clinical exome and genome sequencing, 2016 update (ACMG SF v2.0): a policy statement of the American College of Medical Genetics and Genomics.",
-          "journal": "Genet Med",
-          "year": "2017"
-        },
-        {
-          "pmid": "26389505",
-          "title": "Genetics of Colorectal Cancer (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "26389258",
-          "title": "Cancer Genetics Risk Assessment and Counseling (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "26389210",
-          "title": "Genetics of Breast and Gynecologic Cancers (PDQ®): Health Professional Version.",
-          "journal": "National Cancer Institute (US)",
-          "year": "2002"
-        },
-        {
-          "pmid": "26324357",
-          "title": "American Society of Clinical Oncology Policy Statement Update: Genetic and Genomic Testing for Cancer Susceptibility.",
-          "journal": "J Clin Oncol",
-          "year": "2015"
-        }
-      ]
-    },
-    "BRCA2:c.9028C>A": {
-      "clinvarId": "4919695",
-      "accession": "VCV004919695",
-      "title": "NM_000059.4(BRCA2):c.9028C>A (p.His3010Asn)",
-      "gene": "BRCA2",
-      "cdnaChange": "c.9028C>A",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "H1366N",
-      "rsid": null,
-      "classification": "Uncertain significance",
-      "reviewStatus": "criteria provided, single submitter",
-      "lastEvaluated": "2022-10-07",
-      "fdaRecognised": false,
-      "submissionCount": 1,
-      "conditions": [],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "13",
-        "band": "",
-        "start": "32379824",
-        "stop": "32379824"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
-        {
-          "pmid": "25741868",
-          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
-          "journal": "Genet Med",
-          "year": "2015"
-        }
-      ]
-    },
-    "MSH2:c.2083G>A": {
-      "clinvarId": "633496",
-      "accession": "VCV000633496",
-      "title": "NM_000251.3(MSH2):c.2083G>A (p.Val695Met)",
-      "gene": "MSH2",
-      "cdnaChange": "c.2083G>A",
-      "variantType": "single nucleotide variant",
-      "molecularConsequence": "missense variant",
-      "proteinChange": "V695M",
-      "rsid": "rs772491283",
-      "classification": "Pathogenic",
-      "reviewStatus": "reviewed by expert panel",
-      "lastEvaluated": "2018-10-18",
-      "fdaRecognised": false,
-      "submissionCount": 6,
-      "conditions": [
-        "Lynch syndrome"
-      ],
-      "location": {
-        "assembly": "GRCh38",
-        "chr": "2",
-        "band": "2p21",
-        "start": "47476444",
-        "stop": "47476444"
-      },
-      "peakAlleleFrequency": null,
-      "citations": [
-        {
-          "pmid": "36550560",
-          "title": "Saturation-scale functional evidence supports clinical variant interpretation in Lynch syndrome.",
-          "journal": "Genome Biol",
-          "year": "2022"
-        },
-        {
-          "pmid": "35802134",
-          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
-          "journal": "Genet Med",
-          "year": "2022"
-        },
-        {
-          "pmid": "34043773",
-          "title": "European guidelines from the EHTG and ESCP for Lynch syndrome: an updated third edition of the Mallorca guidelines based on gene and gender.",
-          "journal": "Br J Surg",
-          "year": "2021"
-        },
-        {
-          "pmid": "34012068",
-          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
-          "journal": "Genet Med",
-          "year": "2021"
-        },
-        {
-          "pmid": "33357406",
-          "title": "Massively parallel functional testing of MSH2 missense variants conferring Lynch syndrome risk.",
-          "journal": "Am J Hum Genet",
-          "year": "2021"
-        },
-        {
-          "pmid": "31672839",
-          "title": "Management of patients with increased risk for familial pancreatic cancer: updated recommendations from the International Cancer of the Pancreas Screening (CAPS) Consortium.",
-          "journal": "Gut",
-          "year": "2020"
-        },
-        {
-          "pmid": "31302137",
-          "title": "Lynch Syndrome in Urologic Malignancies - What Does the Urologist Need to Know?",
-          "journal": "Urology",
-          "year": "2019"
-        },
-        {
-          "pmid": "28492532",
-          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
-          "journal": "Genet Med",
-          "year": "2017"
         }
       ]
     }

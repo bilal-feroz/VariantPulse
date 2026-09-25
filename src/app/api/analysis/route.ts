@@ -7,6 +7,10 @@ export const dynamic = "force-dynamic";
 
 /** The current analysis, served from the cached evidence read when it is warm. */
 export async function GET() {
-  const analysis = await analyseWorkspace();
-  return NextResponse.json(serialiseAnalysis(analysis));
+  try {
+    const analysis = await analyseWorkspace();
+    return NextResponse.json(serialiseAnalysis(analysis));
+  } catch {
+    return NextResponse.json({ error: "Analysis unavailable" }, { status: 503 });
+  }
 }

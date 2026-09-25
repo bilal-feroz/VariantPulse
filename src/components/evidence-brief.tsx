@@ -18,6 +18,7 @@ import { REGIONAL_SOURCE } from "@/data/regional";
 import { CURRENT_USER } from "@/data/workspace";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui";
+import { CURRENT, HISTORICAL } from "@/components/clinical/tokens";
 import type { CaseState } from "@/state/workspace";
 
 function briefText(assessment: VariantAssessment, state: CaseState, generatedAt: string): string {
@@ -67,7 +68,10 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     "CASE STATE",
     `  Status:            ${state.status}`,
     `  Assigned:          ${state.assignee ?? "Unassigned"}`,
-    `  Notes:             ${state.notes.length}`,
+    `  Review note:       ${state.reviewNote ?? "—"}`,
+    `  Follow-ups:        ${state.followUps}`,
+    `  Evidence request:  ${state.evidenceRequested ? "Requested" : "None"}`,
+    `  Trail entries:     ${state.notes.length}`,
     ...state.notes.map((n) => `    - ${n.author}: ${n.body}`),
     "",
     "DISCLAIMER",
@@ -107,7 +111,7 @@ export function EvidenceBriefButton({
     <>
       <Button variant="secondary" className="w-full justify-start" onClick={() => setOpen(true)}>
         <FileText className="h-4 w-4" />
-        Generate evidence brief
+        Evidence brief
       </Button>
       {open ? (
         <EvidenceBrief assessment={assessment} state={state} onClose={() => setOpen(false)} />
@@ -164,7 +168,7 @@ function EvidenceBrief({
         type="button"
         aria-label="Close brief"
         onClick={onClose}
-        className="fixed inset-0 cursor-default bg-ink/30 backdrop-blur-[2px] vp-no-print"
+        className="fixed inset-0 cursor-default bg-carbon/30 backdrop-blur-[2px] vp-no-print"
       />
 
       <div className="relative mx-auto my-8 w-[min(820px,calc(100vw-2rem))]">
@@ -182,7 +186,8 @@ function EvidenceBrief({
           </Button>
         </div>
 
-        <article className="rounded-2xl border border-line-2 bg-white p-8 shadow-[0_28px_80px_-30px_rgba(18,19,50,0.5)] sm:p-10">
+        <article className="relative overflow-hidden rounded-2xl border border-line-2 bg-surface p-8 shadow-xl sm:p-10">
+          <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${CURRENT.fill}`} />
           <header className="flex items-start justify-between gap-6 border-b border-line pb-5">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
@@ -206,15 +211,18 @@ function EvidenceBrief({
 
           <Section title="Classification">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-              <Item label="As reported" value={meta(assessment.recordedCode).label} />
+              <Item label="As reported" value={meta(assessment.recordedCode).label} tone="historical" />
               <Item label="Reported on" value={formatDate(variant.recordedOn)} />
-              <Item label="Current" value={meta(assessment.currentCode).label} strong />
+              <Item label="Current" value={meta(assessment.currentCode).label} tone="current" />
               <Item label="Last evaluated" value={formatDate(evidence.lastEvaluated)} />
               <Item label="Change" value={assessment.changeType.replace(/_/g, " ").toLowerCase()} />
               <Item label="Review priority" value={assessment.priority.level} />
               <Item label="Review status" value={assessment.confidence.label} />
               <Item label="Submissions" value={String(evidence.submissionCount)} />
             </dl>
+            <p className="mt-3.5 border-l-2 border-line-2 pl-3 text-[12.5px] text-muted">
+              The DNA has not changed. Only the interpretation has.
+            </p>
           </Section>
 
           <Section title="Sources reviewed">
@@ -281,11 +289,17 @@ function EvidenceBrief({
             <p className="text-[13.5px] leading-relaxed text-ink-2">
               {composeRecommendation(assessment.changeType, assessment.impactedRecordCount)}
             </p>
-            <dl className="mt-3 grid grid-cols-3 gap-4">
+            <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Item label="Status" value={state.status} />
               <Item label="Assigned" value={state.assignee ?? "Unassigned"} />
-              <Item label="Notes on file" value={String(state.notes.length)} />
+              <Item label="Follow-ups" value={String(state.followUps)} />
+              <Item label="Trail entries" value={String(state.notes.length)} />
             </dl>
+            {state.reviewNote ? (
+              <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
+                <strong className="font-medium text-ink">Clinician note:</strong> {state.reviewNote}
+              </p>
+            ) : null}
           </Section>
 
           {evidence.citations.length > 0 ? (
@@ -326,11 +340,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Item({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function Item({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "historical" | "current";
+}) {
+  const toneClass =
+    tone === "current"
+      ? `font-semibold ${CURRENT.text}`
+      : tone === "historical"
+        ? `font-medium ${HISTORICAL.text}`
+        : "text-ink-2";
   return (
     <div>
       <dt className="text-[10.5px] font-medium uppercase tracking-[0.07em] text-faint">{label}</dt>
-      <dd className={`mt-0.5 text-[13px] ${strong ? "font-semibold text-ink" : "text-ink-2"}`}>
+      <dd className={`mt-0.5 text-[13px] ${toneClass}`}>
         {value}
       </dd>
     </div>

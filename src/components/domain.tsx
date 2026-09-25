@@ -7,12 +7,14 @@
  */
 
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Clock, FileText, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronRight, Clock, FileText, Users } from "lucide-react";
 
 import type { VariantAssessment } from "@/lib/analysis";
 import { CHANGE_TYPES, meta } from "@/lib/classification";
 import { cn, formatDate, formatNumber, formatYear } from "@/lib/utils";
 import { RelativeTime } from "@/components/relative-time";
+import { Timestamp } from "@/components/clinical/timestamp";
+import { CHANGE, CTA, CURRENT, HISTORICAL } from "@/components/clinical/tokens";
 import {
   Badge,
   Card,
@@ -74,13 +76,16 @@ export function MetricCard({
 /* -- Then and now ---------------------------------------------------------- */
 
 /**
- * The comparison the whole product turns on. Deliberately literal: two states,
- * the years they belong to, and the fact that only the evidence moved.
+ * The comparison the whole product turns on. Two interpretations of the same
+ * DNA: the one on file (slate), today's (garnet), and the knowledge change
+ * between them (vermilion). The current date is the evaluation date carried on
+ * the evidence record, never a date written around it.
  */
 export function ThenNow({
   assessment,
   size = "md",
   stacked = false,
+  caption = false,
   className,
 }: {
   assessment: VariantAssessment;
@@ -91,111 +96,148 @@ export function ThenNow({
    * a narrow column — it would hyphenate mid-word.
    */
   stacked?: boolean;
+  /** Shows the "DNA has not changed" line beneath the comparison. */
+  caption?: boolean;
   className?: string;
 }) {
   const { variant, recordedCode, currentCode, evidence } = assessment;
+  const changed = recordedCode !== currentCode;
   const thenYear = formatYear(variant.recordedOn);
-  const nowYear = formatYear(evidence.lastEvaluated) || String(new Date().getUTCFullYear());
+  const evaluated = evidence.lastEvaluated
+    ? `ClinVar last evaluated ${formatDate(evidence.lastEvaluated)}`
+    : "ClinVar evaluation date not recorded";
 
   const then = (
     <Panel
-      year={thenYear}
-      label="Then"
+      eyebrow={`${thenYear} · On file`}
       code={recordedCode}
-      note="As reported"
-      tone="muted"
+      note={`Reported ${formatDate(variant.recordedOn)}`}
+      tone="historical"
       size={size}
     />
   );
   const now = (
     <Panel
-      year={nowYear}
-      label="Now"
+      eyebrow="Today · ClinVar"
       code={currentCode}
-      note={assessment.confidence.label}
-      tone="accent"
+      note={`${evaluated} · ${assessment.confidence.label}`}
+      tone={changed ? "current" : "historical"}
       size={size}
     />
   );
 
-  if (stacked) {
-    return (
-      <div className={cn("grid gap-2.5", className)}>
-        {then}
-        <div className="flex items-center justify-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-full border border-line-2 bg-surface text-muted">
-            <ArrowRight className="h-3.5 w-3.5 rotate-90" />
-          </span>
-          <span className="text-[9.5px] font-semibold uppercase tracking-[0.11em] text-faint">
-            Science changed
-          </span>
-        </div>
-        {now}
-      </div>
-    );
-  }
+  const connectorLabel = changed ? "Science evolves" : "No material change";
 
   return (
-    <div
-      className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-3",
-        className,
+    <figure className={cn("min-w-0", className)}>
+      {stacked ? (
+        <div className="grid gap-2">
+          {then}
+          <div className="flex items-center gap-2.5 pl-5" aria-hidden={!changed}>
+            <span className="relative flex h-8 w-px flex-col items-center">
+              <span className={cn("h-full w-px", changed ? CHANGE.fill : "bg-line-2")} />
+              {changed ? (
+                <span className={cn("absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full", CHANGE.fill)}>
+                  <span
+                    className={cn("absolute inset-0 rounded-full", CHANGE.fill)}
+                    style={{ animation: "vp-pulse-ring 2.4s ease-out infinite" }}
+                  />
+                </span>
+              ) : null}
+            </span>
+            <span
+              className={cn(
+                "text-[10.5px] font-semibold uppercase tracking-[0.12em]",
+                changed ? CHANGE.text : "text-faint",
+              )}
+            >
+              {connectorLabel}
+            </span>
+          </div>
+          {now}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(88px,auto)_minmax(0,1fr)] sm:gap-0">
+          {then}
+          <div className="flex items-center gap-2 px-5 sm:flex-col sm:justify-center sm:gap-1.5 sm:px-2">
+            <span className="relative hidden h-px w-full min-w-16 items-center sm:flex">
+              <span className={cn("h-px w-full", changed ? CHANGE.fill : "bg-line-2")} />
+              <ChevronRight
+                aria-hidden
+                className={cn("absolute -right-1.5 h-3.5 w-3.5", changed ? CHANGE.icon : "text-faint")}
+              />
+              {changed ? (
+                <span className={cn("absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full", CHANGE.fill)}>
+                  <span
+                    className={cn("absolute inset-0 rounded-full", CHANGE.fill)}
+                    style={{ animation: "vp-pulse-ring 2.4s ease-out infinite" }}
+                  />
+                </span>
+              ) : null}
+            </span>
+            <ArrowRight
+              aria-hidden
+              className={cn("h-3.5 w-3.5 rotate-90 sm:hidden", changed ? CHANGE.icon : "text-faint")}
+            />
+            <span
+              className={cn(
+                "text-center text-[10.5px] font-semibold uppercase tracking-[0.12em] whitespace-nowrap",
+                changed ? CHANGE.text : "text-faint",
+              )}
+            >
+              {connectorLabel}
+            </span>
+          </div>
+          {now}
+        </div>
       )}
-    >
-      {then}
-      <div className="flex flex-col items-center justify-center gap-2 px-1">
-        <span className="grid h-8 w-8 place-items-center rounded-full border border-line-2 bg-surface text-muted">
-          <ArrowRight className="h-4 w-4" />
-        </span>
-        <span className="text-[9.5px] font-semibold uppercase tracking-[0.11em] text-faint whitespace-nowrap">
-          Science
-          <br />
-          changed
-        </span>
-      </div>
-      {now}
-    </div>
+
+      {caption ? (
+        <figcaption className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-line pt-3.5">
+          <span className="text-[14px] font-medium text-ink">
+            The DNA has not changed. Only the interpretation has.
+          </span>
+          <span className="font-mono text-[11.5px] text-muted">
+            {variant.gene} {variant.hgvsCoding}
+            {variant.proteinChange ? ` (${variant.proteinChange})` : ""} · identical in both
+          </span>
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }
 
 function Panel({
-  year,
-  label,
+  eyebrow,
   code,
   note,
   tone,
   size,
 }: {
-  year: string;
-  label: string;
+  eyebrow: string;
   code: Parameters<typeof ClassificationBadge>[0]["code"];
   note: string;
-  tone: "muted" | "accent";
+  tone: "historical" | "current";
   size: "sm" | "md" | "lg";
 }) {
   const info = meta(code);
+  const role = tone === "historical" ? HISTORICAL : CURRENT;
   return (
     <div
       className={cn(
-        "rounded-xl border p-3.5",
-        tone === "muted" ? "border-line bg-surface-2" : "border-accent-ring/60 bg-accent-soft/50",
+        "relative min-w-0 overflow-hidden rounded-xl border bg-surface p-3.5 pl-4",
+        tone === "historical" ? "border-line" : CURRENT.border,
       )}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-faint">
-          {label}
-        </span>
-        <span className="text-[11px] font-medium text-muted vp-num">{year}</span>
-      </div>
+      <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", role.fill)} />
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.11em] text-faint vp-num">
+        {eyebrow}
+      </p>
       <p
         className={cn(
-          "mt-2 font-semibold leading-tight tracking-tight [overflow-wrap:break-word]",
-          size === "lg" ? "text-[20px]" : size === "md" ? "text-[16px]" : "text-[15px]",
-          info.tone === "critical" && "text-crit",
-          info.tone === "warning" && "text-warn",
-          info.tone === "positive" && "text-ok",
-          info.tone === "muted" && "text-ink-2",
-          info.tone === "neutral" && "text-info",
+          "mt-1.5 font-semibold leading-tight tracking-tight [overflow-wrap:break-word]",
+          size === "lg" ? "text-[22px]" : size === "md" ? "text-[17px]" : "text-[15px]",
+          tone === "historical" ? "text-ink-2" : role.text,
         )}
       >
         {size === "sm" ? info.short : info.label}
@@ -220,7 +262,7 @@ export function EvidenceAlert({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden p-5 transition-shadow hover:shadow-[0_14px_38px_-22px_rgba(18,19,50,0.34)]",
+        "relative overflow-hidden p-5 transition-shadow hover:border-line-2",
         className,
       )}
     >
@@ -274,7 +316,7 @@ export function EvidenceAlert({
 
         <Link
           href={caseId ? `/review/${caseId}` : `/variants/${encodeURIComponent(variant.key)}`}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-ink px-3.5 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-ink/90"
+          className={cn("ml-auto inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-medium transition-colors", CTA)}
         >
           {changeType === "REGIONAL_CONFLICT" ? "Investigate evidence" : "Review change"}
           <ArrowRight className="h-3.5 w-3.5" />
@@ -384,13 +426,15 @@ export function SourceCard({
 /* -- Activity -------------------------------------------------------------- */
 
 const ACTIVITY_TONE: Record<string, string> = {
-  sync: "bg-info",
-  detection: "bg-crit",
-  impact: "bg-warn",
-  case: "bg-accent",
-  assignment: "bg-accent",
+  sync: "bg-ok",
+  detection: CHANGE.fill,
+  impact: "bg-info",
+  case: CURRENT.fill,
+  assignment: CURRENT.fill,
+  "evidence-request": "bg-warn",
+  "follow-up": "bg-warn",
   note: "bg-faint",
-  decision: "bg-ok",
+  review: "bg-ok",
 };
 
 export function ActivityItem({
@@ -398,12 +442,17 @@ export function ActivityItem({
   title,
   detail,
   kind,
+  actor,
+  absolute = false,
   last = false,
 }: {
   at: string;
   title: string;
   detail?: string;
   kind: string;
+  actor?: string;
+  /** Adds the full date and time next to the relative one. */
+  absolute?: boolean;
   last?: boolean;
 }) {
   return (
@@ -418,9 +467,17 @@ export function ActivityItem({
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-medium leading-snug text-ink">{title}</span>
         {detail ? (
-          <span className="mt-0.5 block text-[12px] leading-snug text-muted">{detail}</span>
+          <span className="mt-0.5 block text-[12px] leading-snug text-muted [overflow-wrap:anywhere]">
+            {detail}
+          </span>
         ) : null}
-<RelativeTime value={at} className="mt-1 block text-[11px] text-faint vp-num" />
+        <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[11px] text-faint">
+          {actor ? <span className="font-medium text-ink-2">{actor}</span> : null}
+          {actor ? <span aria-hidden>·</span> : null}
+          <RelativeTime value={at} className="vp-num" />
+          {absolute ? <span aria-hidden>·</span> : null}
+          {absolute ? <Timestamp value={at} className="vp-num" /> : null}
+        </span>
       </span>
     </li>
   );

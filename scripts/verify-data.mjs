@@ -207,7 +207,113 @@ const impacted = new Set(
     .map((p) => p.id),
 );
 
+/* -- Demo story invariants ------------------------------------------------ */
+
+// Historical and current values come from data/provenance.json, never from
+// literals here. The story is whichever VUS now reads (likely) pathogenic for
+// the most records on file; ties would make the headline ambiguous.
+const provenance = JSON.parse(read("src/data/provenance.json"));
+const MONTHS = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
+const provenanceCode = (raw) => (raw ?? "").split(" (")[0].trim();
+const provenanceDate = (raw) => {
+  const m = /^([A-Z][a-z]{2}) (\d{2}), (\d{4})$/.exec(raw ?? "");
+  return m ? `${m[3]}-${MONTHS[m[1]]}-${m[2]}` : null;
+};
+const carriers = (key) => patients.filter((p) => p.variantKey === key).map((p) => p.id).sort();
+
+for (const entry of provenance) {
+  const variant = variants.find((v) => v.key === entry.key);
+  const record = snapshot.records[entry.key];
+  if (!variant || !record) {
+    fail(`Provenance entry ${entry.key} is missing from the panel or the snapshot.`);
+    continue;
+  }
+  const then = provenanceCode(entry.clinvar_2023_01);
+  if (then in BAND && variant.recordedClassification !== then) {
+    fail(`${entry.key} is recorded as ${variant.recordedClassification}; provenance says ${then} in Jan 2023.`);
+  }
+  const now = provenanceCode(entry.clinvar_2026_09);
+  if (now in BAND && normalise(record.classification) !== now) {
+    fail(`${entry.key} snapshot reads ${record.classification}; provenance says ${now}.`);
+  }
+  const evaluated = provenanceDate(entry.currentLastEvaluated);
+  if (evaluated && record.lastEvaluated !== evaluated) {
+    fail(`${entry.key} snapshot was last evaluated ${record.lastEvaluated}; provenance says ${evaluated}.`);
+  }
+  if (typeof entry.patients === "number" && carriers(entry.key).length !== entry.patients) {
+    fail(`${entry.key} is carried by ${carriers(entry.key).length} patients; provenance says ${entry.patients}.`);
+  }
+}
+
+const headlineCandidates = variants
+  .filter((v) => {
+    const record = snapshot.records[v.key];
+    return (
+      record &&
+      v.recordedClassification === "VUS" &&
+      BAND[normalise(record.classification)] === "pathogenic" &&
+      carriers(v.key).length > 0
+    );
+  })
+  .sort((a, b) => carriers(b.key).length - carriers(a.key).length);
+
+const story = headlineCandidates[0];
+const storyPatients = story ? carriers(story.key) : [];
+if (!story) {
+  fail("No VUS -> (likely) pathogenic change carries patients, so the demo has no story.");
+} else {
+  const runnerUp = headlineCandidates[1];
+  if (runnerUp && carriers(runnerUp.key).length === storyPatients.length) {
+    fail(`${story.key} and ${runnerUp.key} tie for the headline story.`);
+  }
+  if (storyPatients.length !== 4) {
+    fail(`The demo story ${story.key} should reach exactly 4 patients; found ${storyPatients.length}.`);
+  }
+  if (!provenance.some((e) => e.key === story.key)) {
+    fail(`The demo story ${story.key} has no provenance entry.`);
+  }
+}
+
+for (const patient of patients) {
+  if (!/^VP-\d{5}$/.test(patient.id ?? "")) fail(`Patient id ${patient.id} is not in VP-xxxxx form.`);
+}
+if (new Set(patients.map((p) => p.id)).size !== patients.length) fail("Patient ids are not unique.");
+
+if (!snapshot.capturedAt || Number.isNaN(Date.parse(snapshot.capturedAt))) {
+  fail("The evidence snapshot has no valid capturedAt timestamp, so demo mode cannot be deterministic.");
+}
+
+/* -- Dataset shape --------------------------------------------------------- */
+
+const shared = variants.filter((v) => {
+  const record = snapshot.records[v.key];
+  return (
+    record &&
+    normalise(record.classification) !== v.recordedClassification &&
+    patients.filter((p) => p.variantKey === v.key).length >= 2
+  );
+});
+const unchangedControls = variants.filter((v) => {
+  const record = snapshot.records[v.key];
+  return record && normalise(record.classification) === v.recordedClassification;
+});
+
+if (variants.length !== provenance.length) {
+  fail(`Expected ${provenance.length} monitored variants (one per provenance entry), found ${variants.length}.`);
+}
+if (patients.length < 25 || patients.length > 40) {
+  fail(`Expected about 30 synthetic patients, found ${patients.length}.`);
+}
+if (changed < 2) fail(`Expected at least 2 classification changes, found ${changed}.`);
+if (conflicts !== 2) fail(`Expected 2 regional conflicts, found ${conflicts}.`);
+if (unchangedControls.length === 0) fail("Expected at least one unchanged control variant.");
+if (shared.length < 2) fail("Expected several patients sharing a changed variant.");
+
 notes.push(`${variants.length} variants on the panel, all backed by a ClinVar record`);
+notes.push(
+  `Demo story: ${story?.key} VUS -> ${story ? snapshot.records[story.key].classification : "?"} for ${storyPatients.length} patients (${storyPatients.join(", ")})`,
+);
+notes.push(`${unchangedControls.length} unchanged controls, ${shared.length} changed variants shared by several patients`);
 notes.push(`${patients.length} patient records, ${impacted.size} on a variant that moved`);
 notes.push(`${changed} reclassifications, ${conflicts} regional conflicts`);
 

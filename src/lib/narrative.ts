@@ -182,3 +182,29 @@ export function composeRecommendation(changeType: ChangeType, impacted: number):
       return "No action required. Current evidence agrees with the interpretation on record.";
   }
 }
+
+/**
+ * Workspace totals span every monitored variant, whereas the headline story is a
+ * single variant (see `selectStoryAssessment`). Totals are always labelled
+ * with their scope so the two numbers never read as contradicting each other.
+ */
+export const WORKSPACE_TOTAL_LABELS = {
+  findingsMonitored: "Historical findings on file in this workspace",
+  evidenceChanges: "Reclassifications across all monitored variants",
+  patientsImpacted: "Records affected across all changed variants in this workspace",
+  regionalConflicts: "Regional conflicts across all monitored variants",
+  openCases: "Open review cases across this workspace",
+} as const;
+
+export function workspaceScope(metrics: {
+  evidenceChanges: number;
+  regionalConflicts: number;
+  patientsImpacted: number;
+}): string {
+  const { evidenceChanges: changes, regionalConflicts: conflicts, patientsImpacted: records } =
+    metrics;
+  return (
+    `${changes} change${changes === 1 ? "" : "s"} · ${conflicts} regional conflict${conflicts === 1 ? "" : "s"} · ` +
+    `${records} record${records === 1 ? "" : "s"} across all changed variants in this workspace`
+  );
+}

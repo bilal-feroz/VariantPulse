@@ -7,12 +7,15 @@ import { SyncButton } from "@/components/sync";
 import { Badge, Card, SectionHeading, StatusDot } from "@/components/ui";
 import { REGIONAL_EVIDENCE, REGIONAL_SOURCE } from "@/data/regional";
 import { formatDate, formatNumber } from "@/lib/utils";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { workspaceScope } from "@/lib/narrative";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
 
 export default function SourcesPage() {
   const { analysis, sync } = useWorkspace();
   const live = analysis.mode === "live";
+  const modeMeta = EVIDENCE_MODES[analysis.mode];
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
 
   const citations = analysis.assessments.reduce(
@@ -29,11 +32,13 @@ export default function SourcesPage() {
       name: "ClinVar",
       description: "Global variant submissions and expert-panel classifications",
       icon: Database,
-      status: live ? ("Live" as const) : ("Cached" as const),
-      tone: live ? ("positive" as const) : ("warning" as const),
+      status: modeMeta.label,
+      tone: modeMeta.tone,
       detail: live
         ? "Read directly from the NCBI E-utilities endpoint at each sync."
-        : `Serving the bundled snapshot. ${analysis.reason ?? "The live endpoint was unavailable."}`,
+        : analysis.mode === "demo"
+          ? `${modeMeta.description} Set VARIANTPULSE_EVIDENCE_MODE=live to read ClinVar directly.`
+          : `Serving the bundled snapshot. ${analysis.reason ?? "The live endpoint was unavailable."}`,
       stats: [
         { label: "Variants monitored", value: formatNumber(analysis.assessments.length) },
         { label: "Submissions aggregated", value: formatNumber(submissions) },
@@ -104,16 +109,22 @@ export default function SourcesPage() {
 
       <Card className="mb-5 flex flex-wrap items-center gap-x-8 gap-y-3 px-5 py-4">
         <span className="inline-flex items-center gap-2.5">
-          <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
+          <StatusDot tone={modeMeta.tone} pulse={modeMeta.pulse} />
           <span className="text-[14px] font-semibold text-ink">
-            {live ? "All sources reachable" : "Running on cached evidence"}
+            {live
+              ? "All sources reachable"
+              : analysis.mode === "demo"
+                ? "Demo mode · bundled evidence snapshot"
+                : "Running on cached evidence"}
           </span>
+          <Badge tone={modeMeta.tone} dot>
+            {modeMeta.label}
+          </Badge>
         </span>
         <span className="text-[12.5px] text-muted">
           Last sync <RelativeTime value={lastChecked} /> ·{" "}
           {formatNumber(analysis.scan.findingsChecked)} findings checked ·{" "}
-          {analysis.metrics.evidenceChanges} change
-          {analysis.metrics.evidenceChanges === 1 ? "" : "s"} found
+          {workspaceScope(analysis.metrics)}
         </span>
       </Card>
 
@@ -173,7 +184,12 @@ export default function SourcesPage() {
         <ul className="mt-4 space-y-2.5 text-[13px] leading-relaxed text-ink-2">
           <li className="flex gap-2.5">
             <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />
-            A live read that fails or times out falls back to the bundled evidence snapshot, and
+            Demo mode, the default, serves the bundled snapshot with no network access, so every
+            run shows the same evidence.
+          </li>
+          <li className="flex gap-2.5">
+            <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />
+            In live mode, a read that fails or times out falls back to the bundled evidence snapshot, and
             every surface switches from <strong className="font-medium">live</strong> to{" "}
             <strong className="font-medium">cached</strong>.
           </li>

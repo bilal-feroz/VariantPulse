@@ -12,6 +12,7 @@ import { Badge, PriorityBadge, StatusDot } from "@/components/ui";
 import { CURRENT_USER } from "@/data/workspace";
 import { useWorkspace } from "@/state/workspace";
 import { cn } from "@/lib/utils";
+import { evidenceModeMeta } from "@/components/story/mode";
 import { RelativeTime } from "@/components/relative-time";
 
 /** Closes a popover on outside click and on Escape. */
@@ -66,10 +67,10 @@ export function Topbar() {
 
   const open = analysis.assessments
     .filter((a) => a.caseId)
-    .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Resolved");
+    .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Reviewed");
 
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
-  const live = analysis.mode === "live";
+  const modeMeta = evidenceModeMeta(analysis.mode);
 
   return (
     <>
@@ -92,14 +93,14 @@ export function Topbar() {
           <span
             className="hidden items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 xl:inline-flex"
             title={
-              live
-                ? "Evidence is being read live from ClinVar."
-                : `Serving the bundled snapshot. ${analysis.reason ?? "The live source was unavailable."}`
+              analysis.mode === "cached"
+                ? `Serving the bundled snapshot. ${analysis.reason ?? "The live source was unavailable."}`
+                : modeMeta.description
             }
           >
-            <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
+            <StatusDot tone={modeMeta.tone} pulse={modeMeta.pulse} />
             <span className="text-[12px] font-medium text-ink-2">
-              {live ? "Evidence monitor live" : "Cached evidence"}
+              {modeMeta.indicator}
             </span>
             <RelativeTime value={lastChecked} className="text-[11.5px] text-faint vp-num" />
           </span>
@@ -135,7 +136,7 @@ export function Topbar() {
             </button>
 
             {notifOpen ? (
-              <div className="vp-rise absolute right-0 top-12 w-[330px] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_22px_60px_-24px_rgba(18,19,50,0.44)]">
+              <div className="vp-rise absolute right-0 top-12 w-[330px] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_22px_60px_-24px_rgba(var(--vp-shadow-rgb),0.36)]">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <p className="text-[13px] font-semibold text-ink">Open review cases</p>
                   <Badge tone={open.length ? "critical" : "positive"}>{open.length}</Badge>
@@ -181,7 +182,7 @@ export function Topbar() {
           <Link
             href="/settings"
             title={`${CURRENT_USER.name} · ${CURRENT_USER.role}`}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#E0475F] to-[#B4123C] text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-oxblood text-[14px] font-semibold text-white transition-colors hover:bg-garnet"
           >
             {CURRENT_USER.initials}
             <span className="sr-only">{CURRENT_USER.name}, open settings</span>

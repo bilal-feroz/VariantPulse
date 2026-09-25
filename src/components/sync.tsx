@@ -101,7 +101,7 @@ export function SyncOverlay() {
       role="status"
       aria-live="polite"
     >
-      <div className="vp-rise w-[min(480px,100%)] overflow-hidden rounded-2xl border border-line-2 bg-surface/95 shadow-[0_28px_70px_-26px_rgba(18,19,50,0.5)] backdrop-blur-xl">
+      <div className="vp-rise w-[min(480px,100%)] overflow-hidden rounded-2xl border border-line-2 bg-surface/95 shadow-[0_28px_70px_-26px_rgba(var(--vp-shadow-rgb),0.4)] backdrop-blur-xl">
         {running ? (
           <div className="p-5">
             <div className="flex items-baseline justify-between gap-3">

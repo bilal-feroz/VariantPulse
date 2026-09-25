@@ -390,6 +390,11 @@ function describeFrequency(regional: RegionalEvidence | null, ratio: number | nu
   return `Observed in ${count(me.alleleCount)} of ${count(me.alleleNumber)} Middle Eastern alleles in gnomAD v4 (${frequencyText(me.frequency)}) against ${globalText} (${frequencyText(global.frequency)})${enriched}.`;
 }
 
+/** A catalogue's listed readings for a sentence: "likely pathogenic or pathogenic". */
+function reading(significance: string): string {
+  return significance.toLowerCase().replace(/, /g, " or ");
+}
+
 /** Joins country names for a sentence: "the UAE and Yemen". */
 function list(values: string[]): string {
   const names = values.map((name) => (name === "United Arab Emirates" ? "the UAE" : name));
@@ -448,7 +453,7 @@ export function assessRegionalSignal(
     return signal(
       "CATALOGUE_DISAGREES",
       true,
-      `CTGA records it as ${catalogue.significance.toLowerCase()} in ${list(catalogue.countries)}, while ClinVar now reads ${CLASSIFICATIONS[current].label.toLowerCase()}. The two place the variant in different clinical bands, and VariantPulse does not rank one above the other.`,
+      `CTGA records it as ${reading(catalogue.significance)} in ${list(catalogue.countries)}, while ClinVar now reads ${CLASSIFICATIONS[current].label.toLowerCase()}. The two place the variant in different clinical bands, and VariantPulse does not rank one above the other.`,
     );
   }
 
@@ -483,13 +488,13 @@ export function assessRegionalSignal(
       return signal(
         "CATALOGUE_AHEAD",
         false,
-        `CTGA has listed it as ${catalogue.significance.toLowerCase()} in ${list(catalogue.countries)} since ${catalogue.listedSince.slice(0, 4)}. ${then}; ClinVar has since reached the same band.`,
+        `CTGA has listed it as ${reading(catalogue.significance)} in ${list(catalogue.countries)} since ${catalogue.listedSince.slice(0, 4)}. ${then}; ClinVar has since reached the same band.`,
       );
     }
     return signal(
       "CATALOGUE_AGREES",
       false,
-      `CTGA records it as ${catalogue.significance.toLowerCase()} in ${list(catalogue.countries)}, in the same clinical band as ClinVar.`,
+      `CTGA records it as ${reading(catalogue.significance)} in ${list(catalogue.countries)}, in the same clinical band as ClinVar.`,
     );
   }
 

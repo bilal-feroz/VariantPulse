@@ -166,13 +166,13 @@ const THALASSAEMIA_UAE: RegionalCitation = {
 const CONTEXT: Record<string, RegionalContext> = {
   "HBB:c.380T>G": {
     note:
-      "Beta-thalassaemia carrier status is common in the UAE and drives premarital and reproductive counselling. gnomAD v4 holds no Middle Eastern observation of this variant, so no regional population data speaks to the reclassification either way. A downgraded carrier result has family-planning consequences and needs a clinician's judgement, not the software's.",
+      "Beta-thalassaemia carrier status is common in the UAE and drives premarital and reproductive counselling, so a downgraded carrier result has family-planning consequences. No regional population data speaks to the reclassification either way; it needs a clinician's judgement, not the software's.",
     citations: [THALASSAEMIA_UAE, MIDDLE_EASTERN_ANNOTATION],
     flagForReview: true,
   },
   "CFTR:c.601G>A": {
     note:
-      "A frequency difference is evidence to weigh, not a classification, and it can point either way. With a Middle Eastern sample of about 3,000 people and only a handful of observed alleles, VariantPulse raises the difference for a clinician rather than applying it.",
+      "A difference like this can point either way, and it rests on a handful of alleles in about 3,000 people, so VariantPulse raises it for a clinician rather than applying it.",
     citations: [
       {
         pmid: "41496868",
@@ -187,7 +187,7 @@ const CONTEXT: Record<string, RegionalContext> = {
   },
   "BRCA1:c.5056C>T": {
     note:
-      "Absent from gnomAD v4, including its Middle Eastern group, so population frequency can neither support nor contradict the expert-panel reclassification.",
+      "Population frequency can therefore neither support nor contradict the expert-panel reclassification.",
     citations: [
       {
         pmid: "42137137",
@@ -202,7 +202,7 @@ const CONTEXT: Record<string, RegionalContext> = {
   },
   "LDLR:c.1381G>T": {
     note:
-      "Rare globally and not observed in gnomAD's Middle Eastern group. Rarity is compatible with a pathogenic reading but does not establish one. The familial hypercholesterolaemia mutation spectrum in Arab countries differs from European cohorts, which is why regional follow-up of LDLR results matters.",
+      "Rarity is compatible with a pathogenic reading but does not establish one. The familial hypercholesterolaemia mutation spectrum in Arab countries differs from European cohorts, which is why regional follow-up of LDLR results matters.",
     citations: [
       {
         pmid: "30415195",
@@ -215,19 +215,19 @@ const CONTEXT: Record<string, RegionalContext> = {
   },
   "HBB:c.364G>C": {
     note:
-      "Haemoglobin D-Punjab. CTGA's UAE records, citing work from 1998 onwards, list it as likely pathogenic or pathogenic in patients with sickle cell disease and beta-thalassaemia, while ClinVar's aggregate still read conflicting interpretations in January 2023. In that sense the regional record was ahead of the global one.",
+      "Haemoglobin D-Punjab. CTGA's UAE records concern patients with sickle cell disease and beta-thalassaemia and cite work from 1998 onwards; in that sense the regional record was ahead of the global one.",
     citations: [THALASSAEMIA_UAE],
     flagForReview: false,
   },
   "MYBPC3:c.776delinsTT": {
     note:
-      "CTGA lists this frameshift in a UAE patient with left ventricular non-compaction as likely pathogenic, in an entry dated July 2020 that cites a 2016 report. ClinVar held no record of it in January 2023; its single submission since, evaluated in July 2025, also reads likely pathogenic.",
+      "The CTGA entry concerns a UAE patient with left ventricular non-compaction and cites a 2016 report.",
     citations: [],
     flagForReview: false,
   },
   "BRCA1:c.1140dup": {
     note:
-      "CTGA records this frameshift in a UAE family and a Yemeni patient as likely pathogenic or pathogenic, matching ClinVar's expert-panel classification. It is a control: nothing has changed, so nothing is raised.",
+      "It is a control: nothing has changed, so nothing is raised.",
     citations: [],
     flagForReview: false,
   },

@@ -99,7 +99,12 @@ export function ThenNow({
   const { variant, recordedCode, currentCode, evidence } = assessment;
   const source = variant.historicalSource;
   const thenYear = source.kind === "clinvar-release" ? source.shortLabel : formatMonth(variant.recordedOn);
-  const nowYear = formatYear(evidence.lastEvaluated) || String(new Date().getUTCFullYear());
+  const changed = assessment.verdict.type !== "NO_MATERIAL_CHANGE";
+  // "Now" carries the year ClinVar last evaluated the reading, unless that
+  // predates the record, where a year would read as time running backwards.
+  const evaluated = formatYear(evidence.lastEvaluated);
+  const recordYear = source.release ? source.release.slice(0, 4) : formatYear(variant.recordedOn);
+  const nowYear = evidence.lastEvaluated && evaluated >= recordYear ? evaluated : "";
 
   // Normalisation can shorten what ClinVar said ("Pathogenic/Likely pathogenic"
   // becomes Pathogenic), so the verbatim wording is kept beside it.
@@ -140,7 +145,7 @@ export function ThenNow({
             <ArrowRight className="h-3.5 w-3.5 rotate-90" />
           </span>
           <span className="text-[9.5px] font-semibold uppercase tracking-[0.11em] text-faint">
-            Science changed
+            {changed ? "Science changed" : "No change"}
           </span>
         </div>
         {now}
@@ -161,9 +166,9 @@ export function ThenNow({
           <ArrowRight className="h-4 w-4" />
         </span>
         <span className="text-[9.5px] font-semibold uppercase tracking-[0.11em] text-faint whitespace-nowrap">
-          Science
+          {changed ? "Science" : "No"}
           <br />
-          changed
+          {changed ? "changed" : "change"}
         </span>
       </div>
       {now}

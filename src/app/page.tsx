@@ -145,7 +145,7 @@ export default function HomePage() {
             name="ClinVar, Jan 2023"
             description="Classifications on record"
             status="snapshot"
-            detail="Archived release"
+            detail="Archive"
             glyph={<History className="h-4 w-4" />}
           />
           <SourceCard

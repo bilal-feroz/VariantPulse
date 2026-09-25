@@ -74,7 +74,7 @@ export default function SourcesPage() {
               ? "Live evidence matches the verified snapshot on every compared field."
               : `Live evidence differs from the snapshot on ${snapshotDrift.length} field${snapshotDrift.length === 1 ? "" : "s"}; the live values are used and the snapshot stays the fallback.`
           }`
-        : `Serving the cached verified snapshot (${snapshotLine}). ${analysis.reason ?? "The live endpoint was unavailable."}`,
+        : `Serving the cached verified snapshot (${snapshotLine}). ${analysis.reason ?? "The live endpoint was unavailable"}.`,
       stats: [
         { label: "Variants monitored", value: formatNumber(analysis.assessments.length) },
         { label: "Submissions aggregated", value: formatNumber(submissions) },
@@ -117,7 +117,7 @@ export default function SourcesPage() {
       description: REGIONAL_SOURCE.catalogueName,
       icon: Library,
       status: "Snapshot",
-      detail: `Clinical significance quoted verbatim from the ${REGIONAL_SOURCE.cataloguePublisher}'s catalogue, read on ${formatDate(REGIONAL_SOURCE.checkedOn)}. Always attributed, never merged into a VariantPulse classification.`,
+      detail: `Clinical significance quoted verbatim from the catalogue of the ${REGIONAL_SOURCE.cataloguePublisher}, read on ${formatDate(REGIONAL_SOURCE.checkedOn)}. Always attributed, never merged into a VariantPulse classification.`,
       stats: [
         { label: "Variants recorded", value: formatNumber(catalogued.length) },
         { label: "Countries", value: countries.join(", ") || "—" },

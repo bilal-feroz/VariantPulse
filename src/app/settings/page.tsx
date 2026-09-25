@@ -79,7 +79,7 @@ const AGENTS = [
     role: "Reads current classifications and summarises what the sources state.",
   },
   {
-    name: "Conflict",
+    name: "Regional",
     icon: Globe2,
     role: "Compares Middle Eastern frequencies and regional catalogue records with the global reading.",
   },

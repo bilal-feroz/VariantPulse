@@ -93,13 +93,13 @@ export function Topbar() {
             className="hidden items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 xl:inline-flex"
             title={
               live
-                ? "Evidence is being read live from ClinVar."
-                : `Serving the bundled snapshot. ${analysis.reason ?? "The live source was unavailable."}`
+                ? "Current evidence is being read live from NCBI ClinVar."
+                : `Serving the verified ClinVar snapshot. ${analysis.reason ?? "The live source was unavailable."}`
             }
           >
             <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
             <span className="text-[12px] font-medium text-ink-2">
-              {live ? "Evidence monitor live" : "Cached evidence"}
+              {live ? "Live ClinVar evidence" : "Cached verified evidence"}
             </span>
             <RelativeTime value={lastChecked} className="text-[11.5px] text-faint vp-num" />
           </span>

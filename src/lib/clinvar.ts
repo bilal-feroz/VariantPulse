@@ -1,9 +1,13 @@
 /**
  * Current-evidence retrieval.
  *
- * Evidence is read live from NCBI ClinVar. If that call fails or is slow, the
- * bundled snapshot is served instead and the workspace says so rather than
- * quietly presenting stale data as current.
+ * Evidence is read live from NCBI ClinVar in a single batched request. If that
+ * call fails or is slow, the bundled snapshot is served instead and the
+ * workspace says so rather than quietly presenting stale data as current.
+ *
+ * The snapshot is only ever written by `npm run evidence:refresh`. A live read
+ * that differs from it is used as-is and the difference is reported, but the
+ * snapshot is never overwritten at runtime: it stays the known-good fallback.
  */
 
 import "server-only";
@@ -12,9 +16,14 @@ import snapshot from "@/data/evidence-snapshot.json";
 import { MONITORED_VARIANTS } from "@/data/workspace";
 
 const EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
-const REQUEST_TIMEOUT_MS = 6_000;
+const REQUEST_TIMEOUT_MS = 5_000;
 /** How long a successful live read stays authoritative before refetching. */
 const CACHE_TTL_MS = 5 * 60 * 1000;
+/**
+ * How long a failed live read is remembered, so an unreachable network costs
+ * one timeout rather than one per page load. An explicit sync always retries.
+ */
+const FAILURE_TTL_MS = 30 * 1000;
 
 export interface EvidenceCitation {
   pmid: string;
@@ -53,20 +62,46 @@ export interface EvidenceRecord {
 
 export type EvidenceMode = "live" | "cached";
 
+/** What is known about the bundled snapshot the fallback serves. */
+export interface SnapshotInfo {
+  /** When the records were captured at source; null when the supplier did not record it. */
+  generatedAt: string | null;
+  /** When the records were last confirmed identical to a live read. */
+  verifiedAt: string | null;
+  verifiedMatched: number;
+  verifiedCompared: number;
+  recordCount: number;
+}
+
+/** A field on which a live read disagrees with the bundled snapshot. */
+export interface SnapshotDifference {
+  key: string;
+  field: "classification" | "reviewStatus" | "lastEvaluated" | "submissionCount";
+  snapshot: string;
+  live: string;
+}
+
 export interface EvidenceResult {
   mode: EvidenceMode;
-  /** Present when a live read was attempted and failed. */
+  /** Present when live evidence was not served. */
   reason?: string;
   checkedAt: string;
-  /** When the served data was produced at source; null for the bundled snapshot. */
+  /** When the served data was produced at source: the live read, or the snapshot's verification. */
   sourceUpdatedAt: string | null;
+  snapshot: SnapshotInfo;
+  /** Live reads only: where ClinVar has moved on since the snapshot was taken. */
+  snapshotDrift: SnapshotDifference[];
   records: Record<string, EvidenceRecord>;
 }
 
 interface Snapshot {
+  generatedAt?: string | null;
   source: string;
   sourceUrl: string;
   recordCount: number;
+  provenance?: {
+    verifiedAgainstLive?: { at: string; compared: number; matched: number };
+  };
   records: Record<string, EvidenceRecord>;
 }
 
@@ -74,12 +109,29 @@ const SNAPSHOT = snapshot as unknown as Snapshot;
 
 export const EVIDENCE_SOURCE_URL = SNAPSHOT.sourceUrl;
 
-function cachedResult(reason?: string): EvidenceResult {
+export const SNAPSHOT_INFO: SnapshotInfo = {
+  generatedAt: SNAPSHOT.generatedAt ?? null,
+  verifiedAt: SNAPSHOT.provenance?.verifiedAgainstLive?.at ?? null,
+  verifiedMatched: SNAPSHOT.provenance?.verifiedAgainstLive?.matched ?? 0,
+  verifiedCompared: SNAPSHOT.provenance?.verifiedAgainstLive?.compared ?? 0,
+  recordCount: SNAPSHOT.recordCount,
+};
+
+/** Live ClinVar reads can be switched off for a session, for a room with no reliable network. */
+function liveReadsDisabled(): boolean {
+  const flag = process.env.VARIANTPULSE_OFFLINE?.trim().toLowerCase();
+  return flag === "1" || flag === "true";
+}
+
+/** The bundled snapshot, labelled as such. */
+export function readSnapshotEvidence(reason?: string): EvidenceResult {
   return {
     mode: "cached",
     reason,
     checkedAt: new Date().toISOString(),
-    sourceUpdatedAt: null,
+    sourceUpdatedAt: SNAPSHOT_INFO.verifiedAt ?? SNAPSHOT_INFO.generatedAt,
+    snapshot: SNAPSHOT_INFO,
+    snapshotDrift: [],
     records: SNAPSHOT.records,
   };
 }
@@ -166,6 +218,27 @@ function shape(raw: Summary, fallback: EvidenceRecord | undefined): EvidenceReco
   };
 }
 
+const COMPARED_FIELDS: SnapshotDifference["field"][] = [
+  "classification",
+  "reviewStatus",
+  "lastEvaluated",
+  "submissionCount",
+];
+
+function diffAgainstSnapshot(records: Record<string, EvidenceRecord>): SnapshotDifference[] {
+  const differences: SnapshotDifference[] = [];
+  for (const [key, live] of Object.entries(records)) {
+    const saved = SNAPSHOT.records[key];
+    if (!saved) continue;
+    for (const field of COMPARED_FIELDS) {
+      if (String(saved[field]) !== String(live[field])) {
+        differences.push({ key, field, snapshot: String(saved[field]), live: String(live[field]) });
+      }
+    }
+  }
+  return differences;
+}
+
 let cache: { value: EvidenceResult; expiresAt: number } | null = null;
 
 /**
@@ -175,6 +248,10 @@ let cache: { value: EvidenceResult; expiresAt: number } | null = null;
  * bundled snapshot with `mode: "cached"`.
  */
 export async function fetchCurrentEvidence(options?: { force?: boolean }): Promise<EvidenceResult> {
+  if (liveReadsDisabled()) {
+    return readSnapshotEvidence("Live ClinVar reads are switched off (VARIANTPULSE_OFFLINE)");
+  }
+
   if (!options?.force && cache && cache.expiresAt > Date.now()) {
     return cache.value;
   }
@@ -183,9 +260,15 @@ export async function fetchCurrentEvidence(options?: { force?: boolean }): Promi
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+  const fallBack = (reason: string): EvidenceResult => {
+    const value = readSnapshotEvidence(reason);
+    cache = { value, expiresAt: Date.now() + FAILURE_TTL_MS };
+    return value;
+  };
+
   try {
     const response = await fetch(
-      `${EUTILS}/esummary.fcgi?db=clinvar&retmode=json&id=${ids.join(",")}`,
+      `${EUTILS}/esummary.fcgi?db=clinvar&retmode=json&tool=variantpulse&id=${ids.join(",")}`,
       {
         signal: controller.signal,
         headers: { "User-Agent": "VariantPulse/1.0" },
@@ -194,48 +277,47 @@ export async function fetchCurrentEvidence(options?: { force?: boolean }): Promi
     );
 
     if (!response.ok) {
-      return cachedResult(`ClinVar responded ${response.status}`);
+      return fallBack(`ClinVar responded ${response.status}`);
     }
 
     const body = (await response.json()) as { result?: Record<string, Summary> };
     const result = body.result;
-    if (!result) return cachedResult("ClinVar returned an unexpected payload");
+    if (!result) return fallBack("ClinVar returned an unexpected payload");
 
     const records: Record<string, EvidenceRecord> = {};
-    let missing = false;
     for (const variant of MONITORED_VARIANTS) {
       const raw = result[variant.clinvarId];
-      const fallback = SNAPSHOT.records[variant.key];
-      const shaped = raw ? shape(raw, fallback) : null;
-      const record = shaped ?? fallback;
-      // A variant with neither a live record nor a snapshot entry means the
-      // panel and the snapshot have drifted apart. Never serve a hole.
-      if (!record) {
-        missing = true;
-        break;
-      }
-      records[variant.key] = record;
+      const shaped = raw ? shape(raw, SNAPSHOT.records[variant.key]) : null;
+      // A partial response is not a live read. Fall back rather than mix sources.
+      if (!shaped) return fallBack("ClinVar response was incomplete");
+      records[variant.key] = shaped;
     }
 
-    // A partial response is not a live read. Fall back rather than mix sources.
-    if (missing) {
-      return cachedResult("ClinVar response was incomplete");
+    const snapshotDrift = diffAgainstSnapshot(records);
+    if (snapshotDrift.length > 0) {
+      console.info(
+        `[VariantPulse] Live ClinVar differs from the bundled snapshot on ${snapshotDrift.length} field(s):`,
+        snapshotDrift.map((d) => `${d.key} ${d.field}: ${d.snapshot} -> ${d.live}`).join("; "),
+      );
     }
 
+    const now = new Date().toISOString();
     const value: EvidenceResult = {
       mode: "live",
-      checkedAt: new Date().toISOString(),
-      sourceUpdatedAt: new Date().toISOString(),
+      checkedAt: now,
+      sourceUpdatedAt: now,
+      snapshot: SNAPSHOT_INFO,
+      snapshotDrift,
       records,
     };
     cache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
     return value;
   } catch (error) {
-    const reason =
+    return fallBack(
       error instanceof Error && error.name === "AbortError"
         ? "ClinVar did not respond within the timeout"
-        : "ClinVar is unreachable";
-    return cachedResult(reason);
+        : "ClinVar is unreachable",
+    );
   } finally {
     clearTimeout(timer);
   }

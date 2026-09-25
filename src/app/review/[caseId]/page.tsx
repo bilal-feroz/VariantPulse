@@ -8,6 +8,7 @@ import { DecisionBlock, DecisionButtons } from "@/components/decision";
 import { ThenNow } from "@/components/domain";
 import { EvidenceBriefButton } from "@/components/evidence-brief";
 import { PageHeader, PageShell } from "@/components/page-header";
+import { PatientLetterButton } from "@/components/patient-letter";
 import {
   EvidenceComparison,
   EvidenceSummaryPanel,
@@ -324,7 +325,11 @@ export default function ReviewCasePage() {
               </p>
             </div>
 
-            <div className="mt-4 border-t border-line pt-4">
+            <div className="mt-4 space-y-2 border-t border-line pt-4">
+              {/* A letter only follows a confirmed change, never a pending one. */}
+              {decision?.decision === "Confirm change" ? (
+                <PatientLetterButton assessment={assessment} />
+              ) : null}
               <EvidenceBriefButton assessment={assessment} state={state} />
             </div>
           </Card>

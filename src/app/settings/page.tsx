@@ -16,7 +16,7 @@ import {
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { Badge, Card, Field, SectionHeading } from "@/components/ui";
-import { CURRENT_USER, MONITORED_FINDING_COUNT } from "@/data/workspace";
+import { CURRENT_USER, PATIENTS } from "@/data/workspace";
 import { cn, formatNumber } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
@@ -37,7 +37,7 @@ const STAGES = [
   {
     icon: Database,
     title: "Evidence sources",
-    detail: "ClinVar, regional index, literature index.",
+    detail: "Live ClinVar, its January 2023 release, gnomAD v4, CTGA and PubMed.",
     tone: "accent" as const,
   },
   {
@@ -81,7 +81,7 @@ const AGENTS = [
   {
     name: "Conflict",
     icon: Globe2,
-    role: "Detects disagreement between global consensus and regional evidence.",
+    role: "Compares Middle Eastern frequencies and regional catalogue records with the global reading.",
   },
   {
     name: "Impact",
@@ -163,8 +163,8 @@ export default function SettingsPage() {
         <p className="mt-5 border-t border-line pt-3.5 text-[12px] leading-relaxed text-muted">
           Change detection never depends on a language model. Classifications are normalised onto a
           fixed taxonomy and compared by band, so the same inputs always produce the same verdict.
-          A model is only used to phrase the summary, and only from evidence that is already on
-          screen.
+          Evidence summaries are composed from the structured fields on screen by fixed templates,
+          so every sentence traces back to a cited field.
         </p>
       </Card>
 
@@ -241,14 +241,18 @@ export default function SettingsPage() {
             />
             <Field label="Last checked" value={<RelativeTime value={lastChecked} />} />
             <Field
-              label="Findings monitored"
-              value={formatNumber(MONITORED_FINDING_COUNT)}
+              label="Synthetic patient records"
+              value={formatNumber(PATIENTS.length)}
             />
             <Field label="Variants on panel" value={String(analysis.assessments.length)} />
             <Field label="Open review cases" value={String(analysis.metrics.openCases)} />
             <Field
               label="Snapshot fallback"
-              value={`Bundled evidence snapshot, ${analysis.assessments.length} records`}
+              value={`Verified ClinVar snapshot, ${analysis.snapshot.recordCount} records${
+                analysis.snapshot.verifiedAt
+                  ? `, identical to live ClinVar on ${new Date(analysis.snapshot.verifiedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`
+                  : ""
+              }`}
             />
           </dl>
         </Card>

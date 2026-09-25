@@ -7,19 +7,20 @@
  */
 
 import type { VariantAssessment, WorkspaceAnalysis, WorkspaceMetrics } from "./analysis";
-import type { EvidenceMode } from "./clinvar";
+import type { EvidenceMode, SnapshotDifference, SnapshotInfo } from "./clinvar";
 
 export interface ClientAnalysis {
   mode: EvidenceMode;
-  /** Present when a live read was attempted and failed. */
+  /** Present when live evidence was not served. */
   reason?: string;
   checkedAt: string;
   sourceUpdatedAt: string | null;
+  snapshot: SnapshotInfo;
+  snapshotDrift: SnapshotDifference[];
   generatedAt: string;
   metrics: WorkspaceMetrics;
   scan: {
     findingsChecked: number;
-    monitoredFindings: number;
     distinctVariants: number;
   };
   assessments: VariantAssessment[];
@@ -34,11 +35,12 @@ export function serialiseAnalysis(analysis: WorkspaceAnalysis): ClientAnalysis {
     reason: analysis.evidence.reason,
     checkedAt: analysis.evidence.checkedAt,
     sourceUpdatedAt: analysis.evidence.sourceUpdatedAt,
+    snapshot: analysis.evidence.snapshot,
+    snapshotDrift: analysis.evidence.snapshotDrift,
     generatedAt: analysis.generatedAt,
     metrics: analysis.metrics,
     scan: {
       findingsChecked: analysis.scan.findingsChecked,
-      monitoredFindings: analysis.scan.monitoredFindings,
       distinctVariants: analysis.scan.distinctVariants,
     },
     assessments: analysis.assessments,

@@ -1,31 +1,39 @@
 /**
  * The engine.
  *
- * One pass over the record corpus produces everything the interface renders:
- * which interpretations moved, which records carry them, where regional and
- * global evidence disagree, and what a reviewer should look at first.
+ * One pass over the synthetic record set produces everything the interface
+ * renders: which interpretations moved, which records carry them, what the
+ * regional evidence says, and what a reviewer should look at first.
  *
- * The whole pass is deterministic. Given the same corpus and the same evidence
- * payload it always returns the same result, and every verdict carries the
- * reasoning that produced it.
+ * The whole pass is deterministic. Given the same records and the same
+ * evidence payload it always returns the same result, and every verdict
+ * carries the reasoning that produced it.
  */
 
 import "server-only";
 
 import {
+  assessRegionalSignal,
   detectChange,
-  detectDisagreement,
   meta,
   normaliseClassification,
+  regionalStatement,
   reviewConfidence,
   type ChangeType,
   type ChangeVerdict,
   type ClassificationCode,
+  type RegionalSignal,
   type ReviewConfidence,
 } from "./classification";
 import { assessPriority, comparePriority, type PriorityAssessment } from "./priority";
 import { scanCorpus, type CorpusScan } from "./corpus";
-import { fetchCurrentEvidence, type EvidenceRecord, type EvidenceResult } from "./clinvar";
+import {
+  fetchCurrentEvidence,
+  type EvidenceMode,
+  type EvidenceRecord,
+  type EvidenceResult,
+} from "./clinvar";
+import { PROVENANCE_BY_KEY, type ReleaseClassification } from "@/data/provenance";
 import { REGIONAL_BY_KEY, type RegionalEvidence } from "@/data/regional";
 import {
   MONITORED_VARIANTS,
@@ -34,31 +42,31 @@ import {
   type PatientRecord,
 } from "@/data/workspace";
 import { composeEvidenceSummary } from "./narrative";
+import { formatDate } from "./utils";
 
 export interface PipelineStep {
   label: string;
   detail: string;
 }
 
-export interface RegionalDisagreement {
-  conflicting: boolean;
-  severity: "none" | "moderate" | "high";
-  reason: string;
-  globalCode: ClassificationCode;
-  regionalCode: ClassificationCode;
-}
-
 export interface VariantAssessment {
   variant: MonitoredVariant;
   evidence: EvidenceRecord;
+  /** Whether `evidence` was read live or served from the verified snapshot. */
+  evidenceMode: EvidenceMode;
+  /** ClinVar's classification in each archived release the dataset records, oldest first. */
+  releaseHistory: ReleaseClassification[];
   recordedCode: ClassificationCode;
   currentCode: ClassificationCode;
   verdict: ChangeVerdict;
-  /** What the interface leads with. Regional conflict outranks a global shift. */
+  /**
+   * What the interface leads with. A global reclassification always leads;
+   * regional evidence heads the case only when the global reading has not moved.
+   */
   changeType: ChangeType;
   confidence: ReviewConfidence;
   regional: RegionalEvidence | null;
-  regionalDisagreement: RegionalDisagreement | null;
+  regionalSignal: RegionalSignal;
   impactedPatients: PatientRecord[];
   impactedRecordCount: number;
   priority: PriorityAssessment;
@@ -70,11 +78,16 @@ export interface VariantAssessment {
 }
 
 export interface WorkspaceMetrics {
+  /** Synthetic patient records walked by the scan. */
   findingsMonitored: number;
+  /** Global reclassifications: drift, strengthened or weakened evidence. */
   evidenceChanges: number;
+  /** Synthetic records on a variant with an open review case. */
   patientsImpacted: number;
+  /** Variants whose regional evidence is flagged for review. */
   regionalConflicts: number;
   consensusConflicts: number;
+  /** Variants whose classification has not materially changed. */
   unchanged: number;
   openCases: number;
 }
@@ -83,8 +96,9 @@ export interface WorkspaceAnalysis {
   evidence: EvidenceResult;
   scan: CorpusScan;
   assessments: VariantAssessment[];
-  /** Material global changes, highest priority first. */
+  /** Global reclassifications, highest priority first. */
   changes: VariantAssessment[];
+  /** Variants whose regional evidence is flagged for review. */
   regionalConflicts: VariantAssessment[];
   /** Everything that opens a review case, highest priority first. */
   reviewable: VariantAssessment[];
@@ -92,22 +106,36 @@ export interface WorkspaceAnalysis {
   generatedAt: string;
 }
 
+const RECLASSIFICATIONS: ChangeType[] = [
+  "CLASSIFICATION_DRIFT",
+  "EVIDENCE_STRENGTHENED",
+  "EVIDENCE_WEAKENED",
+];
+
+function historicalDetail(variant: MonitoredVariant): string {
+  const label = `${variant.gene} ${variant.hgvsCoding}`;
+  if (variant.historicalSource.kind === "modelled-report") {
+    return `${label} was not in ClinVar in January 2023. The synthetic hospital reported it as ${meta(variant.historicalClassification).label.toLowerCase()} on ${formatDate(variant.recordedOn)}; that modelled report is the interpretation on record.`;
+  }
+  return `ClinVar's ${variant.historicalSource.label} release classified ${label} as ${(variant.historicalClinvarText ?? meta(variant.historicalClassification).label).toLowerCase()} (${variant.historicalReviewStatus}).`;
+}
+
 function buildPipeline(input: {
   variant: MonitoredVariant;
   evidence: EvidenceRecord;
   verdict: ChangeVerdict;
-  regional: RegionalEvidence | null;
-  disagreement: RegionalDisagreement | null;
+  signal: RegionalSignal;
   impacted: number;
   scan: CorpusScan;
-  mode: EvidenceResult["mode"];
+  mode: EvidenceMode;
+  requiresReview: boolean;
 }): PipelineStep[] {
-  const { variant, evidence, verdict, regional, disagreement, impacted, scan, mode } = input;
+  const { variant, evidence, verdict, signal, impacted, scan, mode, requiresReview } = input;
 
   return [
     {
-      label: "Historical record retrieved",
-      detail: `${variant.gene} ${variant.hgvsCoding} reported as ${meta(variant.historicalClassification).label} on ${variant.recordedOn}.`,
+      label: "Historical classification retrieved",
+      detail: historicalDetail(variant),
     },
     {
       label: "Variant normalised",
@@ -115,32 +143,33 @@ function buildPipeline(input: {
     },
     {
       label: "Current evidence retrieved",
-      detail: `${mode === "live" ? "Read live from ClinVar" : "Served from the bundled snapshot"}: ${evidence.classification}, ${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"}, ${evidence.reviewStatus}.`,
+      detail: `${mode === "live" ? "Read live from NCBI ClinVar" : "Served from the cached verified snapshot"}: ${evidence.classification}, ${evidence.reviewStatus}, last evaluated ${formatDate(evidence.lastEvaluated)}, ${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"}.`,
     },
     {
-      label: "Classification difference detected",
+      label: "Classifications compared",
       detail: verdict.rationale.join(" "),
     },
     {
-      label: "Regional sources compared",
-      detail: regional
-        ? disagreement?.conflicting
-          ? `Regional index asserts ${meta(regional.assertion).label} across ${regional.observations} observations. ${disagreement.reason}`
-          : `Regional index asserts ${meta(regional.assertion).label}, consistent with the global reading.`
-        : "No regional evidence is held for this variant.",
+      label: "Regional evidence compared",
+      detail: regionalStatement(signal),
     },
     {
-      label: "Impacted records identified",
-      detail: `${scan.findingsChecked.toLocaleString("en-US")} findings checked; ${impacted} carr${impacted === 1 ? "ies" : "y"} this variant.`,
+      label: "Synthetic records scanned",
+      detail: `${scan.findingsChecked.toLocaleString("en-US")} synthetic patient records checked; ${impacted} carr${impacted === 1 ? "ies" : "y"} this variant.`,
     },
     {
       label: "Evidence brief generated",
-      detail: "Composed from the structured fields of the cited records above.",
+      detail: "Composed from the structured fields above by fixed templates. No model decides or phrases the verdict.",
     },
-    {
-      label: "Human review requested",
-      detail: "VariantPulse does not change any record. A clinician decides what happens next.",
-    },
+    requiresReview
+      ? {
+          label: "Human review requested",
+          detail: "VariantPulse does not change any record. A clinician decides what happens next.",
+        }
+      : {
+          label: "No review case opened",
+          detail: "Nothing material has changed, so no case is raised and no one is interrupted.",
+        },
   ];
 }
 
@@ -148,7 +177,7 @@ function assessVariant(
   variant: MonitoredVariant,
   evidence: EvidenceRecord,
   scan: CorpusScan,
-  mode: EvidenceResult["mode"],
+  mode: EvidenceMode,
 ): Omit<VariantAssessment, "caseId"> {
   const recordedCode = variant.historicalClassification;
   const currentCode = normaliseClassification(evidence.classification);
@@ -156,43 +185,40 @@ function assessVariant(
   const confidence = reviewConfidence(evidence.reviewStatus);
 
   const regional = REGIONAL_BY_KEY.get(variant.key) ?? null;
-  const raw = regional ? detectDisagreement(currentCode, regional.assertion) : null;
-  const regionalDisagreement: RegionalDisagreement | null =
-    regional && raw
-      ? { ...raw, globalCode: currentCode, regionalCode: regional.assertion }
-      : null;
+  const regionalSignal = assessRegionalSignal(regional, variant, currentCode);
 
   const impactedPatients = patientsForVariant(variant.key);
   const impactedRecordCount = scan.byVariant.get(variant.key)?.length ?? impactedPatients.length;
 
-  // Regional conflict is what a reviewer needs to see first, so it takes the
-  // headline even when the global reading also moved.
-  const changeType: ChangeType = regionalDisagreement?.conflicting
-    ? "REGIONAL_CONFLICT"
-    : verdict.type;
+  // A reclassification is the fact a reviewer must see first. Regional
+  // evidence carries no classification of its own, so it only heads the case
+  // when the global reading has not moved.
+  const changeType: ChangeType =
+    verdict.type === "NO_MATERIAL_CHANGE" && regionalSignal.flagged ? "REGIONAL_CONFLICT" : verdict.type;
 
   const priority = assessPriority({
     changeType,
     recorded: recordedCode,
     current: currentCode,
     impactedRecords: impactedRecordCount,
-    regionalConflict: Boolean(regionalDisagreement?.conflicting),
+    regionalConflict: regionalSignal.flagged,
     confidenceStars: confidence.stars,
   });
 
-  const requiresReview =
-    changeType !== "NO_MATERIAL_CHANGE" && impactedRecordCount > 0;
+  const requiresReview = changeType !== "NO_MATERIAL_CHANGE" && impactedRecordCount > 0;
 
   return {
     variant,
     evidence,
+    evidenceMode: mode,
+    releaseHistory: PROVENANCE_BY_KEY.get(variant.key)?.releases ?? [],
     recordedCode,
     currentCode,
     verdict,
     changeType,
     confidence,
     regional,
-    regionalDisagreement,
+    regionalSignal,
     impactedPatients,
     impactedRecordCount,
     priority,
@@ -200,34 +226,38 @@ function assessVariant(
     summary: composeEvidenceSummary({
       variant,
       evidence,
+      mode,
       recordedCode,
       currentCode,
       changeType,
       confidence,
-      regional,
-      disagreement: regionalDisagreement,
-      impactedRecordCount,
+      regionalSignal,
+      impactedPatients,
     }),
     pipeline: buildPipeline({
       variant,
       evidence,
       verdict,
-      regional,
-      disagreement: regionalDisagreement,
+      signal: regionalSignal,
       impacted: impactedRecordCount,
       scan,
       mode,
+      requiresReview,
     }),
   };
 }
 
-/** Case identifiers are stable: same corpus, same evidence, same ids. */
+/** Case identifiers are stable: same records, same evidence, same ids. */
 function caseIdFor(index: number, year: number): string {
   return `VP-R-${year}-${String(index + 1).padStart(3, "0")}`;
 }
 
-export async function analyseWorkspace(options?: { force?: boolean }): Promise<WorkspaceAnalysis> {
-  const evidence = await fetchCurrentEvidence({ force: options?.force });
+/**
+ * The analysis for a given evidence payload. Pure: the same evidence always
+ * yields the same assessments, cases and counts, which is what lets the data
+ * checks run the engine itself rather than a copy of its rules.
+ */
+export function buildAnalysis(evidence: EvidenceResult, now: Date = new Date()): WorkspaceAnalysis {
   const scan = scanCorpus();
 
   const partial = MONITORED_VARIANTS.map((variant) => {
@@ -239,7 +269,7 @@ export async function analyseWorkspace(options?: { force?: boolean }): Promise<W
     .filter((a) => a.requiresReview)
     .sort(comparePriority);
 
-  const year = new Date().getUTCFullYear();
+  const year = now.getUTCFullYear();
   const caseIds = new Map<string, string>();
   reviewableSorted.forEach((assessment, index) => {
     caseIds.set(assessment.variant.key, caseIdFor(index, year));
@@ -255,19 +285,15 @@ export async function analyseWorkspace(options?: { force?: boolean }): Promise<W
     .map((a) => byKey.get(a.variant.key))
     .filter((a): a is VariantAssessment => Boolean(a));
 
-  const regionalConflicts = assessments.filter((a) => a.regionalDisagreement?.conflicting);
+  const regionalConflicts = assessments
+    .filter((a) => a.regionalSignal.flagged)
+    .sort(comparePriority);
   const consensusConflicts = assessments.filter((a) => a.verdict.type === "CONSENSUS_CONFLICT");
 
-  // A "change" is a global reclassification. Conflicts are counted separately
-  // because they describe disagreement, not movement.
+  // A "change" is a global reclassification. Conflicts and regional signals
+  // are counted separately because they describe disagreement, not movement.
   const changes = assessments
-    .filter(
-      (a) =>
-        a.verdict.type === "CLASSIFICATION_DRIFT" ||
-        a.verdict.type === "EVIDENCE_STRENGTHENED" ||
-        a.verdict.type === "EVIDENCE_WEAKENED",
-    )
-    .filter((a) => !a.regionalDisagreement?.conflicting)
+    .filter((a) => RECLASSIFICATIONS.includes(a.verdict.type))
     .sort(comparePriority);
 
   const impactedIds = new Set<string>();
@@ -289,11 +315,15 @@ export async function analyseWorkspace(options?: { force?: boolean }): Promise<W
       patientsImpacted: impactedIds.size,
       regionalConflicts: regionalConflicts.length,
       consensusConflicts: consensusConflicts.length,
-      unchanged: assessments.filter((a) => a.changeType === "NO_MATERIAL_CHANGE").length,
+      unchanged: assessments.filter((a) => a.verdict.type === "NO_MATERIAL_CHANGE").length,
       openCases: reviewable.length,
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt: now.toISOString(),
   };
+}
+
+export async function analyseWorkspace(options?: { force?: boolean }): Promise<WorkspaceAnalysis> {
+  return buildAnalysis(await fetchCurrentEvidence({ force: options?.force }));
 }
 
 /** Looks up a single assessment by variant key. */

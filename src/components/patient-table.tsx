@@ -48,7 +48,7 @@ export function PatientImpactTable({
               "Age band",
               "Test date",
               ...(showVariant ? ["Variant"] : []),
-              "As reported",
+              "On record",
               "Current",
               "Department",
               "Clinical owner",

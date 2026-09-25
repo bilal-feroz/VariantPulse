@@ -42,7 +42,7 @@ const PAGES: Entry[] = [
   { id: "p-variants", kind: "page", title: "Variants", subtitle: "Monitored panel", href: "/variants", terms: ["variants", "panel", "genes"] },
   { id: "p-evidence", kind: "page", title: "Evidence", subtitle: "Source-by-source comparison", href: "/evidence", terms: ["evidence", "clinvar", "sources", "explorer"] },
   { id: "p-review", kind: "page", title: "Clinical Review", subtitle: "Review queue", href: "/review", terms: ["review", "queue", "cases", "clinical"] },
-  { id: "p-regional", kind: "page", title: "Regional Insights", subtitle: "Global and regional comparison", href: "/regional", terms: ["regional", "arab", "gulf", "global", "conflict"] },
+  { id: "p-regional", kind: "page", title: "Regional Insights", subtitle: "Global and regional comparison", href: "/regional", terms: ["regional", "arab", "gulf", "middle eastern", "gnomad", "ctga", "frequency", "global"] },
   { id: "p-activity", kind: "page", title: "Activity", subtitle: "Audit trail", href: "/activity", terms: ["activity", "audit", "log", "trail"] },
   { id: "p-sources", kind: "page", title: "Data Sources", subtitle: "Connection health", href: "/sources", terms: ["sources", "health", "connections", "status"] },
   { id: "p-settings", kind: "page", title: "Settings", subtitle: "Architecture and governance", href: "/settings", terms: ["settings", "architecture", "about", "governance"] },

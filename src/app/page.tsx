@@ -7,7 +7,7 @@ import {
   Database,
   Dna,
   Globe2,
-  Microscope,
+  History,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -90,6 +90,9 @@ export default function HomePage() {
                   </p>
                   <p className="mt-0.5 text-[12.5px] text-muted">
                     Originally reported as {ClassificationText(lead.recordedCode)}
+                    {lead.variant.historicalSource.kind === "clinvar-release"
+                      ? ` · ClinVar ${lead.variant.historicalSource.shortLabel}`
+                      : " · hospital report"}
                   </p>
                   <Link
                     href={`/patients/${leadPatients[0].id}`}
@@ -133,30 +136,30 @@ export default function HomePage() {
         <div className="space-y-2.5 xl:pt-8">
           <SourceCard
             name="ClinVar"
-            description="Global submissions"
+            description="Current classifications"
             status={live ? "live" : "cached"}
             detail={<RelativeTime value={lastChecked} />}
             glyph={<Database className="h-4 w-4" />}
           />
           <SourceCard
-            name="Regional evidence"
-            description="Arab and Gulf cohorts"
-            status="connected"
-            detail="Index"
+            name="ClinVar, Jan 2023"
+            description="Classifications on record"
+            status="snapshot"
+            detail="Archived release"
+            glyph={<History className="h-4 w-4" />}
+          />
+          <SourceCard
+            name="gnomAD v4 · CTGA"
+            description="Middle Eastern evidence"
+            status="snapshot"
+            detail="Regional"
             glyph={<Globe2 className="h-4 w-4" />}
           />
           <SourceCard
-            name="Medical literature"
-            description="Indexed publications"
-            status="connected"
-            detail="PubMed"
-            glyph={<Microscope className="h-4 w-4" />}
-          />
-          <SourceCard
             name="Hospital records"
-            description="Historical findings"
-            status="connected"
-            detail={`${analysis.scan.findingsChecked.toLocaleString("en-US")} on file`}
+            description="Demonstration dataset"
+            status="synthetic"
+            detail={`${analysis.scan.findingsChecked.toLocaleString("en-US")} records`}
             glyph={<Building2 className="h-4 w-4" />}
           />
         </div>
@@ -230,9 +233,9 @@ export default function HomePage() {
           </div>
           <p className="mt-5 text-[13.5px] leading-relaxed text-ink-2">
             <span className="font-semibold">
-              {analysis.metrics.patientsImpacted} records on file
+              {analysis.metrics.patientsImpacted} synthetic patient records
             </span>{" "}
-            carry a variant whose interpretation has moved, and may require clinical review.
+            carry a variant with new evidence, and may require clinical review.
           </p>
         </Card>
 
@@ -262,29 +265,34 @@ export default function HomePage() {
       <section className="mt-8">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Historical findings monitored"
+            label="Synthetic patient records"
             value={analysis.metrics.findingsMonitored}
-            hint={<>Checked <RelativeTime value={lastChecked} /></>}
+            hint={
+              <>
+                {analysis.assessments.length} real ClinVar variants · checked{" "}
+                <RelativeTime value={lastChecked} />
+              </>
+            }
           />
           <MetricCard
-            label="Evidence changes detected"
+            label="Reclassifications detected"
             value={analysis.metrics.evidenceChanges}
             tone={analysis.metrics.evidenceChanges > 0 ? "critical" : "positive"}
-            hint="Reclassifications since reporting"
+            hint="Since the classification on record"
             href="/variants"
           />
           <MetricCard
-            label="Patients potentially impacted"
+            label="Records requiring review"
             value={analysis.metrics.patientsImpacted}
             tone={analysis.metrics.patientsImpacted > 0 ? "warning" : "positive"}
-            hint="Records awaiting clinical review"
+            hint="Synthetic records awaiting clinical review"
             href="/patients"
           />
           <MetricCard
-            label="Regional evidence conflicts"
+            label="Regional signals"
             value={analysis.metrics.regionalConflicts}
             tone={analysis.metrics.regionalConflicts > 0 ? "warning" : "positive"}
-            hint="Global and regional readings differ"
+            hint="gnomAD v4 Middle Eastern and CTGA evidence"
             href="/regional"
           />
         </div>
@@ -357,10 +365,10 @@ export default function HomePage() {
       {conflicts.length > 0 ? (
         <section className="mt-8">
           <SectionHeading
-            title="Regional evidence conflicts"
+            title="Regional evidence signals"
             count={conflicts.length}
             icon={<Globe2 className="h-4 w-4" />}
-            description="Global consensus and regional evidence reach different conclusions. Neither is ranked above the other."
+            description="Middle Eastern evidence that deserves review. Frequency is evidence, not a classification, and neither source is ranked above the other."
             action={
               <Link
                 href="/regional"
@@ -384,7 +392,7 @@ export default function HomePage() {
           VariantPulse · Built by Team Kanban
         </p>
         <p className="text-[11.5px] text-faint">
-          Synthetic patient dataset · Variant evidence read from ClinVar
+          Synthetic patient records · Real public genomic evidence
         </p>
       </footer>
     </div>

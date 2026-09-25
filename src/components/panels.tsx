@@ -9,9 +9,9 @@
 import { ChevronRight, ExternalLink, Globe2, Info, MapPin, Sparkles } from "lucide-react";
 
 import type { VariantAssessment } from "@/lib/analysis";
-import { meta } from "@/lib/classification";
-import { REGIONAL_SOURCE } from "@/data/regional";
-import { cn, formatDate, formatNumber, formatYear } from "@/lib/utils";
+import { meta, regionalStatement, reviewConfidence } from "@/lib/classification";
+import { gnomadVariantUrl, REGIONAL_SOURCE, type AlleleFrequency } from "@/data/regional";
+import { cn, formatDate, formatMonth, formatNumber, formatYear } from "@/lib/utils";
 import {
   Badge,
   Card,
@@ -24,80 +24,103 @@ import {
 /* -- Science timeline ------------------------------------------------------ */
 
 interface Milestone {
-  year: string;
+  when: string;
+  /** ISO-ish key that orders the dated events. */
+  sortKey: string;
   title: string;
   detail: string;
   tone: "muted" | "warn" | "accent" | "crit";
 }
 
 function milestones(assessment: VariantAssessment): Milestone[] {
-  const { variant, evidence, recordedCode, currentCode } = assessment;
-  const events: Milestone[] = [];
+  const { variant, evidence, recordedCode, currentCode, releaseHistory, impactedPatients } = assessment;
+  const source = variant.historicalSource;
+  const label = `${variant.gene} ${variant.hgvsCoding}`;
+  const dated: Milestone[] = [];
 
-  const earliestTest = assessment.impactedPatients
-    .map((p) => p.testedOn)
-    .sort()[0];
+  if (source.kind === "clinvar-release" && source.release) {
+    const verbatim =
+      variant.historicalClinvarText && variant.historicalClinvarText !== meta(recordedCode).label
+        ? ` It read "${variant.historicalClinvarText}".`
+        : "";
+    dated.push({
+      when: source.shortLabel,
+      sortKey: `${source.release}-01`,
+      title: `ClinVar: ${meta(recordedCode).label.toLowerCase()}`,
+      detail: `${source.label} release, ${variant.historicalReviewStatus}. This is the classification on record.${verbatim}`,
+      tone: "warn",
+    });
+  }
 
-  if (earliestTest) {
-    events.push({
-      year: formatYear(earliestTest),
-      title: "Genetic test performed",
-      detail: `First record on file carrying ${variant.gene} ${variant.hgvsCoding}.`,
+  const firstTest = impactedPatients.map((p) => p.testedOn).sort()[0];
+  if (firstTest) {
+    const count = impactedPatients.length;
+    dated.push({
+      when: formatYear(firstTest),
+      sortKey: firstTest,
+      title:
+        source.kind === "modelled-report"
+          ? `Reported as ${meta(recordedCode).label.toLowerCase()}`
+          : "Genetic test performed",
+      detail:
+        source.kind === "modelled-report"
+          ? `Not in ClinVar at the time; the synthetic hospital's own report. ${variant.recordedEvidenceNote}`
+          : `First of ${count} synthetic record${count === 1 ? "" : "s"} carrying ${label}. ${variant.recordedEvidenceNote}`,
+      tone: source.kind === "modelled-report" ? "warn" : "muted",
+    });
+  }
+
+  // Archived releases between the one on record and today, where the reading moved.
+  let previous = releaseHistory[0]?.code ?? null;
+  for (const checkpoint of releaseHistory.slice(1, -1)) {
+    if (checkpoint.code === previous) continue;
+    previous = checkpoint.code;
+    dated.push({
+      when: checkpoint.label,
+      sortKey: `${checkpoint.release}-01`,
+      title: checkpoint.code
+        ? `ClinVar: ${meta(checkpoint.code).label.toLowerCase()}`
+        : "Not in ClinVar",
+      detail: `As archived in ClinVar's ${checkpoint.label} release.`,
       tone: "muted",
     });
   }
 
-  events.push({
-    year: formatYear(variant.recordedOn),
-    title: `Reported as ${meta(recordedCode).label.toLowerCase()}`,
-    detail: variant.recordedEvidenceNote,
-    tone: "warn",
-  });
+  dated.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
-  // Real citations carry real publication years.
-  const years = evidence.citations
-    .map((c) => Number(c.year))
-    .filter((y) => Number.isFinite(y) && y > Number(formatYear(variant.recordedOn)))
-    .sort((a, b) => a - b);
+  const changed = currentCode !== recordedCode;
+  const since = source.release ? Number(source.release.slice(0, 4)) : Number(formatYear(variant.recordedOn));
+  const newer = evidence.citations.filter((c) => Number(c.year) > since).length;
+  const literature =
+    newer > 0
+      ? ` ${newer} of the linked publications appeared after ${source.release ? source.label : "the report"}.`
+      : "";
 
-  if (years.length > 0) {
-    events.push({
-      year: String(years[0]),
-      title: "Further literature published",
-      detail: `${years.length} indexed publication${years.length === 1 ? "" : "s"} appeared after the original report.`,
-      tone: "muted",
-    });
-  }
-
-  if (evidence.submissionCount > 1) {
-    events.push({
-      year: formatYear(evidence.lastEvaluated),
-      title: "Submissions accumulated",
-      detail: `${evidence.submissionCount} independent submissions now contribute to the classification.`,
-      tone: "muted",
-    });
-  }
-
-  if (currentCode !== recordedCode) {
-    events.push({
-      year: formatYear(evidence.lastEvaluated),
-      title: `Classification now ${meta(currentCode).label.toLowerCase()}`,
-      detail: `Last evaluated ${formatDate(evidence.lastEvaluated)} · ${assessment.confidence.label}.`,
-      tone: "crit",
-    });
-  }
-
-  events.push({
-    year: "Today",
-    title: "VariantPulse identified the affected records",
-    detail:
-      assessment.impactedRecordCount === 1
-        ? "One historical record carries this variant and was flagged for clinical review."
-        : `${assessment.impactedRecordCount} historical records carry this variant and were flagged for clinical review.`,
-    tone: "accent",
-  });
-
-  return events;
+  return [
+    ...dated,
+    {
+      when: "Now",
+      sortKey: "9998",
+      title: changed
+        ? `Classification now ${meta(currentCode).label.toLowerCase()}`
+        : `Still ${meta(currentCode).label.toLowerCase()}`,
+      detail: `Last evaluated ${formatDate(evidence.lastEvaluated)} · ${assessment.confidence.label} · ${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"} · ${assessment.evidenceMode === "live" ? "read live from ClinVar" : "cached verified snapshot"}.${literature}`,
+      tone: changed ? "crit" : "muted",
+    },
+    {
+      when: "Today",
+      sortKey: "9999",
+      title: assessment.requiresReview
+        ? "VariantPulse identified the affected records"
+        : "No review case opened",
+      detail: assessment.requiresReview
+        ? assessment.impactedRecordCount === 1
+          ? "One synthetic record carries this variant and was flagged for clinical review."
+          : `${assessment.impactedRecordCount} synthetic records carry this variant and were flagged for clinical review.`
+        : "Nothing material changed, so no one is asked to act.",
+      tone: "accent",
+    },
+  ];
 }
 
 export function ScienceTimeline({
@@ -120,7 +143,7 @@ export function ScienceTimeline({
         {events.map((event, index) => {
           const last = index === events.length - 1;
           return (
-            <li key={`${event.year}-${event.title}`} className="relative flex gap-4 pb-5 last:pb-0">
+            <li key={`${event.sortKey}-${event.title}`} className="relative flex gap-4 pb-5 last:pb-0">
               {!last ? (
                 <span
                   aria-hidden
@@ -129,14 +152,14 @@ export function ScienceTimeline({
               ) : null}
               <span
                 className={cn(
-                  "z-10 grid h-14 w-14 shrink-0 place-items-center rounded-xl border text-[12px] font-semibold vp-num",
+                  "z-10 grid h-14 w-14 shrink-0 place-items-center rounded-xl border px-1 text-center text-[12px] font-semibold leading-tight vp-num",
                   event.tone === "muted" && "border-line bg-surface-2 text-muted",
                   event.tone === "warn" && "border-warn/20 bg-warn-soft text-warn",
                   event.tone === "crit" && "border-crit/20 bg-crit-soft text-crit",
                   event.tone === "accent" && "border-accent-ring/60 bg-accent-soft text-accent",
                 )}
               >
-                {event.year}
+                {event.when}
               </span>
               <span className="min-w-0 flex-1 pt-1.5">
                 <span className="block text-[13.5px] font-medium leading-snug text-ink">
@@ -239,6 +262,18 @@ export function EvidenceSummaryPanel({
   );
 }
 
+/* -- Frequencies ----------------------------------------------------------- */
+
+function frequencyValue(value: AlleleFrequency | null): string {
+  if (!value || value.frequency === null) return "Not in gnomAD v4";
+  return value.frequency === 0 ? "0" : value.frequency.toExponential(2);
+}
+
+function alleleText(value: AlleleFrequency | null): string {
+  if (!value) return "—";
+  return `${formatNumber(value.alleleCount)} of ${formatNumber(value.alleleNumber)} alleles`;
+}
+
 /* -- Source-by-source comparison ------------------------------------------- */
 
 interface SourceRow {
@@ -259,10 +294,12 @@ export function EvidenceComparison({
   className?: string;
 }) {
   const { evidence, variant, regional, recordedCode, currentCode } = assessment;
+  const history = variant.historicalSource;
+  const historicalConfidence = reviewConfidence(variant.historicalReviewStatus);
 
   const rows: SourceRow[] = [
     {
-      source: "ClinVar",
+      source: "ClinVar, current",
       classification: <ClassificationBadge code={currentCode} full />,
       reviewLevel: assessment.confidence.label,
       updated: formatDate(evidence.lastEvaluated),
@@ -273,24 +310,67 @@ export function EvidenceComparison({
         label: evidence.accession ?? `VCV${evidence.clinvarId}`,
         href: `https://www.ncbi.nlm.nih.gov/clinvar/variation/${evidence.clinvarId}/`,
       },
-      note: `${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"} on record.`,
+      note: `${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"} · ${assessment.evidenceMode === "live" ? "read live" : "cached verified snapshot"}.`,
     },
+    history.kind === "clinvar-release"
+      ? {
+          source: `ClinVar, ${history.label} release`,
+          classification: <ClassificationBadge code={recordedCode} full />,
+          reviewLevel: historicalConfidence.label,
+          updated: `${history.shortLabel} release`,
+          strength: (
+            <ConfidenceMeter stars={historicalConfidence.stars} strength={historicalConfidence.strength} />
+          ),
+          reference: history.url ? { label: "Archive", href: history.url } : undefined,
+          note: `The classification on record, read from ${history.file}${variant.historicalClinvarText ? `: "${variant.historicalClinvarText}"` : ""}.`,
+        }
+      : {
+          source: "ClinVar, January 2023",
+          classification: <span className="text-[12.5px] text-muted">No record</span>,
+          reviewLevel: "Not in ClinVar",
+          updated: "Jan 2023 release",
+          strength: <span className="text-[12.5px] text-muted">—</span>,
+          note: "ClinVar held no record of this variant. The classification on record is the hospital's own report.",
+        },
     {
       source: "Population frequency",
-      classification: evidence.peakAlleleFrequency ? (
+      classification: regional?.inGnomad ? (
         <span className="font-mono text-[12.5px] text-ink">
-          {evidence.peakAlleleFrequency.value < 0.0001
-            ? evidence.peakAlleleFrequency.value.toExponential(2)
-            : evidence.peakAlleleFrequency.value.toFixed(5)}
+          {frequencyValue(regional.global)}
+          <span className="text-muted"> global · </span>
+          {frequencyValue(regional.middleEastern)}
+          <span className="text-muted"> Middle Eastern</span>
         </span>
       ) : (
-        <span className="text-[12.5px] text-muted">Not reported</span>
+        <span className="text-[12.5px] text-muted">Not in gnomAD v4</span>
       ),
-      reviewLevel: evidence.peakAlleleFrequency?.source ?? "No frequency data",
-      updated: formatDate(evidence.lastEvaluated),
-      strength: <span className="text-[12.5px] text-muted">Reference observation</span>,
-      note: "Highest reported allele frequency carried on the source record.",
+      reviewLevel: regional?.inGnomad
+        ? `gnomAD v4, ${regional.callSet === "exomes" ? "exome call set" : "exomes and genomes"}`
+        : "gnomAD v4",
+      updated: "gnomAD v4",
+      strength: <span className="text-[12.5px] text-muted">Population context</span>,
+      reference: regional?.inGnomad
+        ? { label: "gnomAD", href: gnomadVariantUrl(regional.gnomadVariantId) }
+        : undefined,
+      note: "Allele frequencies are evidence to weigh, not a classification.",
     },
+    ...(regional?.catalogue
+      ? [
+          {
+            source: "Regional catalogue",
+            classification: (
+              <Badge tone="neutral" title={`${REGIONAL_SOURCE.catalogueName}: ${regional.catalogue.significance}`}>
+                CTGA: {regional.catalogue.significance}
+              </Badge>
+            ),
+            reviewLevel: regional.catalogue.countries.join(", "),
+            updated: `Listed since ${formatYear(regional.catalogue.listedSince)}`,
+            strength: <span className="text-[12.5px] text-muted">Regional records</span>,
+            reference: { label: "CTGA", href: regional.catalogue.url },
+            note: `Quoted from the ${REGIONAL_SOURCE.catalogueName}, not a VariantPulse classification.`,
+          } satisfies SourceRow,
+        ]
+      : []),
     {
       source: "Literature",
       classification: (
@@ -307,30 +387,12 @@ export function EvidenceComparison({
       note: "Publications linked to this variant record.",
     },
     {
-      source: REGIONAL_SOURCE.name,
-      classification: regional ? (
-        <ClassificationBadge code={regional.assertion} full />
-      ) : (
-        <span className="text-[12.5px] text-muted">No regional record</span>
-      ),
-      reviewLevel: regional ? `${regional.observations} regional observations` : "Not held",
-      updated: regional ? formatDate(regional.lastUpdated) : "—",
-      strength: regional ? (
-        <span className="text-[12.5px] text-muted">
-          Cohort {formatNumber(regional.cohortSize)}
-        </span>
-      ) : (
-        <span className="text-[12.5px] text-muted">—</span>
-      ),
-      note: REGIONAL_SOURCE.provenance,
-    },
-    {
-      source: "This institution",
+      source: "This hospital (synthetic)",
       classification: <ClassificationBadge code={recordedCode} full />,
       reviewLevel: "Internal report",
       updated: formatDate(variant.recordedOn),
       strength: <span className="text-[12.5px] text-muted">On record</span>,
-      note: "The interpretation issued to the patient at the time of testing.",
+      note: "The interpretation issued to the synthetic patients at the time of testing.",
     },
   ];
 
@@ -423,6 +485,18 @@ export function EvidenceComparison({
 
 /* -- Global versus regional ------------------------------------------------ */
 
+const SIGNAL_BADGE: Record<
+  VariantAssessment["regionalSignal"]["kind"],
+  { label: string; tone: "warning" | "neutral" | "positive" | "muted" }
+> = {
+  CATALOGUE_DISAGREES: { label: "Regional signal", tone: "warning" },
+  FREQUENCY_ENRICHED: { label: "Regional signal", tone: "warning" },
+  CURATED_CONTEXT: { label: "Regional context flagged", tone: "warning" },
+  CATALOGUE_AHEAD: { label: "Regional record was ahead", tone: "neutral" },
+  CATALOGUE_AGREES: { label: "Regional record agrees", tone: "positive" },
+  NONE: { label: "No regional signal", tone: "muted" },
+};
+
 export function RegionalComparison({
   assessment,
   className,
@@ -430,24 +504,20 @@ export function RegionalComparison({
   assessment: VariantAssessment;
   className?: string;
 }) {
-  const { regional, regionalDisagreement, currentCode, evidence } = assessment;
+  const { regional, regionalSignal: signal, currentCode, evidence } = assessment;
   if (!regional) return null;
 
-  const conflicting = Boolean(regionalDisagreement?.conflicting);
+  const badge = SIGNAL_BADGE[signal.kind];
+  const catalogue = regional.catalogue;
+  const context = regional.context;
 
   return (
     <Card className={cn("overflow-hidden", className)}>
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
         <h3 className="text-[14px] font-semibold text-ink">Global and regional evidence</h3>
-        {conflicting ? (
-          <Badge tone="warning" dot>
-            Regional conflict
-          </Badge>
-        ) : (
-          <Badge tone="positive" dot>
-            Sources agree
-          </Badge>
-        )}
+        <Badge tone={badge.tone} dot>
+          {badge.label}
+        </Badge>
       </div>
 
       <div className="grid gap-px bg-line md:grid-cols-2">
@@ -463,18 +533,12 @@ export function RegionalComparison({
             <Row label="Submissions" value={`${evidence.submissionCount}`} />
             <Row label="Review status" value={assessment.confidence.label} />
             <Row label="Last evaluated" value={formatDate(evidence.lastEvaluated)} />
-            <Row
-              label="Reference frequency"
-              value={
-                evidence.peakAlleleFrequency
-                  ? evidence.peakAlleleFrequency.value.toExponential(2)
-                  : "Not reported"
-              }
-            />
+            <Row label="gnomAD, all samples" value={frequencyValue(regional.global)} />
+            <Row label="Alleles" value={alleleText(regional.global)} />
           </dl>
           <p className="mt-4 text-[12px] leading-relaxed text-faint">
-            Read from ClinVar, which aggregates submissions dominated by European-ancestry
-            cohorts.
+            ClinVar aggregates submissions dominated by European-ancestry cohorts; gnomAD v4 has
+            roughly 800,000 people.
           </p>
         </div>
 
@@ -484,23 +548,32 @@ export function RegionalComparison({
             <Eyebrow>Regional</Eyebrow>
           </div>
           <div className="mt-3">
-            <ClassificationBadge code={regional.assertion} full />
+            {catalogue ? (
+              <Badge tone="neutral" title={REGIONAL_SOURCE.catalogueName}>
+                CTGA: {catalogue.significance}
+              </Badge>
+            ) : (
+              <Badge tone="muted">No regional catalogue record</Badge>
+            )}
           </div>
           <dl className="mt-4 space-y-2.5">
-            <Row label="Observations" value={`${regional.observations}`} />
-            <Row label="Cohort size" value={formatNumber(regional.cohortSize)} />
-            <Row label="Last updated" value={formatDate(regional.lastUpdated)} />
+            <Row label="gnomAD, Middle Eastern" value={frequencyValue(regional.middleEastern)} />
+            <Row label="Alleles" value={alleleText(regional.middleEastern)} />
             <Row
-              label="Regional frequency"
-              value={
-                regional.regionalFrequency !== null
-                  ? regional.regionalFrequency.toExponential(2)
-                  : "Not reported"
-              }
+              label="Versus global"
+              value={signal.ratio !== null ? `${signal.ratio.toFixed(1)}×` : "Not measurable"}
             />
+            {catalogue ? (
+              <Row
+                label="CTGA records"
+                value={`${catalogue.countries.join(", ")} · since ${formatMonth(catalogue.listedSince)}`}
+              />
+            ) : null}
           </dl>
           <p className="mt-4 text-[12px] leading-relaxed text-faint">
-            {REGIONAL_SOURCE.provenance}.
+            gnomAD v4 Middle Eastern genetic ancestry group, about 3,000 people
+            {regional.callSet === "exomes" ? " (exome call set)" : ""}.
+            {catalogue ? ` Catalogue reading quoted from ${REGIONAL_SOURCE.catalogueShortName}.` : ""}
           </p>
         </div>
       </div>
@@ -508,21 +581,19 @@ export function RegionalComparison({
       <div className="border-t border-line bg-surface-2 px-5 py-4">
         <Eyebrow>VariantPulse analysis</Eyebrow>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
-          {conflicting
-            ? regionalDisagreement?.reason
-            : "Both sources place this variant in the same band, so there is no divergence to resolve."}{" "}
-          {regional.note}
+          {regionalStatement(signal)}
+          {context ? ` ${context.note}` : ""}
         </p>
-        {conflicting ? (
+        {signal.flagged ? (
           <p className="mt-3 text-[12.5px] font-medium text-ink">
-            VariantPulse recommends manual review due to conflicting interpretation across
-            evidence sources. It does not rank one source above the other.
+            Regional evidence deserves review. VariantPulse does not reclassify on frequency and
+            does not rank one source above another; a clinician weighs both.
           </p>
         ) : null}
 
-        {regional.citations.length > 0 ? (
+        {(context?.citations.length ?? 0) > 0 || catalogue ? (
           <ul className="mt-3.5 space-y-1.5 border-t border-line pt-3">
-            {regional.citations.map((citation) => (
+            {context?.citations.map((citation) => (
               <li key={citation.pmid} className="text-[12px] leading-snug">
                 <a
                   href={`https://pubmed.ncbi.nlm.nih.gov/${citation.pmid}/`}
@@ -538,6 +609,23 @@ export function RegionalComparison({
                 </span>
               </li>
             ))}
+            {catalogue ? (
+              <li className="text-[12px] leading-snug">
+                <a
+                  href={catalogue.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink-2 transition-colors hover:text-accent"
+                >
+                  CTGA record: {catalogue.conditions.join("; ")}
+                </a>
+                <span className="text-faint">
+                  {" "}
+                  — {REGIONAL_SOURCE.cataloguePublisher} · references as cited by CTGA:{" "}
+                  {catalogue.references.join("; ")}
+                </span>
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </div>
@@ -549,7 +637,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="text-[12px] text-muted">{label}</dt>
-      <dd className="text-[12.5px] font-medium text-ink vp-num">{value}</dd>
+      <dd className="text-right text-[12.5px] font-medium text-ink vp-num">{value}</dd>
     </div>
   );
 }

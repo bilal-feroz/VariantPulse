@@ -7,6 +7,9 @@
  * reasoning can be shown to a reviewer in full.
  */
 
+import type { RegionalEvidence } from "@/data/regional";
+import type { MonitoredVariant } from "@/data/workspace";
+
 export type ClassificationCode =
   | "PATHOGENIC"
   | "LIKELY_PATHOGENIC"
@@ -96,24 +99,48 @@ export function meta(code: ClassificationCode): ClassificationMeta {
   return CLASSIFICATIONS[code] ?? CLASSIFICATIONS.NOT_PROVIDED;
 }
 
+/** Maps one term of an assertion, such as "likely pathogenic", onto the taxonomy. */
+function normaliseTerm(term: string): ClassificationCode {
+  if (term.includes("conflicting")) return "CONFLICTING";
+  if (term.includes("likely pathogenic")) return "LIKELY_PATHOGENIC";
+  if (term.includes("likely benign")) return "LIKELY_BENIGN";
+  if (term.includes("pathogenic")) return "PATHOGENIC";
+  if (term.includes("benign")) return "BENIGN";
+  if (term === "vus" || term.includes("uncertain")) return "VUS";
+  return "NOT_PROVIDED";
+}
+
 /**
  * Maps a free-text classification from any source onto the internal taxonomy.
- * Combined assertions such as "Pathogenic/Likely pathogenic" resolve to the
- * stronger member, which is how a reviewer reads them.
+ *
+ * Case, underscores and spacing carry no meaning, so "LIKELY_PATHOGENIC" and
+ * "Likely pathogenic" are the same assertion. Combined assertions such as
+ * "Pathogenic/Likely pathogenic" or "Likely Pathogenic, Pathogenic" resolve to
+ * the stronger member, which is how a reviewer reads them; qualifiers such as
+ * "low penetrance" or "drug response" do not change the band. Terms that span
+ * two bands can only mean the sources disagree.
  */
 export function normaliseClassification(raw: string | null | undefined): ClassificationCode {
   if (!raw) return "NOT_PROVIDED";
-  const value = raw.trim().toLowerCase();
+  const value = raw.trim().toLowerCase().replace(/[_\s]+/g, " ");
 
-  if (value.includes("conflicting")) return "CONFLICTING";
-  if (value.includes("pathogenic/likely pathogenic")) return "PATHOGENIC";
-  if (value.includes("benign/likely benign")) return "BENIGN";
-  if (value.includes("likely pathogenic")) return "LIKELY_PATHOGENIC";
-  if (value.includes("likely benign")) return "LIKELY_BENIGN";
-  if (value.includes("pathogenic")) return "PATHOGENIC";
-  if (value.includes("benign")) return "BENIGN";
-  if (value === "vus" || value.includes("uncertain")) return "VUS";
-  return "NOT_PROVIDED";
+  const codes = value
+    .split(/[/,;]/)
+    .map((term) => normaliseTerm(term.trim()))
+    .filter((code) => code !== "NOT_PROVIDED");
+
+  if (codes.length === 0) return "NOT_PROVIDED";
+  if (codes.includes("CONFLICTING")) return "CONFLICTING";
+
+  const bands = new Set(codes.map((code) => CLASSIFICATIONS[code].band));
+  if (bands.size > 1) return "CONFLICTING";
+
+  // One band: the member furthest from uncertain is the stronger assertion.
+  return codes.reduce((strongest, code) =>
+    Math.abs(CLASSIFICATIONS[code].tier ?? 0) > Math.abs(CLASSIFICATIONS[strongest].tier ?? 0)
+      ? code
+      : strongest,
+  );
 }
 
 /* -- Review confidence ---------------------------------------------------- */
@@ -200,8 +227,9 @@ export const CHANGE_TYPES: Record<ChangeType, ChangeTypeMeta> = {
   },
   REGIONAL_CONFLICT: {
     type: "REGIONAL_CONFLICT",
-    label: "Regional conflict",
-    description: "Regional evidence reaches a different conclusion from the global consensus.",
+    label: "Regional signal",
+    description:
+      "The global classification has not moved, but regional evidence deserves review. It is evidence to weigh, not a classification.",
     tone: "warning",
     material: true,
   },
@@ -237,7 +265,7 @@ export function detectChange(
   const before = meta(recorded);
   const after = meta(current);
   const rationale: string[] = [
-    `Recorded interpretation normalised to ${before.label}.`,
+    `Interpretation on record normalised to ${before.label}.`,
     `Current interpretation normalised to ${after.label}.`,
   ];
 
@@ -284,6 +312,15 @@ export function detectChange(
     return { type: "CLASSIFICATION_DRIFT", direction, rationale };
   }
 
+  // Benign and likely benign lead to the same clinical reading, so movement
+  // between them is noise rather than a case.
+  if (before.band === "benign" && after.band === "benign") {
+    rationale.push(
+      "Both readings sit in the benign band, so the clinical reading of this result is unchanged.",
+    );
+    return { type: "NO_MATERIAL_CHANGE", direction: "none", rationale };
+  }
+
   if (direction === "toward-pathogenic") {
     rationale.push("Evidence moved toward pathogenicity within the same band.");
     return { type: "EVIDENCE_STRENGTHENED", direction, rationale };
@@ -298,52 +335,163 @@ export function detectChange(
   return { type: "NO_MATERIAL_CHANGE", direction: "none", rationale };
 }
 
+/* -- Regional evidence ---------------------------------------------------- */
+
+/** Middle Eastern alleles required before a frequency difference is read as a signal. */
+export const MIN_REGIONAL_ALLELES = 3;
+/** How many times the global frequency the Middle Eastern one must reach to count. */
+export const ENRICHMENT_RATIO = 2;
+
+export type RegionalSignalKind =
+  /** A regional catalogue places the variant in a different band from ClinVar today. */
+  | "CATALOGUE_DISAGREES"
+  /** Markedly more frequent in the Middle Eastern group, with no regional record speaking to it. */
+  | "FREQUENCY_ENRICHED"
+  /** Designated for regional review in the supplied dataset. */
+  | "CURATED_CONTEXT"
+  /** A regional catalogue held today's reading before ClinVar's historical release did. */
+  | "CATALOGUE_AHEAD"
+  | "CATALOGUE_AGREES"
+  | "NONE";
+
+export interface RegionalSignal {
+  kind: RegionalSignalKind;
+  /** True when the regional evidence should open, or join, a review case. */
+  flagged: boolean;
+  /** Middle Eastern allele frequency over the global one, when both were observed. */
+  ratio: number | null;
+  /** Why the signal is what it is, stated from the structured fields only. */
+  reason: string;
+  /** The frequency evidence in one sentence, whatever the signal. */
+  frequencySummary: string;
+}
+
+const count = (value: number) => value.toLocaleString("en-US");
+
+function frequencyText(value: number | null): string {
+  if (value === null) return "not measurable";
+  return value === 0 ? "0" : value.toExponential(2);
+}
+
+function describeFrequency(regional: RegionalEvidence | null, ratio: number | null): string {
+  if (!regional) return "No regional evidence is held for this variant.";
+  const { global, middleEastern: me } = regional;
+  if (!regional.inGnomad || !global || !me) {
+    return "Absent from gnomAD v4, including its Middle Eastern group.";
+  }
+  const globalText = `${count(global.alleleCount)} of ${count(global.alleleNumber)} alleles globally`;
+  if (me.alleleCount === 0) {
+    return `Not observed in ${count(me.alleleNumber)} Middle Eastern alleles in gnomAD v4; ${globalText}.`;
+  }
+  const enriched =
+    ratio !== null && ratio >= ENRICHMENT_RATIO && me.alleleCount >= MIN_REGIONAL_ALLELES
+      ? `, about ${ratio.toFixed(1)} times the global frequency`
+      : "";
+  return `Observed in ${count(me.alleleCount)} of ${count(me.alleleNumber)} Middle Eastern alleles in gnomAD v4 (${frequencyText(me.frequency)}) against ${globalText} (${frequencyText(global.frequency)})${enriched}.`;
+}
+
+/** Joins country names for a sentence: "the UAE and Yemen". */
+function list(values: string[]): string {
+  const names = values.map((name) => (name === "United Arab Emirates" ? "the UAE" : name));
+  if (names.length <= 1) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+/** The signal's reason with the frequency evidence beside it, each stated once. */
+export function regionalStatement(signal: RegionalSignal): string {
+  if (signal.kind === "FREQUENCY_ENRICHED" || signal.reason.includes(signal.frequencySummary)) {
+    return signal.reason;
+  }
+  return `${signal.reason} ${signal.frequencySummary}`;
+}
+
 /**
- * Detects disagreement between two independently derived classifications for
- * the same variant. Used for the global versus regional comparison.
+ * Reads the regional evidence for one variant against its classification.
+ *
+ * Nothing here produces a classification. Population frequency is compared
+ * with the global figure, and a regional catalogue's own reading is compared by
+ * band with ClinVar's, and the result says only whether a clinician should look.
+ * A frequency difference raises a signal only when no regional record already
+ * speaks to the variant, because a catalogue of regional patients accounts for
+ * how often the variant is seen there.
  */
-export function detectDisagreement(
-  global: ClassificationCode,
-  regional: ClassificationCode,
-): { conflicting: boolean; severity: "none" | "moderate" | "high"; reason: string } {
-  const a = meta(global);
-  const b = meta(regional);
+export function assessRegionalSignal(
+  regional: RegionalEvidence | null,
+  variant: Pick<
+    MonitoredVariant,
+    "historicalClassification" | "historicalClinvarText" | "historicalSource"
+  >,
+  current: ClassificationCode,
+): RegionalSignal {
+  const global = regional?.global ?? null;
+  const me = regional?.middleEastern ?? null;
+  const ratio =
+    global?.frequency && me?.frequency && me.alleleCount > 0 ? me.frequency / global.frequency : null;
+  const frequencySummary = describeFrequency(regional, ratio);
+  const signal = (kind: RegionalSignalKind, flagged: boolean, reason: string): RegionalSignal => ({
+    kind,
+    flagged,
+    ratio,
+    reason,
+    frequencySummary,
+  });
 
-  // An indeterminate reading on either side is not a disagreement between
-  // regions — it is an absence of a settled position to disagree with. That
-  // belongs to consensus conflict, which is detected separately.
-  if (a.band === "indeterminate" || b.band === "indeterminate") {
-    return {
-      conflicting: false,
-      severity: "none",
-      reason:
-        "At least one source has no settled classification, so there is no regional disagreement to resolve.",
-    };
+  if (!regional) return signal("NONE", false, frequencySummary);
+
+  const catalogue = regional.catalogue;
+  const catalogueBand = catalogue ? CLASSIFICATIONS[catalogue.code].band : null;
+  const currentBand = CLASSIFICATIONS[current].band;
+  const determinate = (band: ClassificationBand | null) =>
+    band !== null && band !== "indeterminate";
+
+  if (catalogue && determinate(catalogueBand) && determinate(currentBand) && catalogueBand !== currentBand) {
+    return signal(
+      "CATALOGUE_DISAGREES",
+      true,
+      `CTGA records it as ${catalogue.significance.toLowerCase()} in ${list(catalogue.countries)}, while ClinVar now reads ${CLASSIFICATIONS[current].label.toLowerCase()}. The two place the variant in different clinical bands, and VariantPulse does not rank one above the other.`,
+    );
   }
 
-  if (a.band === b.band) {
-    return {
-      conflicting: false,
-      severity: "none",
-      reason: "Both sources place this variant in the same band.",
-    };
+  const enriched =
+    ratio !== null && ratio >= ENRICHMENT_RATIO && (me?.alleleCount ?? 0) >= MIN_REGIONAL_ALLELES;
+  if (enriched && !catalogue && me && global) {
+    return signal(
+      "FREQUENCY_ENRICHED",
+      true,
+      `Observed in ${count(me.alleleCount)} of ${count(me.alleleNumber)} Middle Eastern alleles in gnomAD v4, about ${ratio.toFixed(1)} times the global frequency (${count(global.alleleCount)} of ${count(global.alleleNumber)} alleles). Frequency is evidence to weigh, not a classification, and the Middle Eastern sample is small.`,
+    );
   }
 
-  const crossesActionable = (a.band === "pathogenic") !== (b.band === "pathogenic");
-
-  if (crossesActionable) {
-    return {
-      conflicting: true,
-      severity: "high",
-      reason:
-        "One source places this variant in the clinically actionable band and the other does not.",
-    };
+  if (regional.context?.flagForReview) {
+    return signal(
+      "CURATED_CONTEXT",
+      true,
+      `Regional context flagged for review in the supplied dataset. ${frequencySummary}`,
+    );
   }
 
-  return {
-    conflicting: true,
-    severity: "moderate",
-    reason:
-      "The sources place this variant in different bands without crossing the actionable boundary.",
-  };
+  if (catalogue && determinate(catalogueBand) && catalogueBand === currentBand) {
+    const historicalBand = CLASSIFICATIONS[variant.historicalClassification].band;
+    const fromClinvar = variant.historicalSource.kind === "clinvar-release";
+    const release = variant.historicalSource.release ?? "2023-01";
+    const ahead =
+      catalogue.listedSince.slice(0, 7) <= release && (!fromClinvar || historicalBand !== catalogueBand);
+    if (ahead) {
+      const then = fromClinvar
+        ? `ClinVar's ${variant.historicalSource.label} release read ${(variant.historicalClinvarText ?? CLASSIFICATIONS[variant.historicalClassification].label).toLowerCase()}`
+        : "ClinVar held no record of it in its January 2023 release";
+      return signal(
+        "CATALOGUE_AHEAD",
+        false,
+        `CTGA has listed it as ${catalogue.significance.toLowerCase()} in ${list(catalogue.countries)} since ${catalogue.listedSince.slice(0, 4)}. ${then}; ClinVar has since reached the same band.`,
+      );
+    }
+    return signal(
+      "CATALOGUE_AGREES",
+      false,
+      `CTGA records it as ${catalogue.significance.toLowerCase()} in ${list(catalogue.countries)}, in the same clinical band as ClinVar.`,
+    );
+  }
+
+  return signal("NONE", false, frequencySummary);
 }

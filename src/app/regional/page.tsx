@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Globe2, MapPin, TriangleAlert } from "lucide-react";
+import { ArrowRight, Globe2, History, MapPin, TriangleAlert } from "lucide-react";
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { RegionalComparison } from "@/components/panels";
@@ -16,24 +16,52 @@ import {
   SectionHeading,
   VariantLabel,
 } from "@/components/ui";
-import { REGIONAL_SOURCE } from "@/data/regional";
+import { REGIONAL_SOURCE, type AlleleFrequency } from "@/data/regional";
+import type { VariantAssessment } from "@/lib/analysis";
 import { pick } from "@/lib/dto";
 import { formatNumber } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 
+function frequencyCell(value: AlleleFrequency | null) {
+  if (!value || value.frequency === null) {
+    return <span className="text-muted">Not in gnomAD v4</span>;
+  }
+  return (
+    <>
+      <span className="font-mono text-ink">
+        {value.frequency === 0 ? "0" : value.frequency.toExponential(2)}
+      </span>
+      <span className="block text-[11px] text-faint vp-num">
+        {formatNumber(value.alleleCount)} of {formatNumber(value.alleleNumber)}
+      </span>
+    </>
+  );
+}
+
+function signalBadge(assessment: VariantAssessment) {
+  const { kind, flagged } = assessment.regionalSignal;
+  if (flagged) return <Badge tone="warning" dot>Signal</Badge>;
+  if (kind === "CATALOGUE_AHEAD") return <Badge tone="neutral">Regional record ahead</Badge>;
+  if (kind === "CATALOGUE_AGREES") return <Badge tone="positive">Agrees</Badge>;
+  return <Badge tone="muted">None</Badge>;
+}
+
 export default function RegionalPage() {
   const { analysis } = useWorkspace();
 
-  const conflicts = pick(analysis, analysis.regionalConflictKeys);
-  const covered = analysis.assessments.filter((a) => a.regional);
-  const agreeing = covered.filter((a) => !a.regionalDisagreement?.conflicting);
+  const flagged = pick(analysis, analysis.regionalConflictKeys);
+  const ahead = analysis.assessments.filter((a) => a.regionalSignal.kind === "CATALOGUE_AHEAD");
+  const inGnomad = analysis.assessments.filter((a) => a.regional?.inGnomad);
+  const observedRegionally = inGnomad.filter((a) => (a.regional?.middleEastern?.alleleCount ?? 0) > 0);
+  const catalogued = analysis.assessments.filter((a) => a.regional?.catalogue);
+  const live = analysis.mode === "live";
 
   return (
     <PageShell>
       <PageHeader
         eyebrow="Regional evidence"
         title="Regional insights"
-        description="Compare global genomic interpretation with evidence relevant to Arab and Gulf populations. Where the two disagree, VariantPulse surfaces the disagreement rather than picking a winner."
+        description="Global interpretation beside Middle Eastern population frequencies from gnomAD v4 and records from the Catalogue for Transmission Genetics in Arabs. Regional evidence is weighed by a clinician; VariantPulse never turns it into a classification."
         actions={<SyncButton />}
       />
 
@@ -45,20 +73,16 @@ export default function RegionalPage() {
               <Eyebrow>Global</Eyebrow>
             </div>
             <p className="mt-2.5 text-[13.5px] leading-relaxed text-ink-2">
-              ClinVar submissions, reference population frequencies and published international
-              evidence. The reference cohorts behind these datasets are predominantly of European
-              ancestry.
+              ClinVar classifications and gnomAD v4 frequencies across all samples. The cohorts
+              behind these datasets are predominantly of European ancestry.
             </p>
             <p className="mt-3 text-[12.5px] text-muted">
               <span className="font-medium text-ink vp-num">{analysis.assessments.length}</span>{" "}
-              variants read live from ClinVar
+              variants compared against {live ? "live ClinVar evidence" : "the cached, verified ClinVar snapshot"}
             </p>
           </div>
 
-          <div
-            className="hidden w-px bg-line lg:block"
-            aria-hidden
-          />
+          <div className="hidden w-px bg-line lg:block" aria-hidden />
 
           <div>
             <div className="flex items-center gap-2">
@@ -66,155 +90,185 @@ export default function RegionalPage() {
               <Eyebrow>Regional</Eyebrow>
             </div>
             <p className="mt-2.5 text-[13.5px] leading-relaxed text-ink-2">
-              Observations from Arab and Gulf cohorts, where founder effects and higher
-              consanguinity can make a variant behave differently from the global reference set.
+              gnomAD v4&rsquo;s {REGIONAL_SOURCE.population}, about 3,000 people out of roughly
+              800,000, and CTGA&rsquo;s records of variants seen in Arab patients.
             </p>
             <p className="mt-3 text-[12.5px] text-muted">
-              <span className="font-medium text-ink vp-num">{covered.length}</span> variants held ·{" "}
-              {REGIONAL_SOURCE.scope}
+              <span className="font-medium text-ink vp-num">{inGnomad.length}</span> of{" "}
+              {analysis.assessments.length} variants in gnomAD v4 ·{" "}
+              <span className="font-medium text-ink vp-num">{catalogued.length}</span> with a CTGA
+              record
             </p>
           </div>
         </div>
 
         <p className="mt-5 border-t border-line pt-3.5 text-[11.5px] leading-relaxed text-faint">
-          {REGIONAL_SOURCE.coverageNote} VariantPulse does not imply endorsement by, or
-          integration with, any national programme or registry.
+          {REGIONAL_SOURCE.coverageNote} VariantPulse does not imply endorsement by, or integration
+          with, any national programme or registry.
         </p>
       </Card>
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <Card className="p-5">
-          <p className="text-[28px] font-semibold leading-none text-warn vp-num">
-            {conflicts.length}
-          </p>
-          <p className="mt-2 text-[13px] font-medium text-ink-2">Conflicting interpretations</p>
-          <p className="mt-1 text-[11.5px] text-faint">Global and regional readings differ</p>
+          <p className="text-[28px] font-semibold leading-none text-warn vp-num">{flagged.length}</p>
+          <p className="mt-2 text-[13px] font-medium text-ink-2">Regional signals</p>
+          <p className="mt-1 text-[11.5px] text-faint">Deserve a clinician&rsquo;s review</p>
         </Card>
         <Card className="p-5">
-          <p className="text-[28px] font-semibold leading-none text-ok vp-num">
-            {agreeing.length}
-          </p>
-          <p className="mt-2 text-[13px] font-medium text-ink-2">Consistent interpretations</p>
-          <p className="mt-1 text-[11.5px] text-faint">Both sources agree on the band</p>
+          <p className="text-[28px] font-semibold leading-none text-info vp-num">{ahead.length}</p>
+          <p className="mt-2 text-[13px] font-medium text-ink-2">Regional record was ahead</p>
+          <p className="mt-1 text-[11.5px] text-faint">CTGA held today&rsquo;s reading first</p>
         </Card>
         <Card className="p-5">
           <p className="text-[28px] font-semibold leading-none text-ink vp-num">
-            {formatNumber(
-              covered.reduce((total, a) => total + (a.regional?.observations ?? 0), 0),
-            )}
+            {observedRegionally.length}
           </p>
-          <p className="mt-2 text-[13px] font-medium text-ink-2">Regional observations</p>
-          <p className="mt-1 text-[11.5px] text-faint">Across the variants held in the index</p>
+          <p className="mt-2 text-[13px] font-medium text-ink-2">Seen in the Middle Eastern group</p>
+          <p className="mt-1 text-[11.5px] text-faint">Variants with at least one gnomAD v4 allele</p>
         </Card>
       </div>
 
       <SectionHeading
-        title="Regional evidence conflicts"
-        count={conflicts.length}
+        title="Regional signals"
+        count={flagged.length}
         icon={<TriangleAlert className="h-4 w-4" />}
-        description="Human review required. VariantPulse does not rank one source above the other."
+        description="Human review required. Frequency is evidence, not a diagnosis, and VariantPulse does not rank one source above another."
       />
 
-      {conflicts.length === 0 ? (
+      {flagged.length === 0 ? (
         <Card className="mt-4">
           <EmptyState
             icon={<Globe2 className="h-5 w-5" />}
-            title="No regional conflicts detected"
-            description="Global and regional evidence agree across every variant held in the regional index."
+            title="No regional signals"
+            description="Regional frequencies and catalogue records raise nothing that needs review."
           />
         </Card>
       ) : (
         <div className="mt-4 space-y-5">
-          {conflicts.map((assessment) => (
-            <div key={assessment.variant.key}>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <VariantLabel
-                  gene={assessment.variant.gene}
-                  hgvs={assessment.variant.hgvsCoding}
-                  protein={assessment.variant.proteinChange}
-                  size="md"
-                />
-                <Link href={assessment.caseId ? `/review/${assessment.caseId}` : "/review"}>
-                  <Button variant="primary" size="sm">
-                    Create clinical review
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
-              </div>
-              <RegionalComparison assessment={assessment} />
-            </div>
+          {flagged.map((assessment) => (
+            <RegionalCase key={assessment.variant.key} assessment={assessment} />
           ))}
         </div>
       )}
 
+      {ahead.length > 0 ? (
+        <>
+          <SectionHeading
+            className="mt-8"
+            title="Where regional evidence was ahead"
+            count={ahead.length}
+            icon={<History className="h-4 w-4" />}
+            description="A regional catalogue recorded today's reading before ClinVar's January 2023 release did."
+          />
+          <div className="mt-4 space-y-5">
+            {ahead.map((assessment) => (
+              <RegionalCase key={assessment.variant.key} assessment={assessment} />
+            ))}
+          </div>
+        </>
+      ) : null}
+
       <SectionHeading
         className="mt-8"
-        title="Consistent across sources"
-        count={agreeing.length}
-        description="Variants where the regional index agrees with the global consensus."
+        title="Frequency context for every monitored variant"
+        count={analysis.assessments.length}
+        description="gnomAD v4 allele frequency in the Middle Eastern group and across all samples, beside ClinVar today."
       />
       <Card className="mt-4 overflow-hidden">
-        <table className="w-full min-w-[640px] border-collapse text-left">
-          <thead>
-            <tr className="border-b border-line bg-surface-2">
-              {["Variant", "Global", "Regional", "Observations", "Cohort"].map((heading) => (
-                <th
-                  key={heading}
-                  scope="col"
-                  className="px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-faint"
-                >
-                  {heading}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {agreeing.map((assessment) => (
-              <tr key={assessment.variant.key} className="border-b border-line last:border-0">
-                <th scope="row" className="px-5 py-3">
-                  <Link
-                    href={`/variants/${encodeURIComponent(assessment.variant.key)}`}
-                    className="hover:text-accent"
-                  >
-                    <VariantLabel
-                      gene={assessment.variant.gene}
-                      hgvs={assessment.variant.hgvsCoding}
-                      size="sm"
-                    />
-                  </Link>
-                </th>
-                <td className="px-5 py-3">
-                  <ClassificationBadge code={assessment.currentCode} />
-                </td>
-                <td className="px-5 py-3">
-                  {assessment.regional ? (
-                    <ClassificationBadge code={assessment.regional.assertion} />
-                  ) : (
-                    <Badge tone="muted">Not held</Badge>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-[12.5px] text-ink-2 vp-num">
-                  {assessment.regional?.observations ?? "—"}
-                </td>
-                <td className="px-5 py-3 text-[12.5px] text-muted vp-num">
-                  {assessment.regional ? formatNumber(assessment.regional.cohortSize) : "—"}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-line bg-surface-2">
+                {["Variant", "ClinVar now", "Middle Eastern", "All samples", "CTGA", "Regional"].map(
+                  (heading) => (
+                    <th
+                      key={heading}
+                      scope="col"
+                      className="px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-faint"
+                    >
+                      {heading}
+                    </th>
+                  ),
+                )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {analysis.assessments.map((assessment) => (
+                <tr key={assessment.variant.key} className="border-b border-line last:border-0 align-top">
+                  <th scope="row" className="px-5 py-3">
+                    <Link
+                      href={`/variants/${encodeURIComponent(assessment.variant.key)}`}
+                      className="hover:text-accent"
+                    >
+                      <VariantLabel
+                        gene={assessment.variant.gene}
+                        hgvs={assessment.variant.hgvsCoding}
+                        size="sm"
+                      />
+                    </Link>
+                  </th>
+                  <td className="px-5 py-3">
+                    <ClassificationBadge code={assessment.currentCode} />
+                  </td>
+                  <td className="px-5 py-3 text-[12.5px]">
+                    {frequencyCell(assessment.regional?.middleEastern ?? null)}
+                  </td>
+                  <td className="px-5 py-3 text-[12.5px]">
+                    {frequencyCell(assessment.regional?.global ?? null)}
+                  </td>
+                  <td className="px-5 py-3 text-[12.5px] text-ink-2">
+                    {assessment.regional?.catalogue ? (
+                      assessment.regional.catalogue.significance
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3">{signalBadge(assessment)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <Card className="mt-5 p-5">
         <SectionHeading title="Why regional evidence matters" />
         <p className="mt-3 max-w-3xl text-[13.5px] leading-relaxed text-ink-2">
-          A variant that is common and harmless in one population can be a founder variant in
-          another. When the reference data behind a classification does not include the population
-          a patient belongs to, a confident global reading can still be the wrong reading locally.
-          VariantPulse holds both and asks a clinician to weigh them, rather than resolving the
-          disagreement automatically.
+          A variant that is rare in one population can be a founder variant in another. When the
+          reference data behind a classification barely includes the population a patient belongs
+          to — gnomAD v4&rsquo;s Middle Eastern group is under 0.4% of its samples — a confident global
+          reading can still miss what is known locally. VariantPulse holds both and asks a clinician
+          to weigh them, rather than resolving the difference automatically.
         </p>
       </Card>
     </PageShell>
+  );
+}
+
+function RegionalCase({ assessment }: { assessment: VariantAssessment }) {
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <VariantLabel
+          gene={assessment.variant.gene}
+          hgvs={assessment.variant.hgvsCoding}
+          protein={assessment.variant.proteinChange}
+          size="md"
+        />
+        <Link
+          href={
+            assessment.caseId
+              ? `/review/${assessment.caseId}`
+              : `/variants/${encodeURIComponent(assessment.variant.key)}`
+          }
+        >
+          <Button variant="primary" size="sm">
+            {assessment.caseId ? "Open review case" : "View variant"}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </Link>
+      </div>
+      <RegionalComparison assessment={assessment} />
+    </div>
   );
 }

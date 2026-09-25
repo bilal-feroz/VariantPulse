@@ -1,25 +1,36 @@
 /**
- * The regional evidence index.
+ * Regional evidence.
  *
- * Global variant databases are dominated by European-ancestry cohorts. A
- * variant that looks common and harmless in that reference set can behave very
- * differently in a population with different founder history and higher
- * consanguinity — which is exactly when an old report deserves a second look.
+ * Global variant databases are dominated by European-ancestry cohorts, so how
+ * often a variant is seen in the populations a Gulf hospital serves can differ
+ * from the global figure a classification leans on, and a regional catalogue
+ * can hold clinical observations that global databases do not.
  *
- * Scope and honesty: `observations`, `cohortSize`, `regionalFrequency` and
- * `globalFrequency` are REAL figures from gnomAD v4 (Middle Eastern genetic
- * ancestry group vs all samples), pulled from the gnomAD API. The Middle
- * Eastern group is ~3,000 people out of ~800,000 (<0.4% of gnomAD), which is
- * the regional evidence gap this index exists to fill. The per-variant
- * `assertion` values and contributing centres are a MODELLED regional index
- * built for this workspace. They are not
- * live extracts from any national programme or registry, and nothing here is
- * endorsed by the institutions named in the literature. The `citations` are
- * real, published papers that establish why regional interpretation can
- * diverge; they are supporting context, not per-variant assertions.
+ * Two kinds of regional evidence are held here, and neither is a VariantPulse
+ * classification:
+ *
+ *  - Population frequency, for every monitored variant: gnomAD v4 allele counts
+ *    for the Middle Eastern genetic ancestry group and for all samples, exactly
+ *    as supplied in `provenance.json` and re-checked against the gnomAD API on
+ *    2026-09-25. The Middle Eastern group is about 3,000 people out of roughly
+ *    800,000 (under 0.4% of gnomAD), which is itself the regional evidence gap.
+ *  - Regional catalogue records, where one exists: the Catalogue for
+ *    Transmission Genetics in Arabs (CTGA), maintained by the Centre for Arab
+ *    Genomic Studies. Its clinical significance is quoted verbatim and always
+ *    attributed; the records were read from the CTGA database on 2026-09-25.
+ *
+ * The context notes cite real, published papers on why regional
+ * interpretation matters. They are supporting context, not findings about the
+ * variant. No national programme, registry or hospital supplied any of this.
  */
 
-import type { ClassificationCode } from "@/lib/classification";
+import { normaliseClassification, type ClassificationCode } from "@/lib/classification";
+import { PROVENANCE, type AlleleCounts } from "./provenance";
+
+export interface AlleleFrequency extends AlleleCounts {
+  /** `alleleCount / alleleNumber`; null when the site had no coverage. */
+  frequency: number | null;
+}
 
 export interface RegionalCitation {
   pmid: string;
@@ -28,148 +39,212 @@ export interface RegionalCitation {
   year: string;
 }
 
-export interface RegionalEvidence {
-  variantKey: string;
-  /** The classification carried by this workspace's regional index. */
-  assertion: ClassificationCode;
-  /** Regional cohorts in which the variant has been observed. */
-  observations: number;
-  /** Size of the regional cohort the observations are drawn from. */
-  cohortSize: number;
-  /** Allele frequency within the regional cohort. */
-  regionalFrequency: number | null;
-  /** Allele frequency in the global reference set, for contrast. */
-  globalFrequency: number | null;
-  contributingCentres: string[];
-  lastUpdated: string;
-  /** Why the regional reading is what it is. */
+export interface CatalogueRecord {
+  catalogue: "CTGA";
+  /** The catalogue's clinical significance, verbatim. */
+  significance: string;
+  /** The same, normalised onto the internal taxonomy for band comparison only. */
+  code: ClassificationCode;
+  countries: string[];
+  conditions: string[];
+  /** References as the catalogue cites them. */
+  references: string[];
+  /** Earliest date in the catalogue's contributor and edit history. */
+  listedSince: string;
+  url: string;
+}
+
+export interface RegionalContext {
   note: string;
   citations: RegionalCitation[];
+  /** Designated for regional review in the supplied dataset, independent of any computed signal. */
+  flagForReview: boolean;
+}
+
+export interface RegionalEvidence {
+  variantKey: string;
+  /** gnomAD variant identifier, GRCh38 `chrom-pos-ref-alt`. */
+  gnomadVariantId: string;
+  /** False when gnomAD v4 holds no record of the variant at all. */
+  inGnomad: boolean;
+  /**
+   * The gnomAD v4 call set the counts come from: `joint` combines exomes and
+   * genomes; variants absent from the genomes are reported from `exomes`.
+   */
+  callSet: "joint" | "exomes" | null;
+  global: AlleleFrequency | null;
+  middleEastern: AlleleFrequency | null;
+  catalogue: CatalogueRecord | null;
+  context: RegionalContext | null;
 }
 
 export const REGIONAL_SOURCE = {
-  name: "Regional Evidence Index",
-  scope: "Arab and Gulf population evidence",
-  provenance: "Modelled regional aggregation maintained inside this workspace",
+  name: "Regional evidence",
+  frequencySource: "gnomAD v4",
+  population: "Middle Eastern genetic ancestry group",
+  gnomadUrl: "https://gnomad.broadinstitute.org/",
+  catalogueName: "Catalogue for Transmission Genetics in Arabs (CTGA)",
+  catalogueShortName: "CTGA",
+  cataloguePublisher: "Centre for Arab Genomic Studies",
+  catalogueUrl: "https://cags.org.ae/en/ctga-overview",
+  checkedOn: "2026-09-25",
   coverageNote:
-    "Frequencies are real gnomAD v4 Middle Eastern figures. Regional assertions are modelled for this workspace. Cited literature is real and is provided as supporting context.",
+    "Frequencies are gnomAD v4 allele counts for the Middle Eastern genetic ancestry group, about 3,000 people out of roughly 800,000, against all samples. Regional catalogue readings are quoted from CTGA and attributed. Neither is a VariantPulse classification, and no national programme, registry or hospital supplied this data.",
 };
 
-export const REGIONAL_EVIDENCE: RegionalEvidence[] = [
-  {
-    variantKey: "HBB:c.380T>G",
-    assertion: "PATHOGENIC",
-    // gnomAD v4 Middle Eastern group: 0 alleles of 5768 (11-5225662-A-C)
-    observations: 0,
-    cohortSize: 2884,
-    regionalFrequency: 0.0,
-    globalFrequency: 2.1e-06,
-    contributingCentres: ["Regional Haemoglobinopathy Network", "Premarital Screening Programme"],
-    lastUpdated: "2026-05-12",
-    note:
-      "Global submitters downgraded this change to uncertain significance in April 2026. The regional index still carries the earlier pathogenic reading from haemoglobinopathy work-ups. Beta-thalassaemia carrier status is common in the UAE and drives premarital and reproductive counselling, so a disagreement here has direct family-planning consequences and must be resolved by a clinician, not by the software.",
-    citations: [
-      {"pmid": "22074124", "title": "Molecular basis of β-thalassemia in the United Arab Emirates.", "journal": "Hemoglobin", "year": "2011"},
-      {"pmid": "35330423", "title": "Middle Eastern Genetic Variation Improves Clinical Annotation of the Human Genome.", "journal": "J Pers Med", "year": "2022"}
+export function gnomadVariantUrl(variantId: string): string {
+  return `https://gnomad.broadinstitute.org/variant/${variantId}?dataset=gnomad_r4`;
+}
+
+/**
+ * Variants gnomAD v4 has only in its exome call set. The supplied counts for
+ * these are the exome figures; every other observed variant's are the joint
+ * exome-and-genome figures. Checked against the gnomAD API on 2026-09-25.
+ */
+const EXOME_ONLY = new Set(["BRCA2:c.7847C>T", "TP53:c.589G>A", "PTEN:c.149T>C", "HBB:c.380T>G"]);
+
+function frequency(counts: AlleleCounts): AlleleFrequency {
+  return {
+    ...counts,
+    frequency: counts.alleleNumber > 0 ? counts.alleleCount / counts.alleleNumber : null,
+  };
+}
+
+function ctga(record: Omit<CatalogueRecord, "catalogue" | "code">): CatalogueRecord {
+  return { catalogue: "CTGA", code: normaliseClassification(record.significance), ...record };
+}
+
+/** CTGA records, read from the CTGA database on 2026-09-25. */
+const CATALOGUE: Record<string, CatalogueRecord> = {
+  "HBB:c.364G>C": ctga({
+    significance: "Likely Pathogenic, Pathogenic",
+    countries: ["United Arab Emirates"],
+    conditions: ["Beta-thalassemia", "Sickle cell anemia"],
+    references: [
+      "El-Kalla and Baysal, 1998",
+      "Baysal, 2005",
+      "Baysal, 2011",
+      "Belhoul et al., 2013",
+      "Baysal, 2017",
     ],
-  },
-  {
-    variantKey: "CFTR:c.601G>A",
-    assertion: "LIKELY_BENIGN",
-    // gnomAD v4 Middle Eastern group: 4 alleles of 6060 (7-117535269-G-A)
-    observations: 4,
-    cohortSize: 3030,
-    regionalFrequency: 0.0006601,
-    globalFrequency: 0.0001685,
-    contributingCentres: ["Carrier Screening Programme"],
-    lastUpdated: "2026-03-02",
+    listedSince: "2021-09-20",
+    url: "https://cags.org.ae/en/ctga-variant-details/2706/hb-d-punjab-nm0005185c364gc",
+  }),
+  "MYBPC3:c.776delinsTT": ctga({
+    significance: "Likely Pathogenic",
+    countries: ["United Arab Emirates"],
+    conditions: ["Left ventricular noncompaction 10"],
+    references: ["Al-Shamsi et al., 2016"],
+    listedSince: "2020-07-20",
+    url: "https://cags.org.ae/en/ctga-variant-details/1210/nm0002563c776delinstt",
+  }),
+  "BRCA1:c.1140dup": ctga({
+    significance: "Likely Pathogenic, Pathogenic",
+    countries: ["United Arab Emirates", "Yemen"],
+    conditions: ["Breast-ovarian cancer, familial, susceptibility to, 1"],
+    references: ["Al-Ali et al., 2023", "Rawashdeh et al., 2024"],
+    listedSince: "2024-01-23",
+    url: "https://cags.org.ae/en/ctga-variant-details/4468/nm0072944c1140dup",
+  }),
+};
+
+const MIDDLE_EASTERN_ANNOTATION: RegionalCitation = {
+  pmid: "35330423",
+  title: "Middle Eastern Genetic Variation Improves Clinical Annotation of the Human Genome.",
+  journal: "J Pers Med",
+  year: "2022",
+};
+
+const THALASSAEMIA_UAE: RegionalCitation = {
+  pmid: "22074124",
+  title: "Molecular basis of β-thalassemia in the United Arab Emirates.",
+  journal: "Hemoglobin",
+  year: "2011",
+};
+
+/** Context supplied with the dataset, with its modelled assertions removed. */
+const CONTEXT: Record<string, RegionalContext> = {
+  "HBB:c.380T>G": {
     note:
-      "In gnomAD v4 this change is about four times more frequent in the Middle Eastern reference group than globally. Higher-than-expected population frequency is a recognised line of evidence toward a benign reading, but the Middle Eastern group is only about 3,000 people, so the signal is flagged for review rather than applied automatically.",
+      "Beta-thalassaemia carrier status is common in the UAE and drives premarital and reproductive counselling. gnomAD v4 holds no Middle Eastern observation of this variant, so no regional population data speaks to the reclassification either way. A downgraded carrier result has family-planning consequences and needs a clinician's judgement, not the software's.",
+    citations: [THALASSAEMIA_UAE, MIDDLE_EASTERN_ANNOTATION],
+    flagForReview: true,
+  },
+  "CFTR:c.601G>A": {
+    note:
+      "A frequency difference is evidence to weigh, not a classification, and it can point either way. With a Middle Eastern sample of about 3,000 people and only a handful of observed alleles, VariantPulse raises the difference for a clinician rather than applying it.",
     citations: [
-      {"pmid": "41496868", "title": "Highly Effective Modulator Therapy in Cystic Fibrosis: Addressing Unusual Variants in the Middle East.", "journal": "Pulm Med", "year": "2025"},
-      {"pmid": "35330423", "title": "Middle Eastern Genetic Variation Improves Clinical Annotation of the Human Genome.", "journal": "J Pers Med", "year": "2022"}
+      {
+        pmid: "41496868",
+        title:
+          "Highly Effective Modulator Therapy in Cystic Fibrosis: Addressing Unusual Variants in the Middle East.",
+        journal: "Pulm Med",
+        year: "2025",
+      },
+      MIDDLE_EASTERN_ANNOTATION,
     ],
+    flagForReview: false,
   },
-  {
-    variantKey: "BRCA1:c.5056C>T",
-    assertion: "LIKELY_PATHOGENIC",
-    // Absent from gnomAD v4 (17-43067626-G-A); Middle Eastern group is 3,042 people
-    observations: 0,
-    cohortSize: 3_042,
-    regionalFrequency: 0,
-    globalFrequency: 0,
-    contributingCentres: ["Regional Hereditary Cancer Network"],
-    lastUpdated: "2026-02-18",
+  "BRCA1:c.5056C>T": {
     note:
-      "Absent from gnomAD v4 entirely, including its ~3,000 Middle Eastern individuals. Regional data neither supports nor contradicts the expert-panel reclassification; the global reading stands.",
+      "Absent from gnomAD v4, including its Middle Eastern group, so population frequency can neither support nor contradict the expert-panel reclassification.",
     citations: [
-      {"pmid": "42137137", "title": "Ancestry-informative markers and variants of uncertain significance on hereditary cancer panels.", "journal": "Front Oncol", "year": "2026"},
-      {"pmid": "35330423", "title": "Middle Eastern Genetic Variation Improves Clinical Annotation of the Human Genome.", "journal": "J Pers Med", "year": "2022"}
+      {
+        pmid: "42137137",
+        title:
+          "Ancestry-informative markers and variants of uncertain significance on hereditary cancer panels.",
+        journal: "Front Oncol",
+        year: "2026",
+      },
+      MIDDLE_EASTERN_ANNOTATION,
     ],
+    flagForReview: false,
   },
-  {
-    variantKey: "LDLR:c.1381G>T",
-    assertion: "LIKELY_PATHOGENIC",
-    // gnomAD v4 Middle Eastern group: 0 alleles of 6084 (19-11113557-G-T)
-    observations: 0,
-    cohortSize: 3042,
-    regionalFrequency: 0.0,
-    globalFrequency: 5e-06,
-    contributingCentres: ["Regional Lipid Registry"],
-    lastUpdated: "2026-01-27",
+  "LDLR:c.1381G>T": {
     note:
-      "Consistent with the global expert-panel reading. The familial hypercholesterolaemia mutation spectrum in Arab countries differs from European cohorts, which is why regional follow-up of LDLR results matters.",
+      "Rare globally and not observed in gnomAD's Middle Eastern group. Rarity is compatible with a pathogenic reading but does not establish one. The familial hypercholesterolaemia mutation spectrum in Arab countries differs from European cohorts, which is why regional follow-up of LDLR results matters.",
     citations: [
-      {"pmid": "30415195", "title": "Spectrum of mutations of familial hypercholesterolemia in the 22 Arab countries.", "journal": "Atherosclerosis", "year": "2018"}
+      {
+        pmid: "30415195",
+        title: "Spectrum of mutations of familial hypercholesterolemia in the 22 Arab countries.",
+        journal: "Atherosclerosis",
+        year: "2018",
+      },
     ],
+    flagForReview: false,
   },
-  // -- CTGA-backed regional cases (Catalogue of Transmission Genetics in Arabs,
-  // Centre for Arab Genomic Studies, cags.org.ae). Assertion = CTGA clinical
-  // significance for UAE records. Frequencies = gnomAD v4. --
-  {
-    variantKey: "HBB:c.364G>C",
-    assertion: "PATHOGENIC",
-    // gnomAD v4 Middle Eastern: 11 of 6,062 alleles vs 717 of 1,614,096 globally (~4x enriched)
-    observations: 11,
-    cohortSize: 3_031,
-    regionalFrequency: 0.0018146,
-    globalFrequency: 0.0004442,
-    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE records)"],
-    lastUpdated: "2026-09-25",
+  "HBB:c.364G>C": {
     note:
-      "Haemoglobin D-Punjab. CTGA records it in UAE patients as likely pathogenic / pathogenic for sickle cell disease and beta-thalassaemia, and it is about four times more frequent in gnomAD's Middle Eastern group than globally. Global ClinVar submitters were still in conflict in January 2023 and only converged on pathogenic / likely pathogenic in March 2026: regional evidence was ahead of the global record.",
-    citations: [
-      {"pmid":"22074124","title":"Molecular basis of β-thalassemia in the United Arab Emirates.","journal":"Hemoglobin","year":"2011"}
-    ],
+      "Haemoglobin D-Punjab. CTGA's UAE records, citing work from 1998 onwards, list it as likely pathogenic or pathogenic in patients with sickle cell disease and beta-thalassaemia, while ClinVar's aggregate still read conflicting interpretations in January 2023. In that sense the regional record was ahead of the global one.",
+    citations: [THALASSAEMIA_UAE],
+    flagForReview: false,
   },
-  {
-    variantKey: "MYBPC3:c.776delinsTT",
-    assertion: "LIKELY_PATHOGENIC",
-    // Absent from gnomAD v4
-    observations: 0,
-    cohortSize: 3_042,
-    regionalFrequency: 0,
-    globalFrequency: 0,
-    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE records)"],
-    lastUpdated: "2026-09-25",
+  "MYBPC3:c.776delinsTT": {
     note:
-      "CTGA lists this frameshift in a UAE patient as likely pathogenic for left ventricular non-compaction (record dated 2020). It did not appear in ClinVar until after January 2023 (first classified likely pathogenic, July 2025, single submitter). Another case where a regional catalogue carried the answer before global databases did.",
+      "CTGA lists this frameshift in a UAE patient with left ventricular non-compaction as likely pathogenic, in an entry dated July 2020 that cites a 2016 report. ClinVar held no record of it in January 2023; its single submission since, evaluated in July 2025, also reads likely pathogenic.",
     citations: [],
+    flagForReview: false,
   },
-  {
-    variantKey: "BRCA1:c.1140dup",
-    assertion: "PATHOGENIC",
-    // Absent from gnomAD v4
-    observations: 0,
-    cohortSize: 3_042,
-    regionalFrequency: 0,
-    globalFrequency: 0,
-    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE and Yemen records)"],
-    lastUpdated: "2026-09-25",
+  "BRCA1:c.1140dup": {
     note:
-      "CTGA records this frameshift in a UAE family (Rawashdeh et al. 2024) and a Yemeni patient (Al-Ali et al. 2023). Regional and global readings agree: pathogenic. Included as a control, so the system shows it does not raise an alert when nothing has changed.",
+      "CTGA records this frameshift in a UAE family and a Yemeni patient as likely pathogenic or pathogenic, matching ClinVar's expert-panel classification. It is a control: nothing has changed, so nothing is raised.",
     citations: [],
+    flagForReview: false,
   },
-];
+};
+
+export const REGIONAL_EVIDENCE: RegionalEvidence[] = PROVENANCE.map((entry) => {
+  const inGnomad = entry.gnomad.global.alleleNumber > 0;
+  return {
+    variantKey: entry.key,
+    gnomadVariantId: entry.grch38,
+    inGnomad,
+    callSet: inGnomad ? (EXOME_ONLY.has(entry.key) ? "exomes" : "joint") : null,
+    global: inGnomad ? frequency(entry.gnomad.global) : null,
+    middleEastern: inGnomad ? frequency(entry.gnomad.middleEastern) : null,
+    catalogue: CATALOGUE[entry.key] ?? null,
+    context: CONTEXT[entry.key] ?? null,
+  };
+});
 
 export const REGIONAL_BY_KEY = new Map(REGIONAL_EVIDENCE.map((r) => [r.variantKey, r]));

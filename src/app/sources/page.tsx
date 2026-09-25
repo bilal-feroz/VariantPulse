@@ -1,19 +1,38 @@
 "use client";
 
-import { Building2, Database, ExternalLink, Globe2, Microscope } from "lucide-react";
+import {
+  Building2,
+  Database,
+  ExternalLink,
+  Globe2,
+  History,
+  Library,
+  Microscope,
+} from "lucide-react";
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { SyncButton } from "@/components/sync";
 import { Badge, Card, SectionHeading, StatusDot } from "@/components/ui";
-import { REGIONAL_EVIDENCE, REGIONAL_SOURCE } from "@/data/regional";
+import { REGIONAL_SOURCE } from "@/data/regional";
+import { CLINVAR_JAN_2023, MONITORED_VARIANTS, PATIENTS } from "@/data/workspace";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
+
+type Status = "Live" | "Cached" | "Snapshot" | "Synthetic";
+
+const STATUS_TONE = {
+  Live: "positive",
+  Cached: "warning",
+  Snapshot: "neutral",
+  Synthetic: "muted",
+} as const;
 
 export default function SourcesPage() {
   const { analysis, sync } = useWorkspace();
   const live = analysis.mode === "live";
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
+  const { snapshot, snapshotDrift } = analysis;
 
   const citations = analysis.assessments.reduce(
     (total, a) => total + a.evidence.citations.length,
@@ -23,17 +42,39 @@ export default function SourcesPage() {
     (total, a) => total + a.evidence.submissionCount,
     0,
   );
+  const fromRelease = MONITORED_VARIANTS.filter((v) => v.historicalSource.kind === "clinvar-release");
+  const modelled = MONITORED_VARIANTS.length - fromRelease.length;
+  const inGnomad = analysis.assessments.filter((a) => a.regional?.inGnomad).length;
+  const catalogued = analysis.assessments.filter((a) => a.regional?.catalogue);
+  const countries = [...new Set(catalogued.flatMap((a) => a.regional?.catalogue?.countries ?? []))];
 
-  const sources = [
+  const snapshotLine = `${snapshot.recordCount} records${
+    snapshot.verifiedAt
+      ? `, ${snapshot.verifiedMatched} of ${snapshot.verifiedCompared} identical to live ClinVar on ${formatDate(snapshot.verifiedAt)}`
+      : ""
+  }`;
+
+  const sources: {
+    name: string;
+    description: string;
+    icon: typeof Database;
+    status: Status;
+    detail: string;
+    stats: { label: string; value: React.ReactNode }[];
+    href?: string;
+  }[] = [
     {
-      name: "ClinVar",
-      description: "Global variant submissions and expert-panel classifications",
+      name: "NCBI ClinVar",
+      description: "Current classifications, review status and submissions",
       icon: Database,
-      status: live ? ("Live" as const) : ("Cached" as const),
-      tone: live ? ("positive" as const) : ("warning" as const),
+      status: live ? "Live" : "Cached",
       detail: live
-        ? "Read directly from the NCBI E-utilities endpoint at each sync."
-        : `Serving the bundled snapshot. ${analysis.reason ?? "The live endpoint was unavailable."}`,
+        ? `Read directly from NCBI E-utilities in one batched request at each sync. ${
+            snapshotDrift.length === 0
+              ? "Live evidence matches the verified snapshot on every compared field."
+              : `Live evidence differs from the snapshot on ${snapshotDrift.length} field${snapshotDrift.length === 1 ? "" : "s"}; the live values are used and the snapshot stays the fallback.`
+          }`
+        : `Serving the cached verified snapshot (${snapshotLine}). ${analysis.reason ?? "The live endpoint was unavailable."}`,
       stats: [
         { label: "Variants monitored", value: formatNumber(analysis.assessments.length) },
         { label: "Submissions aggregated", value: formatNumber(submissions) },
@@ -42,11 +83,58 @@ export default function SourcesPage() {
       href: "https://www.ncbi.nlm.nih.gov/clinvar/",
     },
     {
+      name: `ClinVar, ${CLINVAR_JAN_2023.label} release`,
+      description: "The historical classification on record",
+      icon: History,
+      status: "Snapshot",
+      detail: `For ${fromRelease.length} of ${MONITORED_VARIANTS.length} variants the classification on record is ClinVar's own classification in ${CLINVAR_JAN_2023.file}, re-checked against the archive. ${
+        modelled > 0
+          ? `${modelled === 1 ? "One variant was" : `${modelled} variants were`} not in ClinVar then; its classification on record is the synthetic hospital's report and is labelled as such.`
+          : ""
+      }`,
+      stats: [
+        { label: "From the release", value: formatNumber(fromRelease.length) },
+        { label: "Modelled reports", value: formatNumber(modelled) },
+        { label: "Reclassified since", value: formatNumber(analysis.metrics.evidenceChanges) },
+      ],
+      href: CLINVAR_JAN_2023.url ?? undefined,
+    },
+    {
+      name: "gnomAD v4",
+      description: "Middle Eastern and global allele frequencies",
+      icon: Globe2,
+      status: "Snapshot",
+      detail: `Allele counts for the ${REGIONAL_SOURCE.population} and all samples, supplied with the dataset and re-checked against the gnomAD API on ${formatDate(REGIONAL_SOURCE.checkedOn)}. Evidence to weigh, never a classification.`,
+      stats: [
+        { label: "Variants in gnomAD", value: `${inGnomad} of ${analysis.assessments.length}` },
+        { label: "Regional signals", value: formatNumber(analysis.metrics.regionalConflicts) },
+        { label: "Middle Eastern group", value: "~3,000 people" },
+      ],
+      href: REGIONAL_SOURCE.gnomadUrl,
+    },
+    {
+      name: REGIONAL_SOURCE.catalogueShortName,
+      description: REGIONAL_SOURCE.catalogueName,
+      icon: Library,
+      status: "Snapshot",
+      detail: `Clinical significance quoted verbatim from the ${REGIONAL_SOURCE.cataloguePublisher}'s catalogue, read on ${formatDate(REGIONAL_SOURCE.checkedOn)}. Always attributed, never merged into a VariantPulse classification.`,
+      stats: [
+        { label: "Variants recorded", value: formatNumber(catalogued.length) },
+        { label: "Countries", value: countries.join(", ") || "—" },
+        {
+          label: "Regional record ahead",
+          value: formatNumber(
+            analysis.assessments.filter((a) => a.regionalSignal.kind === "CATALOGUE_AHEAD").length,
+          ),
+        },
+      ],
+      href: REGIONAL_SOURCE.catalogueUrl,
+    },
+    {
       name: "Literature index",
       description: "Publications linked to each variant record",
       icon: Microscope,
-      status: "Connected" as const,
-      tone: "positive" as const,
+      status: "Snapshot",
       detail:
         "Citations are resolved from PubMed when the evidence snapshot is refreshed, and are shown with the variant they support.",
       stats: [
@@ -57,38 +145,16 @@ export default function SourcesPage() {
       href: "https://pubmed.ncbi.nlm.nih.gov/",
     },
     {
-      name: REGIONAL_SOURCE.name,
-      description: REGIONAL_SOURCE.scope,
-      icon: Globe2,
-      status: "Connected" as const,
-      tone: "positive" as const,
-      detail: REGIONAL_SOURCE.coverageNote,
-      stats: [
-        { label: "Variants held", value: formatNumber(REGIONAL_EVIDENCE.length) },
-        {
-          label: "Observations",
-          value: formatNumber(REGIONAL_EVIDENCE.reduce((t, r) => t + r.observations, 0)),
-        },
-        {
-          label: "Last updated",
-          value: formatDate(
-            REGIONAL_EVIDENCE.map((r) => r.lastUpdated).sort().at(-1) ?? null,
-          ),
-        },
-      ],
-    },
-    {
       name: "Hospital record system",
       description: "Historical genomic findings on file",
       icon: Building2,
-      status: "Connected" as const,
-      tone: "positive" as const,
+      status: "Synthetic",
       detail:
-        "Read-only. VariantPulse walks the finding corpus at each sync and never writes back to it.",
+        "Fabricated demonstration records: no real patient, clinician or institution. Read-only; VariantPulse walks every record at each sync and never writes back.",
       stats: [
-        { label: "Findings on file", value: formatNumber(analysis.scan.findingsChecked) },
-        { label: "On monitored variants", value: formatNumber(analysis.scan.monitoredFindings) },
-        { label: "Distinct variants", value: formatNumber(analysis.scan.distinctVariants) },
+        { label: "Synthetic records", value: formatNumber(PATIENTS.length) },
+        { label: "Variants carried", value: formatNumber(analysis.scan.distinctVariants) },
+        { label: "Requiring review", value: formatNumber(analysis.metrics.patientsImpacted) },
       ],
     },
   ];
@@ -98,7 +164,7 @@ export default function SourcesPage() {
       <PageHeader
         eyebrow="System health"
         title="Data sources"
-        description="Where each piece of evidence comes from, when it was last read, and what happens when a source is unreachable."
+        description="Where each piece of evidence comes from, whether it is live, a dated snapshot or synthetic, and what happens when a source is unreachable."
         actions={<SyncButton />}
       />
 
@@ -106,13 +172,13 @@ export default function SourcesPage() {
         <span className="inline-flex items-center gap-2.5">
           <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
           <span className="text-[14px] font-semibold text-ink">
-            {live ? "All sources reachable" : "Running on cached evidence"}
+            {live ? "Live ClinVar evidence" : "Cached verified evidence"}
           </span>
         </span>
         <span className="text-[12.5px] text-muted">
           Last sync <RelativeTime value={lastChecked} /> ·{" "}
-          {formatNumber(analysis.scan.findingsChecked)} findings checked ·{" "}
-          {analysis.metrics.evidenceChanges} change
+          {formatNumber(analysis.scan.findingsChecked)} synthetic records checked ·{" "}
+          {analysis.metrics.evidenceChanges} reclassification
           {analysis.metrics.evidenceChanges === 1 ? "" : "s"} found
         </span>
       </Card>
@@ -129,7 +195,7 @@ export default function SourcesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-[15px] font-semibold text-ink">{source.name}</h2>
-                    <Badge tone={source.tone} dot>
+                    <Badge tone={STATUS_TONE[source.status]} dot>
                       {source.status}
                     </Badge>
                     {source.href ? (
@@ -173,14 +239,21 @@ export default function SourcesPage() {
         <ul className="mt-4 space-y-2.5 text-[13px] leading-relaxed text-ink-2">
           <li className="flex gap-2.5">
             <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />
-            A live read that fails or times out falls back to the bundled evidence snapshot, and
-            every surface switches from <strong className="font-medium">live</strong> to{" "}
-            <strong className="font-medium">cached</strong>.
+            A live read that fails or times out falls back to the verified snapshot, and every
+            surface switches from <strong className="font-medium">live</strong> to{" "}
+            <strong className="font-medium">cached verified evidence</strong>.
           </li>
           <li className="flex gap-2.5">
             <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />
             A partial response is discarded rather than mixed with cached records, so a single
-            comparison never spans two different reads.
+            comparison never spans two different reads. A failed read is remembered for 30 seconds,
+            so a dead network costs one timeout rather than one per page; a sync always retries.
+          </li>
+          <li className="flex gap-2.5">
+            <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ok" />
+            The snapshot is never overwritten at runtime. If live ClinVar has moved on, the live
+            values are used and the difference is reported; refreshing the snapshot is a deliberate
+            step (<code className="font-mono text-[12px]">npm run evidence:refresh</code>).
           </li>
           <li className="flex gap-2.5">
             <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ok" />

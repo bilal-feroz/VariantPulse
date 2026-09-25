@@ -12,16 +12,41 @@ import * as React from "react";
 import { Download, FileText, Printer, X } from "lucide-react";
 
 import type { VariantAssessment } from "@/lib/analysis";
-import { meta } from "@/lib/classification";
+import { meta, regionalStatement } from "@/lib/classification";
 import { composeRecommendation } from "@/lib/narrative";
-import { REGIONAL_SOURCE } from "@/data/regional";
-import { CURRENT_USER } from "@/data/workspace";
+import { REGIONAL_SOURCE, type AlleleFrequency } from "@/data/regional";
+import { CURRENT_USER, type MonitoredVariant } from "@/data/workspace";
 import { formatDate, formatNumber } from "@/lib/utils";
+
+/** Where the classification on record came from, in one line. */
+function historicalSourceLine(variant: MonitoredVariant): string {
+  const source = variant.historicalSource;
+  if (source.kind === "modelled-report") {
+    return `hospital report, ${formatDate(variant.recordedOn)}; not in ClinVar in January 2023`;
+  }
+  const verbatim =
+    variant.historicalClinvarText && variant.historicalClinvarText !== meta(variant.historicalClassification).label
+      ? `; recorded as "${variant.historicalClinvarText}"`
+      : "";
+  return `ClinVar ${source.label} release, ${variant.historicalReviewStatus}${verbatim}`;
+}
+
+function alleles(value: AlleleFrequency | null): string {
+  if (!value || value.frequency === null) return "not in gnomAD v4";
+  return `${formatNumber(value.alleleCount)} of ${formatNumber(value.alleleNumber)} alleles`;
+}
+
+function frequencyLine(assessment: VariantAssessment): string {
+  const regional = assessment.regional;
+  if (!regional?.inGnomad) return "absent from gnomAD v4, including its Middle Eastern group";
+  return `Middle Eastern ${alleles(regional.middleEastern)}; all samples ${alleles(regional.global)}`;
+}
 import { Button } from "@/components/ui";
 import type { CaseState } from "@/state/workspace";
 
 function briefText(assessment: VariantAssessment, state: CaseState, generatedAt: string): string {
   const { variant, evidence, regional } = assessment;
+  const catalogue = regional?.catalogue ?? null;
   const lines = [
     "VARIANTPULSE — CLINICAL EVIDENCE BRIEF",
     "",
@@ -38,21 +63,30 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     `  dbSNP:             ${evidence.rsid ?? "—"}`,
     "",
     "CLASSIFICATION",
-    `  As reported:       ${meta(assessment.recordedCode).label} (${formatDate(variant.recordedOn)})`,
-    `  Current:           ${meta(assessment.currentCode).label} (${formatDate(evidence.lastEvaluated)})`,
+    `  On record:         ${meta(assessment.recordedCode).label} (${historicalSourceLine(variant)})`,
+    `  Reported on:       ${formatDate(variant.recordedOn)} (synthetic hospital report)`,
+    `  Current:           ${meta(assessment.currentCode).label} (last evaluated ${formatDate(evidence.lastEvaluated)}; ${assessment.evidenceMode === "live" ? "read live" : "cached verified snapshot"})`,
     `  Change type:       ${assessment.changeType}`,
     `  Review priority:   ${assessment.priority.level}`,
     "",
     "SOURCES REVIEWED",
-    `  ClinVar:           ${evidence.classification} — ${evidence.reviewStatus} (${evidence.submissionCount} submissions)`,
+    `  ClinVar, current:  ${evidence.classification} — ${evidence.reviewStatus} (${evidence.submissionCount} submissions)`,
+    `  ClinVar, history:  ${historicalSourceLine(variant)}`,
+    `  gnomAD v4:         ${frequencyLine(assessment)}`,
+    catalogue
+      ? `  CTGA:              ${catalogue.significance} (${catalogue.countries.join(", ")}; quoted, not a VariantPulse classification)`
+      : "  CTGA:              no record held",
     `  Literature:        ${evidence.citations.length} indexed publications`,
-    regional
-      ? `  Regional index:    ${meta(regional.assertion).label} — ${regional.observations} observations in a cohort of ${formatNumber(regional.cohortSize)}`
-      : "  Regional index:    no record held",
-    `  This institution:  ${meta(assessment.recordedCode).label}`,
+    `  This hospital:     ${meta(assessment.recordedCode).label} (synthetic record)`,
     "",
     "EVIDENCE SUMMARY",
     ...wrap(assessment.summary, 78).map((l) => `  ${l}`),
+    "",
+    "REGIONAL EVIDENCE",
+    ...wrap(
+      `${regionalStatement(assessment.regionalSignal)}${regional?.context ? ` ${regional.context.note}` : ""}`,
+      78,
+    ).map((l) => `  ${l}`),
     "",
     "AFFECTED RECORDS",
     ...assessment.impactedPatients.map(
@@ -72,7 +106,8 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     "",
     "DISCLAIMER",
     "  Decision support only. Final interpretation remains with the qualified",
-    "  clinical team. Patient records in this workspace are synthetic.",
+    "  clinical team. Synthetic patient records; real public genomic evidence",
+    "  (NCBI ClinVar, gnomAD v4, CTGA).",
     "",
     "VariantPulse · Built by Team Kanban",
   ];
@@ -126,6 +161,7 @@ function EvidenceBrief({
   onClose: () => void;
 }) {
   const { variant, evidence, regional } = assessment;
+  const catalogue = regional?.catalogue ?? null;
   const [generatedAt, setGeneratedAt] = React.useState("");
 
   // Rendered after mount so the printed timestamp is the reader's local time
@@ -206,8 +242,15 @@ function EvidenceBrief({
 
           <Section title="Classification">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-              <Item label="As reported" value={meta(assessment.recordedCode).label} />
-              <Item label="Reported on" value={formatDate(variant.recordedOn)} />
+              <Item label="On record" value={meta(assessment.recordedCode).label} />
+              <Item
+                label="Record source"
+                value={
+                  variant.historicalSource.kind === "clinvar-release"
+                    ? `ClinVar, ${variant.historicalSource.shortLabel}`
+                    : "Hospital report"
+                }
+              />
               <Item label="Current" value={meta(assessment.currentCode).label} strong />
               <Item label="Last evaluated" value={formatDate(evidence.lastEvaluated)} />
               <Item label="Change" value={assessment.changeType.replace(/_/g, " ").toLowerCase()} />
@@ -220,22 +263,32 @@ function EvidenceBrief({
           <Section title="Sources reviewed">
             <ul className="space-y-1.5 text-[13px] text-ink-2">
               <li>
-                <strong className="font-medium text-ink">ClinVar</strong> —{" "}
-                {evidence.classification}, {evidence.reviewStatus} ({evidence.accession ?? evidence.clinvarId})
+                <strong className="font-medium text-ink">ClinVar, current</strong> —{" "}
+                {evidence.classification}, {evidence.reviewStatus} (
+                {evidence.accession ?? evidence.clinvarId};{" "}
+                {assessment.evidenceMode === "live" ? "read live" : "cached verified snapshot"})
+              </li>
+              <li>
+                <strong className="font-medium text-ink">Classification on record</strong> —{" "}
+                {meta(assessment.recordedCode).label}, {historicalSourceLine(variant)}
+              </li>
+              <li>
+                <strong className="font-medium text-ink">gnomAD v4</strong> — {frequencyLine(assessment)}
+              </li>
+              <li>
+                <strong className="font-medium text-ink">{REGIONAL_SOURCE.catalogueShortName}</strong> —{" "}
+                {catalogue
+                  ? `${catalogue.significance} (${catalogue.countries.join(", ")}), quoted from the ${REGIONAL_SOURCE.catalogueName}`
+                  : "no record held"}
               </li>
               <li>
                 <strong className="font-medium text-ink">Literature</strong> —{" "}
                 {evidence.citations.length} indexed publications linked to this record
               </li>
               <li>
-                <strong className="font-medium text-ink">{REGIONAL_SOURCE.name}</strong> —{" "}
-                {regional
-                  ? `${meta(regional.assertion).label}, ${regional.observations} observations across a cohort of ${formatNumber(regional.cohortSize)}`
-                  : "no record held"}
-              </li>
-              <li>
-                <strong className="font-medium text-ink">This institution</strong> —{" "}
-                {meta(assessment.recordedCode).label} on {formatDate(variant.recordedOn)}
+                <strong className="font-medium text-ink">This hospital</strong> —{" "}
+                {meta(assessment.recordedCode).label}, reported {formatDate(variant.recordedOn)} (synthetic
+                record)
               </li>
             </ul>
           </Section>
@@ -244,10 +297,11 @@ function EvidenceBrief({
             <p className="text-[13.5px] leading-relaxed text-ink-2">{assessment.summary}</p>
           </Section>
 
-          {regional && assessment.regionalDisagreement?.conflicting ? (
+          {regional ? (
             <Section title="Regional evidence">
               <p className="text-[13.5px] leading-relaxed text-ink-2">
-                {assessment.regionalDisagreement.reason} {regional.note}
+                {regionalStatement(assessment.regionalSignal)}
+                {regional.context ? ` ${regional.context.note}` : ""}
               </p>
             </Section>
           ) : null}
@@ -304,8 +358,8 @@ function EvidenceBrief({
             <p className="text-[12px] leading-relaxed text-muted">
               <strong className="font-semibold text-ink">Decision support only.</strong> Final
               interpretation remains with the qualified clinical team. VariantPulse does not alter
-              any record and does not issue a diagnosis. Patient records in this workspace are
-              synthetic; variant evidence is read from ClinVar.
+              any record and does not issue a diagnosis. Synthetic patient records · Real public
+              genomic evidence (NCBI ClinVar, gnomAD v4, CTGA).
             </p>
             <p className="mt-2.5 text-[11px] text-faint">VariantPulse · Built by Team Kanban</p>
           </footer>

@@ -65,16 +65,18 @@ interface WorkspaceValue {
 
 const WorkspaceContext = React.createContext<WorkspaceValue | null>(null);
 
-const STORAGE_KEY = "variantpulse.session.v1";
+// Bumped whenever the dataset changes, so a session saved against old variants
+// and case numbers is never replayed against new ones.
+const STORAGE_KEY = "variantpulse.session.v2";
 
 const SYNC_STEPS = [
-  { label: "Reading historical findings", detail: "Opening the connected record system" },
-  { label: "Normalising variant nomenclature", detail: "Resolving HGVS to stable identifiers" },
-  { label: "Retrieving current evidence", detail: "Querying ClinVar for each monitored variant" },
-  { label: "Comparing classifications", detail: "Diffing recorded against current interpretation" },
-  { label: "Comparing regional evidence", detail: "Checking the regional index for divergence" },
-  { label: "Mapping impacted records", detail: "Identifying findings that carry a changed variant" },
-  { label: "Preparing evidence briefs", detail: "Composing summaries from the cited records" },
+  { label: "Reading historical classifications", detail: "ClinVar's January 2023 release, as on record" },
+  { label: "Retrieving current ClinVar evidence", detail: "One batched NCBI request, with a verified fallback" },
+  { label: "Comparing classifications", detail: "Deterministic band comparison, no model involved" },
+  { label: "Scanning synthetic hospital records", detail: "Joining every record to its variant" },
+  { label: "Comparing regional evidence", detail: "gnomAD v4 Middle Eastern frequencies and CTGA" },
+  { label: "Preparing evidence briefs", detail: "Composed from the cited records" },
+  { label: "Opening clinical review cases", detail: "Only where something material changed" },
 ];
 
 function defaultCase(): CaseState {
@@ -91,7 +93,7 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       at: at(0),
       kind: "sync",
       title: "Evidence sync completed",
-      detail: `${analysis.scan.findingsChecked.toLocaleString("en-US")} findings checked against ${analysis.mode === "live" ? "live" : "cached"} evidence`,
+      detail: `${analysis.scan.findingsChecked.toLocaleString("en-US")} synthetic records checked against ${analysis.mode === "live" ? "live" : "cached verified"} ClinVar evidence`,
     },
   ];
 
@@ -111,7 +113,7 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
       id: `seed-impact-${assessment.variant.key}`,
       at: at(38 + index * 22),
       kind: "impact",
-      title: `${assessment.impactedRecordCount} historical record${assessment.impactedRecordCount === 1 ? "" : "s"} mapped`,
+      title: `${assessment.impactedRecordCount} synthetic record${assessment.impactedRecordCount === 1 ? "" : "s"} mapped`,
       detail: `${assessment.variant.gene} ${assessment.variant.hgvsCoding}`,
     });
     entries.push({
@@ -209,7 +211,7 @@ export function WorkspaceProvider({
     log({
       kind: "sync",
       title: "Evidence sync completed",
-      detail: `${result.scan.findingsChecked.toLocaleString("en-US")} findings checked · ${result.metrics.evidenceChanges} change${result.metrics.evidenceChanges === 1 ? "" : "s"} · ${result.metrics.regionalConflicts} regional conflict${result.metrics.regionalConflicts === 1 ? "" : "s"}`,
+      detail: `${result.scan.findingsChecked.toLocaleString("en-US")} synthetic records checked against ${result.mode === "live" ? "live" : "cached verified"} evidence · ${result.metrics.evidenceChanges} reclassification${result.metrics.evidenceChanges === 1 ? "" : "s"} · ${result.metrics.regionalConflicts} regional signal${result.metrics.regionalConflicts === 1 ? "" : "s"}`,
     });
   }, [analysis, log]);
 

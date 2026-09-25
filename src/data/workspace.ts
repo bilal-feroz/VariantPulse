@@ -25,9 +25,6 @@
 
 import type { ClassificationCode } from "@/lib/classification";
 
-/** Findings held in the connected record system, including the detailed set below. */
-export const MONITORED_FINDING_COUNT = 12_482;
-
 /** Where a historical classification came from. */
 export interface HistoricalSource {
   /**

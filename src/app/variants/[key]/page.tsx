@@ -26,6 +26,7 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { CHANGE_TYPES } from "@/lib/classification";
+import { gnomadVariantUrl } from "@/data/regional";
 import { composeRecommendation } from "@/lib/narrative";
 import { useWorkspace } from "@/state/workspace";
 
@@ -92,6 +93,28 @@ export default function VariantPage() {
             <ExternalLink className="h-3 w-3" />
           </a>
         ) : null}
+        {assessment.regional?.inGnomad ? (
+          <a
+            href={gnomadVariantUrl(assessment.regional.gnomadVariantId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline"
+          >
+            gnomAD {assessment.regional.gnomadVariantId}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        ) : null}
+        {assessment.regional?.catalogue ? (
+          <a
+            href={assessment.regional.catalogue.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline"
+          >
+            CTGA record
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        ) : null}
       </div>
 
       <Card className="mb-5 p-5">
@@ -119,9 +142,9 @@ export default function VariantPage() {
       <Card className="mt-5 overflow-hidden">
         <div className="border-b border-line px-5 py-4">
           <SectionHeading
-            title="Records carrying this variant"
+            title="Synthetic records carrying this variant"
             count={impactedPatients.length}
-            description="Historical findings in the connected record system that reference this variant."
+            description="Records in the synthetic hospital dataset that reference this variant."
           />
         </div>
         <PatientImpactTable rows={impactedPatients} byKey={byKey} showVariant={false} />

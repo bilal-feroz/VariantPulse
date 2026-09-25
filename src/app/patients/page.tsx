@@ -65,7 +65,7 @@ export default function PatientsPage() {
       <PageHeader
         eyebrow="Patient impact"
         title="Records on file"
-        description="Historical findings held in the connected record system, and whether the evidence behind each one has moved since it was reported."
+        description="Synthetic patient records in the demonstration hospital dataset, and whether the evidence behind each one has moved since it was reported."
         actions={<SyncButton />}
       />
 

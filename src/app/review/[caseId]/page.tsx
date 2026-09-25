@@ -131,7 +131,7 @@ export default function ReviewCasePage() {
               <SectionHeading
                 title="Patient impact"
                 count={assessment.impactedRecordCount}
-                description="Records carrying this variant."
+                description="Synthetic records carrying this variant."
               />
             </div>
             <ul className="divide-y divide-line">
@@ -335,10 +335,10 @@ export default function ReviewCasePage() {
               <Field label="Assigned" value={state.assignee ?? "Unassigned"} />
               <Field
                 label="Evidence source"
-                value={analysis.mode === "live" ? "ClinVar (live)" : "ClinVar (cached snapshot)"}
+                value={analysis.mode === "live" ? "ClinVar (live)" : "ClinVar (cached verified snapshot)"}
               />
               <Field
-                label="Records impacted"
+                label="Synthetic records impacted"
                 value={String(assessment.impactedRecordCount)}
               />
             </dl>

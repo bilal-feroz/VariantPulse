@@ -11,7 +11,7 @@ import { ArrowRight, ArrowUpRight, Clock, FileText, Users } from "lucide-react";
 
 import type { VariantAssessment } from "@/lib/analysis";
 import { CHANGE_TYPES, meta } from "@/lib/classification";
-import { cn, formatDate, formatNumber, formatYear } from "@/lib/utils";
+import { cn, formatDate, formatMonth, formatNumber, formatYear } from "@/lib/utils";
 import { RelativeTime } from "@/components/relative-time";
 import {
   Badge,
@@ -75,7 +75,10 @@ export function MetricCard({
 
 /**
  * The comparison the whole product turns on. Deliberately literal: two states,
- * the years they belong to, and the fact that only the evidence moved.
+ * when each was stated, and the fact that only the evidence moved. "Then" is
+ * dated by the source of the classification on record — the ClinVar release it
+ * was read from, or the hospital report when ClinVar held no record — never by
+ * a patient's test date.
  */
 export function ThenNow({
   assessment,
@@ -94,15 +97,25 @@ export function ThenNow({
   className?: string;
 }) {
   const { variant, recordedCode, currentCode, evidence } = assessment;
-  const thenYear = formatYear(variant.recordedOn);
+  const source = variant.historicalSource;
+  const thenYear = source.kind === "clinvar-release" ? source.shortLabel : formatMonth(variant.recordedOn);
   const nowYear = formatYear(evidence.lastEvaluated) || String(new Date().getUTCFullYear());
+
+  // Normalisation can shorten what ClinVar said ("Pathogenic/Likely pathogenic"
+  // becomes Pathogenic), so the verbatim wording is kept beside it.
+  const thenNote =
+    source.kind === "modelled-report"
+      ? "Hospital report · not in ClinVar"
+      : variant.historicalClinvarText && variant.historicalClinvarText !== meta(recordedCode).label
+        ? `ClinVar: ${variant.historicalClinvarText}`
+        : "ClinVar release, as on record";
 
   const then = (
     <Panel
       year={thenYear}
       label="Then"
       code={recordedCode}
-      note="As reported"
+      note={thenNote}
       tone="muted"
       size={size}
     />
@@ -239,6 +252,11 @@ export function EvidenceAlert({
       <div className="flex flex-wrap items-center gap-2">
         <PriorityBadge level={priority.level} />
         <ChangeTypeBadge type={changeType} />
+        {assessment.regionalSignal.flagged && changeType !== "REGIONAL_CONFLICT" ? (
+          <Badge tone="warning" title={assessment.regionalSignal.reason}>
+            Regional signal
+          </Badge>
+        ) : null}
         <span className="ml-auto inline-flex items-center gap-1.5 text-[11.5px] text-faint">
           <Clock className="h-3 w-3" />
           {evidence.lastEvaluated
@@ -336,7 +354,8 @@ export function SourceCard({
 }: {
   name: string;
   description: string;
-  status: "live" | "connected" | "cached" | "degraded";
+  /** `snapshot`: a dated, verified capture. `synthetic`: fabricated demonstration data. */
+  status: "live" | "connected" | "cached" | "degraded" | "snapshot" | "synthetic";
   detail?: React.ReactNode;
   glyph: React.ReactNode;
 }) {
@@ -345,7 +364,11 @@ export function SourceCard({
       ? "positive"
       : status === "cached"
         ? "warning"
-        : "critical";
+        : status === "snapshot"
+          ? "neutral"
+          : status === "synthetic"
+            ? "muted"
+            : "critical";
 
   return (
     <div className="vp-card flex items-center gap-3 p-3.5">
@@ -362,6 +385,8 @@ export function SourceCard({
               tone === "positive" && "bg-ok",
               tone === "warning" && "bg-warn",
               tone === "critical" && "bg-crit",
+              tone === "neutral" && "bg-info",
+              tone === "muted" && "bg-faint",
             )}
           />
           <span
@@ -370,6 +395,8 @@ export function SourceCard({
               tone === "positive" && "text-ok",
               tone === "warning" && "text-warn",
               tone === "critical" && "text-crit",
+              tone === "neutral" && "text-info",
+              tone === "muted" && "text-muted",
             )}
           >
             {status}

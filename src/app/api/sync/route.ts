@@ -8,10 +8,15 @@ export const dynamic = "force-dynamic";
 
 /**
  * Runs a full evidence sync: drops the cached evidence read, queries the
- * source again, and re-walks the record corpus.
+ * source again, and re-walks the record corpus. In demo mode the source is the
+ * bundled snapshot, so the result is identical on every call.
  */
 export async function POST() {
-  invalidateEvidenceCache();
-  const analysis = await analyseWorkspace({ force: true });
-  return NextResponse.json(serialiseAnalysis(analysis));
+  try {
+    invalidateEvidenceCache();
+    const analysis = await analyseWorkspace({ force: true });
+    return NextResponse.json(serialiseAnalysis(analysis));
+  } catch {
+    return NextResponse.json({ error: "Evidence sync failed" }, { status: 503 });
+  }
 }

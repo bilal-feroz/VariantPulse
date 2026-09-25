@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Globe2, History, MapPin, TriangleAlert } from "lucide-react";
+import { ArrowRight, ExternalLink, Globe2, History, MapPin, TriangleAlert } from "lucide-react";
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { RegionalComparison } from "@/components/panels";
@@ -19,8 +19,26 @@ import {
 import { REGIONAL_SOURCE, type AlleleFrequency } from "@/data/regional";
 import type { VariantAssessment } from "@/lib/analysis";
 import { pick } from "@/lib/dto";
-import { formatNumber } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
+
+/** The CTGA entry itself, opened beside the workspace rather than in place of it. */
+function CtgaLink({ href, className }: { href: string; className?: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "inline-flex items-center gap-1 whitespace-nowrap text-[12px] font-medium text-accent hover:underline",
+        className,
+      )}
+    >
+      View on CTGA
+      <ExternalLink className="h-3 w-3" aria-hidden />
+    </a>
+  );
+}
 
 function frequencyCell(value: AlleleFrequency | null) {
   if (!value || value.frequency === null) {
@@ -218,7 +236,10 @@ export default function RegionalPage() {
                   </td>
                   <td className="px-5 py-3 text-[12.5px] text-ink-2">
                     {assessment.regional?.catalogue ? (
-                      assessment.regional.catalogue.significance
+                      <>
+                        <span className="block">{assessment.regional.catalogue.significance}</span>
+                        <CtgaLink href={assessment.regional.catalogue.url} className="mt-1" />
+                      </>
                     ) : (
                       <span className="text-muted">—</span>
                     )}
@@ -246,6 +267,7 @@ export default function RegionalPage() {
 }
 
 function RegionalCase({ assessment }: { assessment: VariantAssessment }) {
+  const catalogue = assessment.regional?.catalogue;
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -255,18 +277,21 @@ function RegionalCase({ assessment }: { assessment: VariantAssessment }) {
           protein={assessment.variant.proteinChange}
           size="md"
         />
-        <Link
-          href={
-            assessment.caseId
-              ? `/review/${assessment.caseId}`
-              : `/variants/${encodeURIComponent(assessment.variant.key)}`
-          }
-        >
-          <Button variant="primary" size="sm">
-            {assessment.caseId ? "Open review case" : "View variant"}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
+        <div className="flex items-center gap-4">
+          {catalogue ? <CtgaLink href={catalogue.url} /> : null}
+          <Link
+            href={
+              assessment.caseId
+                ? `/review/${assessment.caseId}`
+                : `/variants/${encodeURIComponent(assessment.variant.key)}`
+            }
+          >
+            <Button variant="primary" size="sm">
+              {assessment.caseId ? "Open review case" : "View variant"}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
       </div>
       <RegionalComparison assessment={assessment} />
     </div>

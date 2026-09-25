@@ -7,69 +7,19 @@
  */
 
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Clock, FileText, Users } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import type { VariantAssessment } from "@/lib/analysis";
-import { CHANGE_TYPES, meta } from "@/lib/classification";
-import { cn, formatDate, formatMonth, formatNumber, formatYear } from "@/lib/utils";
+import { meta } from "@/lib/classification";
+import { cn, formatMonth, formatYear } from "@/lib/utils";
 import { RelativeTime } from "@/components/relative-time";
 import {
   Badge,
-  Card,
   ChangeTypeBadge,
   ClassificationBadge,
-  ConfidenceMeter,
   PriorityBadge,
   VariantLabel,
 } from "@/components/ui";
-
-/* -- Metrics --------------------------------------------------------------- */
-
-export function MetricCard({
-  label,
-  value,
-  hint,
-  tone = "neutral",
-  href,
-}: {
-  label: string;
-  value: number | string;
-  hint?: React.ReactNode;
-  tone?: "neutral" | "critical" | "warning" | "positive";
-  href?: string;
-}) {
-  const body = (
-    <>
-      <div className="flex items-baseline gap-2">
-        <span
-          className={cn(
-            "text-[30px] font-semibold leading-none tracking-tight vp-num",
-            tone === "critical" && "text-crit",
-            tone === "warning" && "text-warn",
-            tone === "positive" && "text-ok",
-            tone === "neutral" && "text-ink",
-          )}
-        >
-          {typeof value === "number" ? formatNumber(value) : value}
-        </span>
-        {href ? (
-          <ArrowUpRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        ) : null}
-      </div>
-      <p className="mt-2 text-[13px] font-medium leading-snug text-ink-2">{label}</p>
-      {hint ? <p className="mt-1 text-[11.5px] leading-snug text-faint">{hint}</p> : null}
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className="group vp-card block p-5 transition-colors hover:bg-surface-2">
-        {body}
-      </Link>
-    );
-  }
-  return <Card className="p-5">{body}</Card>;
-}
 
 /* -- Then and now ---------------------------------------------------------- */
 
@@ -223,90 +173,6 @@ function Panel({
   );
 }
 
-/* -- Evidence alert -------------------------------------------------------- */
-
-export function EvidenceAlert({
-  assessment,
-  className,
-}: {
-  assessment: VariantAssessment;
-  className?: string;
-}) {
-  const { variant, evidence, changeType, priority, impactedRecordCount, caseId } = assessment;
-  const change = CHANGE_TYPES[changeType];
-
-  return (
-    <Card
-      className={cn(
-        "relative overflow-hidden p-5 transition-shadow hover:shadow-[0_14px_38px_-22px_rgba(18,19,50,0.34)]",
-        className,
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-y-0 left-0 w-[3px]",
-          change.tone === "critical" && "bg-crit",
-          change.tone === "warning" && "bg-warn",
-          change.tone === "positive" && "bg-ok",
-          change.tone === "neutral" && "bg-info",
-          change.tone === "muted" && "bg-line-2",
-        )}
-      />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <PriorityBadge level={priority.level} />
-        <ChangeTypeBadge type={changeType} />
-        {assessment.regionalSignal.flagged && changeType !== "REGIONAL_CONFLICT" ? (
-          <Badge tone="warning" title={assessment.regionalSignal.reason}>
-            Regional signal
-          </Badge>
-        ) : null}
-        <span className="ml-auto inline-flex items-center gap-1.5 text-[11.5px] text-faint">
-          <Clock className="h-3 w-3" />
-          {evidence.lastEvaluated
-            ? `Evidence updated ${formatDate(evidence.lastEvaluated)}`
-            : "Evaluation date not recorded"}
-        </span>
-      </div>
-
-      <div className="mt-3.5">
-        <VariantLabel
-          gene={variant.gene}
-          hgvs={variant.hgvsCoding}
-          protein={variant.proteinChange}
-          size="lg"
-        />
-        <p className="mt-1 text-[12.5px] text-muted">{variant.condition}</p>
-      </div>
-
-      <ThenNow assessment={assessment} className="mt-4" />
-
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line pt-3.5">
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-2">
-          <Users className="h-3.5 w-3.5 text-faint" />
-          <span className="font-semibold vp-num">{impactedRecordCount}</span> record
-          {impactedRecordCount === 1 ? "" : "s"} on file
-        </span>
-        <ConfidenceMeter stars={assessment.confidence.stars} strength={assessment.confidence.strength} />
-        <span className="inline-flex items-center gap-1.5 text-[12.5px] text-muted">
-          <FileText className="h-3.5 w-3.5 text-faint" />
-          <span className="vp-num">{evidence.submissionCount}</span> submission
-          {evidence.submissionCount === 1 ? "" : "s"}
-        </span>
-
-        <Link
-          href={caseId ? `/review/${caseId}` : `/variants/${encodeURIComponent(variant.key)}`}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-ink px-3.5 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-ink/90"
-        >
-          {changeType === "REGIONAL_CONFLICT" ? "Investigate evidence" : "Review change"}
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-    </Card>
-  );
-}
-
 /* -- Compact row used in dense lists --------------------------------------- */
 
 export function VariantRow({ assessment }: { assessment: VariantAssessment }) {
@@ -345,71 +211,6 @@ export function VariantRow({ assessment }: { assessment: VariantAssessment }) {
         {caseId ? <PriorityBadge level={priority.level} /> : <Badge tone="muted">None</Badge>}
       </span>
     </Link>
-  );
-}
-
-/* -- Source status --------------------------------------------------------- */
-
-export function SourceCard({
-  name,
-  description,
-  status,
-  detail,
-  glyph,
-}: {
-  name: string;
-  description: string;
-  /** `snapshot`: a dated, verified capture. `synthetic`: fabricated demonstration data. */
-  status: "live" | "connected" | "cached" | "degraded" | "snapshot" | "synthetic";
-  detail?: React.ReactNode;
-  glyph: React.ReactNode;
-}) {
-  const tone =
-    status === "live" || status === "connected"
-      ? "positive"
-      : status === "cached"
-        ? "warning"
-        : status === "snapshot"
-          ? "neutral"
-          : status === "synthetic"
-            ? "muted"
-            : "critical";
-
-  return (
-    <div className="vp-card flex items-center gap-3 p-3.5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-3 text-muted">
-        {glyph}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-semibold text-ink">{name}</span>
-        <span className="block truncate text-[11.5px] text-muted">{description}</span>
-        <span className="mt-1.5 flex items-center gap-1.5">
-          <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              tone === "positive" && "bg-ok",
-              tone === "warning" && "bg-warn",
-              tone === "critical" && "bg-crit",
-              tone === "neutral" && "bg-info",
-              tone === "muted" && "bg-faint",
-            )}
-          />
-          <span
-            className={cn(
-              "text-[11px] font-medium capitalize",
-              tone === "positive" && "text-ok",
-              tone === "warning" && "text-warn",
-              tone === "critical" && "text-crit",
-              tone === "neutral" && "text-info",
-              tone === "muted" && "text-muted",
-            )}
-          >
-            {status}
-          </span>
-          {detail ? <span className="text-[11px] text-faint">· {detail}</span> : null}
-        </span>
-      </span>
-    </div>
   );
 }
 

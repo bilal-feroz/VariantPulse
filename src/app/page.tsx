@@ -4,405 +4,492 @@ import Link from "next/link";
 import {
   ArrowRight,
   Building2,
+  ClipboardList,
+  Clock,
   Database,
   Dna,
+  FileSearch,
+  FileText,
   Globe2,
   History,
+  Shield,
   ShieldCheck,
   Users,
 } from "lucide-react";
 
-import { ActivityItem, EvidenceAlert, MetricCard, SourceCard, ThenNow } from "@/components/domain";
-import { EvidencePipeline } from "@/components/evidence-pipeline";
-import { ScienceTimeline } from "@/components/panels";
+import { HeroHelix } from "@/components/hero-helix";
 import { SyncButton } from "@/components/sync";
-import {
-  Button,
-  Card,
-  ClassificationBadge,
-  Eyebrow,
-  EmptyState,
-  SectionHeading,
-  StatusDot,
-} from "@/components/ui";
+import { Badge, Card, EmptyState, StatusDot } from "@/components/ui";
+import { CLINVAR_JAN_2023 } from "@/data/workspace";
+import type { VariantAssessment } from "@/lib/analysis";
+import { meta, type ClassificationCode } from "@/lib/classification";
 import { pick } from "@/lib/dto";
-import { formatDate, formatYear } from "@/lib/utils";
+import { cn, formatDate, formatMonth } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
-import { RelativeTime } from "@/components/relative-time";
 
 export default function HomePage() {
-  const { analysis, activity, sync } = useWorkspace();
-
-  const reviewable = pick(analysis, analysis.reviewableKeys);
-  const lead = reviewable[0];
-  const conflicts = pick(analysis, analysis.regionalConflictKeys);
-  const leadPatients = lead?.impactedPatients ?? [];
-  const live = analysis.mode === "live";
-  const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
+  const { analysis } = useWorkspace();
+  // The engine's top-ranked case is the example, so the story always shows a
+  // change the dataset really holds.
+  const lead = pick(analysis, analysis.reviewableKeys)[0];
 
   return (
-    <div className="mx-auto w-full max-w-[1360px] px-5 pb-12 sm:px-6 lg:px-8">
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)_minmax(0,232px)] xl:gap-5">
-        <div className="pt-4 xl:pt-8">
-          <Eyebrow>Monitoring genetic knowledge</Eyebrow>
-          <h1 className="mt-4 text-[34px] font-semibold leading-[1.06] tracking-[-0.032em] text-ink sm:text-[40px] 2xl:text-[44px]">
-            The same DNA.
-            <br />A different meaning.
-          </h1>
-          <p className="mt-5 max-w-[26rem] text-[15px] leading-relaxed text-muted">
-            VariantPulse continuously monitors genetic findings and detects when new
-            scientific evidence changes what they mean.
-          </p>
+    <div className="mx-auto w-full max-w-[1360px] space-y-3.5 px-5 pb-3 pt-2 sm:px-6 lg:px-8">
+      <Hero lead={lead} />
 
-          <div className="mt-7 flex flex-wrap items-center gap-2.5">
-            {lead ? (
-              <Link href={lead.caseId ? `/review/${lead.caseId}` : "/review"}>
-                <Button variant="primary" size="lg">
-                  See a real example
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            ) : null}
-            <SyncButton size="lg" />
+      {lead ? (
+        <>
+          <HowItWorks lead={lead} />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.72fr)_minmax(0,1fr)]">
+            <RealExample lead={lead} />
+            <DataSources live={analysis.mode === "live"} />
           </div>
-
-          {lead && leadPatients[0] ? (
-            <div className="vp-float vp-drift mt-8 max-w-[23rem] p-4 xl:mt-10">
-              <div className="flex items-start gap-3.5">
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#FFECF0] to-[#FDF0F3] text-accent">
-                  <Dna className="h-6 w-6" strokeWidth={1.6} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[14.5px] font-semibold tracking-tight text-ink">
-                      Patient {leadPatients[0].id}
-                    </p>
-                    <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-[11px] font-semibold text-warn vp-num">
-                      {formatYear(leadPatients[0].testedOn)}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-[13px] text-ink-2">
-                    <span className="font-semibold">{lead.variant.gene}</span>{" "}
-                    <span className="font-mono text-[12px] text-muted">
-                      {lead.variant.hgvsCoding}
-                    </span>
-                  </p>
-                  <p className="mt-0.5 text-[12.5px] text-muted">
-                    Originally reported as {ClassificationText(lead.recordedCode)}
-                    {lead.variant.historicalSource.kind === "clinvar-release"
-                      ? ` · ClinVar ${lead.variant.historicalSource.shortLabel}`
-                      : " · hospital report"}
-                  </p>
-                  <Link
-                    href={`/patients/${leadPatients[0].id}`}
-                    className="mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] text-faint transition-colors hover:text-accent"
-                  >
-                    <span className="grid h-4 w-4 place-items-center rounded border border-line-2">
-                      <span className="h-1.5 w-1.5 rounded-[1px] bg-faint" />
-                    </span>
-                    Genetic test report
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Centre composition */}
-        <div className="relative min-h-[420px] xl:h-[clamp(430px,53vh,580px)] xl:min-h-0">
-          {lead ? (
-            <div className="vp-float absolute left-1/2 top-2 z-10 flex w-[min(340px,92%)] -translate-x-1/2 items-center gap-3 px-4 py-3">
-              <StatusDot tone="accent" pulse />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-ink">
-                  New evidence detected
-                </span>
-                <span className="block truncate text-[11.5px] text-muted">
-                  {lead.variant.gene} variant reclassified
-                </span>
-              </span>
-              <span className="shrink-0 rounded-full bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent vp-num">
-                {lead.impactedRecordCount} affected
-              </span>
-            </div>
-          ) : null}
-
-          {/* Bleeds into the column gaps so the helix reads at full scale. */}
-          <EvidencePipeline className="absolute inset-0" />
-        </div>
-
-        {/* Sources */}
-        <div className="space-y-2.5 xl:pt-8">
-          <SourceCard
-            name="ClinVar"
-            description="Current classifications"
-            status={live ? "live" : "cached"}
-            detail={<RelativeTime value={lastChecked} />}
-            glyph={<Database className="h-4 w-4" />}
+        </>
+      ) : (
+        <Card>
+          <EmptyState
+            icon={<ShieldCheck className="h-5 w-5" />}
+            title="No evidence changes right now"
+            description="Every result on record still matches current evidence."
           />
-          <SourceCard
-            name="ClinVar, Jan 2023"
-            description="Classifications on record"
-            status="snapshot"
-            detail="Archive"
-            glyph={<History className="h-4 w-4" />}
-          />
-          <SourceCard
-            name="gnomAD v4 · CTGA"
-            description="Middle Eastern evidence"
-            status="snapshot"
-            detail="Regional"
-            glyph={<Globe2 className="h-4 w-4" />}
-          />
-          <SourceCard
-            name="Hospital records"
-            description="Demonstration dataset"
-            status="synthetic"
-            detail={`${analysis.scan.findingsChecked.toLocaleString("en-US")} records`}
-            glyph={<Building2 className="h-4 w-4" />}
-          />
-        </div>
-      </section>
-
-      {/* ── Three-card summary ─────────────────────────────────────────── */}
-      <section className="mt-8 grid gap-4 lg:grid-cols-3">
-        <Card className="p-5">
-          <SectionHeading
-            title="Science has updated"
-            count={analysis.metrics.evidenceChanges}
-            icon={<Dna className="h-4 w-4" />}
-            action={
-              <Link
-                href="/variants"
-                className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent"
-              >
-                View all
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            }
-          />
-          {lead ? (
-            <>
-              <ThenNow assessment={lead} size="sm" className="mt-4" />
-              <p className="mt-3.5 text-[12.5px] leading-relaxed text-muted">
-                {lead.variant.gene} {lead.variant.hgvsCoding} — evidence last evaluated{" "}
-                {formatDate(lead.evidence.lastEvaluated)}.
-              </p>
-            </>
-          ) : (
-            <EmptyState title="No changes detected" description="Current evidence agrees with every interpretation on record." />
-          )}
         </Card>
+      )}
 
-        <Card className="p-5">
-          <SectionHeading
-            title="Patients affected"
-            count={analysis.metrics.patientsImpacted}
-            icon={<Users className="h-4 w-4" />}
-            action={
-              <Link
-                href="/patients"
-                className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent"
-              >
-                View patients
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            }
-          />
-          <div className="mt-5 flex -space-x-2">
-            {reviewable
-              .flatMap((a) => a.impactedPatients)
-              .slice(0, 7)
-              .map((patient, index) => (
-                <Link
-                  key={patient.id}
-                  href={`/patients/${patient.id}`}
-                  title={`${patient.id} · ${patient.orderingDepartment}`}
-                  className="grid h-11 w-11 place-items-center rounded-full border-2 border-white bg-gradient-to-br from-[#FFEEF2] to-[#FDF1F4] text-[11px] font-semibold text-accent transition-transform hover:-translate-y-0.5"
-                  style={{ zIndex: 10 - index }}
-                >
-                  {patient.id.slice(-3)}
-                </Link>
-              ))}
-            {analysis.metrics.patientsImpacted > 7 ? (
-              <span className="grid h-11 w-11 place-items-center rounded-full border-2 border-white bg-surface-3 text-[11px] font-semibold text-muted">
-                +{analysis.metrics.patientsImpacted - 7}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-5 text-[13.5px] leading-relaxed text-ink-2">
-            <span className="font-semibold">
-              {analysis.metrics.patientsImpacted} synthetic patient records
-            </span>{" "}
-            carry a variant with new evidence, and may require clinical review.
+      <Card className="flex flex-wrap items-center gap-4 p-4 sm:flex-nowrap sm:px-5">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+          <ShieldCheck className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1 basis-60">
+          <p className="text-[14px] font-semibold text-ink">AI assists. Clinicians decide.</p>
+          <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">
+            VariantPulse highlights changes in scientific evidence to support clinical teams. It does
+            not alter patient records and does not make a diagnosis.
           </p>
-        </Card>
-
-        <Card className="p-5">
-          <SectionHeading
-            title="Not a diagnosis"
-            icon={<ShieldCheck className="h-4 w-4" />}
-          />
-          <p className="mt-4 text-[13.5px] leading-relaxed text-ink-2">
-            VariantPulse highlights changes in scientific evidence and helps clinical teams
-            review affected patients. It does not alter any record and does not decide any
-            diagnosis.
-          </p>
-          <Link href="/review" className="mt-5 block">
-            <Button variant="primary" size="lg" className="w-full justify-between">
-              Open clinical review
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <p className="mt-2.5 text-center text-[11.5px] text-faint">
-            AI assists. Clinicians decide.
-          </p>
-        </Card>
-      </section>
-
-      {/* ── Metrics ────────────────────────────────────────────────────── */}
-      <section className="mt-8">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="Synthetic patient records"
-            value={analysis.metrics.findingsMonitored}
-            hint={
-              <>
-                {analysis.assessments.length} real ClinVar variants · checked{" "}
-                <RelativeTime value={lastChecked} />
-              </>
-            }
-          />
-          <MetricCard
-            label="Reclassifications detected"
-            value={analysis.metrics.evidenceChanges}
-            tone={analysis.metrics.evidenceChanges > 0 ? "critical" : "positive"}
-            hint="Since the classification on record"
-            href="/variants"
-          />
-          <MetricCard
-            label="Records requiring review"
-            value={analysis.metrics.patientsImpacted}
-            tone={analysis.metrics.patientsImpacted > 0 ? "warning" : "positive"}
-            hint="Synthetic records awaiting clinical review"
-            href="/patients"
-          />
-          <MetricCard
-            label="Regional signals"
-            value={analysis.metrics.regionalConflicts}
-            tone={analysis.metrics.regionalConflicts > 0 ? "warning" : "positive"}
-            hint="gnomAD v4 Middle Eastern and CTGA evidence"
-            href="/regional"
-          />
         </div>
-      </section>
-
-      {/* ── Evidence changes requiring attention ───────────────────────── */}
-      <section className="mt-8">
-        <SectionHeading
-          title="Evidence changes requiring attention"
-          description="Every item below opens a clinical review case. None of them changes a record."
-          action={
-            <Link
-              href="/review"
-              className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent"
-            >
-              Review queue
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          }
-        />
-        {reviewable.length === 0 ? (
-          <Card className="mt-4">
-            <EmptyState
-              icon={<ShieldCheck className="h-5 w-5" />}
-              title="No material evidence changes detected"
-              description="Every monitored finding agrees with the current interpretation on record."
-            />
-          </Card>
-        ) : (
-          <div className="mt-4 grid gap-4 xl:grid-cols-2">
-            {reviewable.slice(0, 4).map((assessment) => (
-              <EvidenceAlert key={assessment.variant.key} assessment={assessment} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── Timeline and activity ──────────────────────────────────────── */}
-      <section className="mt-8 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        {lead ? <ScienceTimeline assessment={lead} /> : <div />}
-
-        <Card className="flex flex-col p-5">
-          <SectionHeading
-            title="Recent activity"
-            action={
-              <Link
-                href="/activity"
-                className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent"
-              >
-                Full trail
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            }
-          />
-          <ol className="mt-5 flex-1">
-            {activity.slice(0, 7).map((entry, index, list) => (
-              <ActivityItem
-                key={entry.id}
-                at={entry.at}
-                title={entry.title}
-                detail={entry.detail}
-                kind={entry.kind}
-                last={index === list.length - 1}
-              />
-            ))}
-          </ol>
-        </Card>
-      </section>
-
-      {conflicts.length > 0 ? (
-        <section className="mt-8">
-          <SectionHeading
-            title="Regional evidence signals"
-            count={conflicts.length}
-            icon={<Globe2 className="h-4 w-4" />}
-            description="Middle Eastern evidence that deserves review. Frequency is evidence, not a classification, and neither source is ranked above the other."
-            action={
-              <Link
-                href="/regional"
-                className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent"
-              >
-                Compare sources
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            }
-          />
-          <div className="mt-4 grid gap-4 xl:grid-cols-2">
-            {conflicts.map((assessment) => (
-              <EvidenceAlert key={assessment.variant.key} assessment={assessment} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
-        <p className="text-[11.5px] text-faint">
-          VariantPulse · Built by Team Kanban
-        </p>
-        <p className="text-[11.5px] text-faint">
-          Synthetic patient records · Real public genomic evidence
-        </p>
-      </footer>
+        <span className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-line-2 bg-surface px-3.5 py-2 text-[13px] font-medium text-ink-2">
+          <Shield className="h-4 w-4 text-muted" />
+          Not a diagnosis
+        </span>
+      </Card>
     </div>
   );
 }
 
-function ClassificationText(code: Parameters<typeof ClassificationBadge>[0]["code"]) {
+/* -- Hero ------------------------------------------------------------------ */
+
+function Hero({ lead }: { lead: VariantAssessment | undefined }) {
   return (
-    <span className="font-medium text-warn">
-      {code === "VUS" ? "uncertain significance" : code.toLowerCase().replace(/_/g, " ")}
+    <section className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_240px] min-[86.25rem]:grid-cols-[minmax(0,1fr)_250px_330px]">
+      <div className="py-2">
+        <h1 className="text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink sm:text-[42px] min-[86.25rem]:text-[46px]">
+          The same DNA.
+          <span className="block text-accent">A different meaning.</span>
+        </h1>
+        <p className="mt-3 max-w-[30rem] text-[15px] leading-relaxed text-muted">
+          VariantPulse watches old genetic test results and flags when new scientific evidence
+          changes what they mean.
+        </p>
+      </div>
+
+      <HeroHelix className="hidden h-[184px] w-full md:block" />
+
+      {/* Narrower screens show this card at the foot of the sidebar instead. */}
+      <Link
+        href={lead ? `/variants/${encodeURIComponent(lead.variant.key)}` : "/variants"}
+        className="group hidden rounded-[20px] border border-accent-ring/60 bg-gradient-to-br from-accent-soft to-surface p-5 transition-shadow hover:shadow-[0_14px_34px_-22px_rgba(120,20,50,0.45)] min-[86.25rem]:block"
+      >
+        <span className="flex items-start gap-3.5">
+          <Dna className="h-10 w-10 shrink-0 text-accent/70" strokeWidth={1.3} />
+          <span className="min-w-0 flex-1 text-[15.5px] font-semibold leading-snug tracking-tight text-ink">
+            Your DNA didn&rsquo;t change.
+            <span className="block text-[19px] text-accent">Science did.</span>
+          </span>
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface text-accent shadow-[0_1px_3px_rgba(18,19,26,0.12)] transition-transform group-hover:translate-x-0.5">
+            <ArrowRight className="h-4 w-4" />
+          </span>
+        </span>
+        <span className="mt-3.5 block text-[12.5px] leading-relaxed text-muted">
+          We monitor scientific evidence so patients can benefit from new knowledge.
+        </span>
+      </Link>
+    </section>
+  );
+}
+
+/* -- How it works ---------------------------------------------------------- */
+
+function HowItWorks({ lead }: { lead: VariantAssessment }) {
+  const { variant, recordedCode, currentCode, impactedRecordCount, caseId } = lead;
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle
+          inline
+          title="How it works"
+          subtitle="From new scientific evidence to a clinical review, automatically."
+        />
+        <SyncButton size="sm" />
+      </div>
+
+      <ol className="mt-3.5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-7">
+        <Step number={1} title="Historical result" when={recordedWhen(lead)}>
+          <StepIcon tone="muted">
+            <FileText className="h-5 w-5" />
+          </StepIcon>
+          <VariantAndCode gene={variant.gene} hgvs={variant.hgvsCoding} code={recordedCode} />
+        </Step>
+
+        <Step number={2} title="New evidence detected" when={currentWhen(lead)}>
+          <StepIcon>
+            <FileSearch className="h-5 w-5" />
+          </StepIcon>
+          <VariantAndCode gene={variant.gene} hgvs={variant.hgvsCoding} code={currentCode} />
+        </Step>
+
+        <Step number={3} title="Patient impact">
+          <StepIcon round>
+            <Users className="h-5 w-5" />
+          </StepIcon>
+          <span className="min-w-0">
+            <span className="block text-[24px] font-semibold leading-none text-accent vp-num">
+              {impactedRecordCount}
+            </span>
+            <span className="mt-1 block text-[12.5px] leading-snug text-muted">
+              affected patient record{impactedRecordCount === 1 ? "" : "s"} identified
+            </span>
+          </span>
+        </Step>
+
+        <Step number={4} title="Clinical review" href={caseId ? `/review/${caseId}` : "/review"} last>
+          <StepIcon>
+            <ClipboardList className="h-5 w-5" />
+          </StepIcon>
+          <span className="text-[12.5px] leading-snug text-muted">
+            Review case opened for the care team
+          </span>
+        </Step>
+      </ol>
+    </Card>
+  );
+}
+
+function Step({
+  number,
+  title,
+  when,
+  href,
+  last = false,
+  children,
+}: {
+  number: number;
+  title: string;
+  when?: string;
+  href?: string;
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  const body = (
+    <>
+      <span className="flex items-start gap-3">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent vp-num">
+          {number}
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[13.5px] font-semibold leading-tight text-ink">{title}</span>
+          {when ? <span className="mt-0.5 block text-[12px] text-muted vp-num">{when}</span> : null}
+        </span>
+      </span>
+      <span className="mt-3 flex items-center gap-3">{children}</span>
+    </>
+  );
+
+  return (
+    <li className="relative">
+      {href ? (
+        <Link
+          href={href}
+          className="block h-full rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent-ring hover:bg-accent-soft/30"
+        >
+          {body}
+        </Link>
+      ) : (
+        <div className="h-full rounded-2xl border border-line bg-surface p-4">{body}</div>
+      )}
+      {!last ? (
+        <ArrowRight
+          aria-hidden
+          className="absolute -right-[22px] top-1/2 hidden h-4 w-4 -translate-y-1/2 text-accent xl:block"
+        />
+      ) : null}
+    </li>
+  );
+}
+
+function StepIcon({
+  tone = "accent",
+  round = false,
+  children,
+}: {
+  tone?: "accent" | "muted";
+  round?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "grid h-11 w-11 shrink-0 place-items-center",
+        round ? "rounded-full" : "rounded-xl",
+        tone === "accent" ? "bg-accent-soft text-accent" : "bg-surface-3 text-muted",
+      )}
+    >
+      {children}
     </span>
   );
+}
+
+function VariantAndCode({ gene, hgvs, code }: { gene: string; hgvs: string; code: ClassificationCode }) {
+  return (
+    <span className="min-w-0">
+      <span className="block truncate text-[13px] text-ink">
+        <span className="font-semibold">{gene}</span> {hgvs}
+      </span>
+      <ClassificationPill code={code} className="mt-1.5" />
+    </span>
+  );
+}
+
+/* -- Real example ---------------------------------------------------------- */
+
+function RealExample({ lead }: { lead: VariantAssessment }) {
+  const { variant, recordedCode, currentCode, evidence } = lead;
+
+  return (
+    <Card className="flex flex-col p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <SectionTitle
+          title="Real example"
+          subtitle={`${variant.gene} ${variant.hgvsCoding} — the same DNA, a different meaning.`}
+        />
+        {evidence.lastEvaluated ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-[12px] text-muted">
+            <Clock className="h-3.5 w-3.5" />
+            Evidence updated {formatDate(evidence.lastEvaluated)}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-4 grid flex-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <ExamplePanel
+          label="Then"
+          when={recordedWhen(lead)}
+          assessment={lead}
+          code={recordedCode}
+          note={recordedNote(lead)}
+        />
+        <div className="flex items-center justify-center gap-2 sm:flex-col sm:px-1">
+          <span className="grid h-9 w-9 place-items-center rounded-full border border-line-2 bg-surface text-ink-2">
+            <ArrowRight className="h-4 w-4 rotate-90 sm:rotate-0" />
+          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted sm:text-center">
+            Science
+            <br className="hidden sm:block" /> changed
+          </span>
+        </div>
+        <ExamplePanel
+          label="Now"
+          when={currentWhen(lead)}
+          assessment={lead}
+          code={currentCode}
+          note={lead.confidence.label}
+          current
+        />
+      </div>
+    </Card>
+  );
+}
+
+function ExamplePanel({
+  label,
+  when,
+  assessment,
+  code,
+  note,
+  current = false,
+}: {
+  label: string;
+  when: string;
+  assessment: VariantAssessment;
+  code: ClassificationCode;
+  note: string;
+  current?: boolean;
+}) {
+  const { gene, hgvsCoding, proteinChange } = assessment.variant;
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-start rounded-2xl border p-4",
+        current ? "border-accent-ring/70 bg-accent-soft/60" : "border-line bg-surface-2",
+      )}
+    >
+      <p className="flex items-baseline gap-2">
+        <span
+          className={cn(
+            "text-[12px] font-bold uppercase tracking-[0.08em]",
+            current ? "text-accent" : "text-ink",
+          )}
+        >
+          {label}
+        </span>
+        {when ? <span className="text-[12px] text-muted vp-num">{when}</span> : null}
+      </p>
+      <p className="mt-2.5 text-[14px] leading-snug text-ink">
+        <span className="font-semibold">{gene}</span>{" "}
+        <span className="text-ink-2">
+          {hgvsCoding}
+          {proteinChange ? ` (${proteinChange})` : ""}
+        </span>
+      </p>
+      <ClassificationPill code={code} className="mt-2.5" />
+      <p className="mt-auto pt-2.5 text-[12px] text-muted">{note}</p>
+    </div>
+  );
+}
+
+/* -- Data sources ---------------------------------------------------------- */
+
+function DataSources({ live }: { live: boolean }) {
+  return (
+    <Card className="p-5">
+      <SectionTitle title="Our data sources" subtitle="Trusted, complementary evidence." />
+      <ul className="mt-4 space-y-2">
+        <SourceRow
+          icon={<Database className="h-[18px] w-[18px]" />}
+          tile="bg-ok-soft text-ok"
+          name={live ? "Live ClinVar evidence" : "Cached ClinVar evidence"}
+          description="Current classifications"
+          status={live ? "Live" : "Cached"}
+          tone={live ? "positive" : "warning"}
+        />
+        <SourceRow
+          icon={<History className="h-[18px] w-[18px]" />}
+          tile="bg-accent-soft text-accent"
+          name={`${CLINVAR_JAN_2023.shortLabel} snapshot`}
+          description="Classification history"
+          status="Archived release"
+        />
+        <SourceRow
+          icon={<Globe2 className="h-[18px] w-[18px]" />}
+          tile="bg-warn-soft text-warn"
+          name="gnomAD v4 and CTGA"
+          description="Middle Eastern evidence"
+          status="Snapshot"
+        />
+        <SourceRow
+          icon={<Building2 className="h-[18px] w-[18px]" />}
+          tile="bg-info-soft text-info"
+          name="Synthetic hospital records"
+          description="Demonstration data"
+          status="Synthetic"
+        />
+      </ul>
+    </Card>
+  );
+}
+
+function SourceRow({
+  icon,
+  tile,
+  name,
+  description,
+  status,
+  tone = "muted",
+}: {
+  icon: React.ReactNode;
+  tile: string;
+  name: string;
+  description: string;
+  status: string;
+  tone?: "positive" | "warning" | "muted";
+}) {
+  return (
+    <li className="flex items-center gap-3">
+      <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl", tile)}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold text-ink">{name}</span>
+        <span className="block truncate text-[12px] text-muted">{description}</span>
+      </span>
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center gap-1.5 text-[12px]",
+          tone === "positive" && "font-medium text-ok",
+          tone === "warning" && "font-medium text-warn",
+          tone === "muted" && "text-muted",
+        )}
+      >
+        <StatusDot tone={tone} pulse={tone === "positive"} />
+        {status}
+      </span>
+    </li>
+  );
+}
+
+/* -- Shared pieces --------------------------------------------------------- */
+
+function SectionTitle({
+  title,
+  subtitle,
+  inline = false,
+}: {
+  title: string;
+  subtitle: string;
+  inline?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      <span aria-hidden className="mt-[3px] h-[18px] w-[3px] shrink-0 rounded-full bg-accent" />
+      <div className={cn("min-w-0", inline && "flex flex-wrap items-baseline gap-x-3 gap-y-0.5")}>
+        <h2 className="text-[16.5px] font-semibold tracking-tight text-ink">{title}</h2>
+        <p className={cn("text-[12.5px] text-muted", !inline && "mt-0.5")}>{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function ClassificationPill({ code, className }: { code: ClassificationCode; className?: string }) {
+  const info = meta(code);
+  return (
+    <Badge
+      tone={info.tone}
+      title={info.label}
+      className={cn("px-3 py-1.5 text-[12.5px] font-semibold", className)}
+    >
+      {info.short}
+    </Badge>
+  );
+}
+
+/** When the classification on record was stated: the ClinVar release, or the hospital report. */
+function recordedWhen(assessment: VariantAssessment): string {
+  const source = assessment.variant.historicalSource;
+  return source.kind === "clinvar-release" ? source.shortLabel : formatMonth(assessment.variant.recordedOn);
+}
+
+/**
+ * When ClinVar last evaluated today's reading. Left blank when that predates the
+ * record, where a date would read as time running backwards.
+ */
+function currentWhen(assessment: VariantAssessment): string {
+  const evaluated = assessment.evidence.lastEvaluated;
+  const recorded = assessment.variant.historicalSource.release ?? assessment.variant.recordedOn.slice(0, 7);
+  return evaluated && evaluated.slice(0, 7) >= recorded ? formatMonth(evaluated) : "";
+}
+
+/** How the classification on record was stated, quoting ClinVar where its wording differs. */
+function recordedNote(assessment: VariantAssessment): string {
+  const { variant, recordedCode } = assessment;
+  if (variant.historicalSource.kind === "modelled-report") return "Hospital report, not in ClinVar";
+  return variant.historicalClinvarText && variant.historicalClinvarText !== meta(recordedCode).label
+    ? `ClinVar: ${variant.historicalClinvarText}`
+    : "ClinVar release, as on record";
 }

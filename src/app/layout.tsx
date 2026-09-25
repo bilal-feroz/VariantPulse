@@ -32,6 +32,12 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// Every page carries the evidence read at request time. Left static, a build
+// would prerender each page with whatever evidence the build machine saw —
+// and because the ClinVar read never throws, Next's signal that the read is
+// request-time is swallowed by its fallback, freezing a "cached" state in.
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

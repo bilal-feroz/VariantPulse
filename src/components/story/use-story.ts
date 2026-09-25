@@ -54,6 +54,7 @@ export function useBackgroundSync() {
 
   const start = React.useCallback(() => {
     controller.current?.abort();
+    if (!navigator.onLine) return;
     const next = new AbortController();
     controller.current = next;
     fetch("/api/sync", { method: "POST", signal: next.signal })

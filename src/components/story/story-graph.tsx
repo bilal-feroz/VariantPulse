@@ -3,15 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  BookOpen,
-  Building2,
-  ClipboardCheck,
-  Database,
-  Globe2,
-  User,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Building2, ClipboardCheck, Database, Globe2, User } from "lucide-react";
 
 import { buttonClasses, ClassificationBadge } from "@/components/ui";
 import { meta, type ClassificationCode } from "@/lib/classification";
@@ -32,68 +24,56 @@ export interface StoryData {
   lastEvaluated: string | null;
   patients: StoryPatient[];
   caseId: string | null;
-  /** Monitored variant keys, drawn as the nodes the core scans. */
+  /** Monitored variant keys, drawn as the nodes on the core's variant track. */
   variantKeys: string[];
   leadKey: string;
 }
 
 /* -- Geometry -------------------------------------------------------------
-   One coordinate space shared by the SVG connectors and the HTML nodes, so
-   the two never drift apart at any width. */
+   One design space shared by the SVG connectors and the HTML nodes. The
+   whole graph is scaled as a unit to fit the available canvas. */
 
-const W = 1280;
-const H = 540;
-const CY = 290;
-const CORE = { x: 470, r: 86, ring: 112 };
-const PAST = { x: 134, w: 220 };
-const PRESENT = { x: 750, w: 220 };
-const FORK_X = 905;
-const PATIENT_X = 990;
-const PATIENT_YS = [170, 250, 330, 410];
-const REVIEW = { x: 1174, w: 196 };
-const SOURCES_Y = 62;
+export const GRAPH_W = 1100;
+export const GRAPH_H = 560;
+const CY = 292;
+const PAST = { x: 104, w: 196 };
+const CORE = { x: 392, w: 240, h: 150 };
+const PRESENT = { x: 652, w: 196 };
+const FORK_X = 776;
+const PATIENT_X = 842;
+const PATIENT_R = 24;
+const PATIENT_YS = [178, 254, 330, 406];
+const REVIEW = { x: 1006, w: 184 };
+const SOURCES_Y = 58;
 
 const SOURCES = [
-  { name: "ClinVar", icon: Database, x: 275 },
-  { name: "Literature", icon: BookOpen, x: 405 },
-  { name: "Regional evidence", icon: Globe2, x: 535 },
-  { name: "Hospital records", icon: Building2, x: 665 },
+  { name: "ClinVar", icon: Database, x: 212 },
+  { name: "Literature", icon: BookOpen, x: 332 },
+  { name: "Regional evidence", icon: Globe2, x: 452 },
+  { name: "Hospital records", icon: Building2, x: 572 },
 ] as const;
 
-const COLUMNS = [
-  { label: "Past", x: PAST.x },
-  { label: "VariantPulse", x: CORE.x },
-  { label: "Present", x: PRESENT.x },
-  { label: "Affected patients", x: PATIENT_X },
-  { label: "Clinical review", x: REVIEW.x },
-];
-
-const px = (x: number) => `${(x / W) * 100}%`;
-const py = (y: number) => `${(y / H) * 100}%`;
 const secs = (from: number, to: number) => (STEP_STARTS_MS[to] - STEP_STARTS_MS[from]) / 1000;
 
 function sourcePath(x: number): string {
-  const tx = CORE.x + (x - CORE.x) * 0.3;
-  const ty = CY - CORE.ring + 6;
-  return `M ${x} ${SOURCES_Y + 44} C ${x} ${SOURCES_Y + 100}, ${tx} ${ty - 56}, ${tx} ${ty}`;
-}
-
-function patientPath(y: number): string {
-  return `M ${PRESENT.x + PRESENT.w / 2} ${CY} L ${FORK_X} ${CY} C ${FORK_X + 40} ${CY}, ${PATIENT_X - 60} ${y}, ${PATIENT_X - 24} ${y}`;
-}
-
-function reviewPath(y: number): string {
-  const x0 = PATIENT_X + 24;
-  const x1 = REVIEW.x - REVIEW.w / 2;
-  return `M ${x0} ${y} C ${x0 + 40} ${y}, ${x1 - 40} ${CY}, ${x1} ${CY}`;
+  const tx = CORE.x + (x - CORE.x) * 0.35;
+  const ty = CY - CORE.h / 2;
+  return `M ${x} ${SOURCES_Y + 50} C ${x} ${SOURCES_Y + 110}, ${tx} ${ty - 70}, ${tx} ${ty}`;
 }
 
 const PATHS = {
   sources: SOURCES.map((s) => sourcePath(s.x)),
-  past: `M ${PAST.x + PAST.w / 2} ${CY} L ${CORE.x - CORE.ring} ${CY}`,
-  present: `M ${CORE.x + CORE.ring} ${CY} L ${PRESENT.x - PRESENT.w / 2} ${CY}`,
-  patients: PATIENT_YS.map(patientPath),
-  review: PATIENT_YS.map(reviewPath),
+  past: `M ${PAST.x + PAST.w / 2} ${CY} L ${CORE.x - CORE.w / 2} ${CY}`,
+  present: `M ${CORE.x + CORE.w / 2} ${CY} L ${PRESENT.x - PRESENT.w / 2} ${CY}`,
+  patients: PATIENT_YS.map(
+    (y) =>
+      `M ${PRESENT.x + PRESENT.w / 2} ${CY} L ${FORK_X} ${CY} C ${FORK_X + 26} ${CY}, ${PATIENT_X - PATIENT_R - 26} ${y}, ${PATIENT_X - PATIENT_R} ${y}`,
+  ),
+  review: PATIENT_YS.map((y) => {
+    const x0 = PATIENT_X + PATIENT_R;
+    const x1 = REVIEW.x - REVIEW.w / 2;
+    return `M ${x0} ${y} C ${x0 + 30} ${y}, ${x1 - 30} ${CY}, ${x1} ${CY}`;
+  }),
 };
 
 /* -- Connectors ----------------------------------------------------------- */
@@ -116,12 +96,12 @@ function Connector({
   const stroke = tone === "vermilion" ? "var(--color-vermilion)" : "var(--color-garnet)";
   return (
     <g>
-      <path d={d} fill="none" stroke="var(--color-line-2)" strokeWidth={1.4} strokeDasharray="3 5" />
+      <path d={d} fill="none" stroke="var(--color-line-2)" strokeWidth={1.5} strokeDasharray="3 5" />
       <motion.path
         d={d}
         fill="none"
         stroke={stroke}
-        strokeWidth={tone === "vermilion" ? 2.4 : 1.8}
+        strokeWidth={tone === "vermilion" ? 2.6 : 2}
         strokeLinecap="round"
         initial={false}
         animate={{ pathLength: active ? 1 : 0, opacity: active ? 1 : 0 }}
@@ -132,7 +112,7 @@ function Connector({
           d={d}
           fill="none"
           stroke="var(--color-surface)"
-          strokeWidth={2}
+          strokeWidth={2.2}
           strokeDasharray="4 18"
           initial={{ strokeDashoffset: 0 }}
           animate={{ strokeDashoffset: -44 }}
@@ -145,25 +125,33 @@ function Connector({
 
 /* -- Nodes ---------------------------------------------------------------- */
 
-function Place({
-  x,
-  y,
-  w,
-  children,
-  className,
-}: {
-  x: number;
-  y: number;
-  w?: number;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Place({ x, y, w, children }: { x: number; y: number; w?: number; children: React.ReactNode }) {
   return (
-    <div
-      className={cn("absolute -translate-x-1/2 -translate-y-1/2", className)}
-      style={{ left: px(x), top: py(y), width: w ? px(w) : undefined }}
+    <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: x, top: y, width: w }}>
+      {children}
+    </div>
+  );
+}
+
+/** Stage name that sits directly under its node. */
+function StageLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p
+      className={cn(
+        "whitespace-nowrap text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-faint",
+        className,
+      )}
     >
       {children}
+    </p>
+  );
+}
+
+function Labelled({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <StageLabel className="absolute inset-x-0 top-full mt-3">{label}</StageLabel>
     </div>
   );
 }
@@ -181,10 +169,10 @@ function SourceTile({
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5 text-center">
-      <span className="relative grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-ink-2">
-        <Icon className="h-4 w-4" strokeWidth={1.8} />
+      <span className="relative grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink-2">
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
         <motion.span
-          className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface"
+          className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-surface"
           initial={false}
           animate={{
             backgroundColor: active ? "var(--color-ok)" : "var(--color-line-2)",
@@ -193,7 +181,7 @@ function SourceTile({
           transition={{ duration: 0.4, delay: active ? index * 0.12 : 0 }}
         />
       </span>
-      <span className="text-[11px] font-medium leading-tight text-ink-2">{name}</span>
+      <span className="text-[12px] font-medium leading-tight text-ink-2">{name}</span>
       <span className="sr-only">{active ? "connected" : "standby"}</span>
     </div>
   );
@@ -201,24 +189,16 @@ function SourceTile({
 
 export function PastCard({ data, step }: { data: StoryData; step: number }) {
   const patient = data.patients[0];
-  const linked = step >= STEP.records;
   return (
-    <div
-      className={cn(
-        "vp-card-flat p-3.5 transition-colors duration-500",
-        linked && "vp-selected",
-      )}
-    >
+    <div className={cn("vp-card-flat p-4 transition-colors duration-500", step >= STEP.records && "vp-selected")}>
       <p className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint">
         Hospital record · {data.recordedOn.slice(0, 4)}
       </p>
-      <p className="mt-1.5 text-[14px] font-semibold tracking-tight text-ink">
-        Patient {patient?.id ?? "—"}
-      </p>
+      <p className="mt-1.5 text-[15px] font-semibold tracking-tight text-ink">{patient?.id ?? "—"}</p>
       <p className="mt-0.5 text-[12.5px] text-ink-2">
-        {data.gene} <span className="font-mono text-[11.5px]">{data.hgvs}</span>
+        {data.gene} <span className="font-mono text-[12px]">{data.hgvs}</span>
       </p>
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <ClassificationBadge code={data.recordedCode} />
         <span className="text-[11px] text-faint vp-num">{data.recordedOn}</span>
       </div>
@@ -226,54 +206,159 @@ export function PastCard({ data, step }: { data: StoryData; step: number }) {
   );
 }
 
-function CoreCentre({ data, step }: { data: StoryData; step: number }) {
-  const found = step >= STEP.detect;
+/* The core: a stretch of DNA with the monitored variants on it. */
+
+const TRACK_W = 212;
+const TRACK_H = 72;
+const TRACK_MID = TRACK_H / 2;
+const TRACK_AMP = 20;
+const TRACK_TURNS = 2.5;
+
+function strand(phase: number): string {
+  const pts: string[] = [];
+  for (let i = 0; i <= 64; i += 1) {
+    const x = (i / 64) * TRACK_W;
+    const y = TRACK_MID + TRACK_AMP * Math.sin((i / 64) * Math.PI * 2 * TRACK_TURNS + phase);
+    pts.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`);
+  }
+  return pts.join(" ");
+}
+
+const STRANDS = [strand(0), strand(Math.PI)];
+const RUNGS = Array.from({ length: 21 }, (_, i) => {
+  const t = (i + 0.5) / 21;
+  const x = t * TRACK_W;
+  const dy = TRACK_AMP * Math.sin(t * Math.PI * 2 * TRACK_TURNS);
+  return { x, y1: TRACK_MID + dy, y2: TRACK_MID - dy };
+});
+
+export function VariantTrack({ data, step }: { data: StoryData; step: number }) {
+  const n = data.variantKeys.length;
+  const scanning = step === STEP.scan;
+  const scanned = step >= STEP.scan;
+  const detected = step >= STEP.detect;
+  const scanDuration = secs(STEP.scan, STEP.detect) - 0.15;
+  const xs = data.variantKeys.map((_, i) => 10 + ((i + 0.5) / n) * (TRACK_W - 20));
+
   return (
-    <div className="text-center">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-        {step >= STEP.scan && !found ? "Scanning" : "Genomic object"}
+    <svg viewBox={`0 0 ${TRACK_W} ${TRACK_H}`} className="block h-auto w-full overflow-visible" aria-hidden>
+      {RUNGS.map((r) => (
+        <line key={r.x} x1={r.x} x2={r.x} y1={r.y1} y2={r.y2} stroke="var(--color-line)" strokeWidth={1.4} />
+      ))}
+      {STRANDS.map((d, i) => (
+        <path
+          key={d}
+          d={d}
+          fill="none"
+          stroke={i === 0 ? "var(--color-garnet)" : "var(--color-selected-border)"}
+          strokeWidth={2}
+          strokeLinecap="round"
+          opacity={i === 0 ? 0.55 : 1}
+        />
+      ))}
+      <line x1={4} x2={TRACK_W - 4} y1={TRACK_MID} y2={TRACK_MID} stroke="var(--color-line-2)" strokeWidth={1} />
+
+      {data.variantKeys.map((key, i) => {
+        const lead = key === data.leadKey;
+        const x = xs[i];
+        const lit = lead && detected;
+        return (
+          <g key={key}>
+            {lit ? (
+              <motion.circle
+                cx={x}
+                cy={TRACK_MID}
+                fill="var(--color-vermilion)"
+                initial={{ r: 6, opacity: 0.55 }}
+                animate={{ r: 18, opacity: 0 }}
+                transition={{ duration: 1.1, repeat: 2, ease: "easeOut" }}
+              />
+            ) : null}
+            <motion.circle
+              cx={x}
+              cy={TRACK_MID}
+              stroke="var(--color-surface)"
+              strokeWidth={2}
+              initial={false}
+              animate={{
+                r: lit ? 6.5 : 4,
+                fill: lit
+                  ? "var(--color-vermilion)"
+                  : scanned
+                    ? "var(--color-slate)"
+                    : "var(--color-line-2)",
+              }}
+              transition={{
+                duration: 0.25,
+                delay: scanning ? (x / TRACK_W) * scanDuration : 0,
+              }}
+            />
+          </g>
+        );
+      })}
+
+      {scanning ? (
+        <motion.rect
+          y={-6}
+          width={2}
+          height={TRACK_H + 12}
+          rx={1}
+          fill="var(--color-garnet)"
+          initial={{ x: 0, opacity: 0.9 }}
+          animate={{ x: TRACK_W, opacity: 0.9 }}
+          transition={{ duration: scanDuration, ease: "linear" }}
+        />
+      ) : null}
+    </svg>
+  );
+}
+
+function CoreCard({ data, step }: { data: StoryData; step: number }) {
+  const detected = step >= STEP.detect;
+  return (
+    <div
+      className={cn(
+        "vp-card-flat px-4 pb-3 pt-3.5 transition-colors duration-500",
+        detected && "border-garnet",
+      )}
+    >
+      <p className="flex items-baseline justify-center gap-2 text-center">
+        <span className="text-[16px] font-semibold tracking-tight text-ink">{data.gene}</span>
+        <span className="font-mono text-[12px] text-ink-2">{data.hgvs}</span>
       </p>
-      <p className="mt-1 text-[17px] font-semibold tracking-tight text-ink">{data.gene}</p>
-      <p className="font-mono text-[11.5px] text-ink-2">{data.hgvs}</p>
+      <div className="mt-2">
+        <VariantTrack data={data} step={step} />
+      </div>
     </div>
   );
 }
 
 export function PresentCard({ data, step }: { data: StoryData; step: number }) {
   const changed = step >= STEP.reclassify;
-  const checking = step >= STEP.sources && !changed;
   return (
     <div
       className={cn(
-        "vp-card-flat p-3.5 transition-opacity duration-500",
-        !changed && "opacity-70",
+        "vp-card-flat p-4 transition-colors duration-500",
+        changed ? "border-selected-border" : "border-dashed",
       )}
     >
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-faint">
-        ClinVar today
-      </p>
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint">ClinVar today</p>
       {changed ? (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-vermilion-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-vermilion-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
             <span className="h-1.5 w-1.5 rounded-full bg-vermilion" />
             New evidence found
           </span>
-          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[13.5px] font-semibold leading-tight">
-            <span className="text-faint line-through decoration-slate">{meta(data.recordedCode).short}</span>
+          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[14px] font-semibold leading-tight">
+            <span className="text-faint line-through">{meta(data.recordedCode).short}</span>
             <ArrowRight className="h-4 w-4 text-vermilion" strokeWidth={2.4} aria-label="to" />
             <span className="text-accent">{meta(data.currentCode).label}</span>
           </p>
-          <p className="mt-1.5 text-[11px] text-faint vp-num">
-            Evaluated {data.lastEvaluated ?? "not stated"}
-          </p>
+          <p className="mt-1.5 text-[11px] text-faint vp-num">Evaluated {data.lastEvaluated ?? "not stated"}</p>
         </motion.div>
       ) : (
-        <p className="mt-2 text-[12.5px] text-muted">
-          {checking ? "Checking current evidence…" : "Not yet checked"}
+        <p className="mt-2 text-[20px] font-semibold leading-none text-line-2" aria-label="Not yet checked">
+          ?
         </p>
       )}
     </div>
@@ -282,59 +367,54 @@ export function PresentCard({ data, step }: { data: StoryData; step: number }) {
 
 function PatientAvatar({ id, shown, index }: { id: string; shown: boolean; index: number }) {
   return (
-    <motion.div
-      className="flex flex-col items-center gap-1"
-      initial={false}
-      animate={{ opacity: shown ? 1 : 0.4, scale: shown ? 1 : 0.92 }}
-      transition={{ duration: 0.35, delay: shown ? index * 0.12 : 0 }}
-    >
-      <span
+    <div className="flex flex-col items-center gap-1">
+      <motion.span
         className={cn(
-          "grid h-10 w-10 place-items-center rounded-full border transition-colors duration-300",
-          shown
-            ? "border-selected-border bg-active-bg text-accent"
-            : "border-dashed border-line-2 bg-surface text-slate",
+          "grid place-items-center rounded-full border-[1.5px] transition-colors duration-300",
+          shown ? "border-garnet bg-active-bg text-accent" : "border-dashed border-slate bg-surface text-slate",
         )}
+        style={{ width: PATIENT_R * 2, height: PATIENT_R * 2 }}
+        initial={false}
+        animate={{ scale: shown ? [1, 1.14, 1] : 1 }}
+        transition={{ duration: 0.4, delay: shown ? index * 0.12 : 0 }}
       >
-        <User className="h-4 w-4" strokeWidth={2} />
-      </span>
-      <span className={cn("font-mono text-[10.5px]", shown ? "text-ink-2" : "text-faint")}>
-        {id}
-      </span>
-    </motion.div>
+        <User className="h-5 w-5" strokeWidth={2} />
+      </motion.span>
+      <span className={cn("font-mono text-[11px]", shown ? "font-medium text-ink" : "text-faint")}>{id}</span>
+    </div>
   );
 }
 
 export function ReviewCard({ data, step }: { data: StoryData; step: number }) {
   const created = step >= STEP.review;
   return (
-    <div className={cn("vp-card-flat p-3.5 transition-opacity duration-500", !created && "opacity-70")}>
+    <div
+      className={cn(
+        "vp-card-flat p-4 transition-colors duration-500",
+        created ? "border-selected-border" : "border-dashed",
+      )}
+    >
       <span
         className={cn(
-          "grid h-8 w-8 place-items-center rounded-full",
+          "grid h-9 w-9 place-items-center rounded-full transition-colors duration-300",
           created ? "bg-active-bg text-accent" : "bg-surface-3 text-slate",
         )}
       >
-        <ClipboardCheck className="h-4 w-4" strokeWidth={1.9} />
+        <ClipboardCheck className="h-[18px] w-[18px]" strokeWidth={1.9} />
       </span>
       {created ? (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <p className="mt-2 text-[13px] font-semibold leading-snug text-ink">Clinical review case created</p>
-          {data.caseId ? (
-            <p className="mt-0.5 font-mono text-[11px] text-faint">{data.caseId}</p>
-          ) : null}
+          <p className="mt-2.5 text-[13.5px] font-semibold leading-snug text-ink">Clinical review case created</p>
+          {data.caseId ? <p className="mt-0.5 font-mono text-[11px] text-faint">{data.caseId}</p> : null}
           <Link
             href={data.caseId ? `/review/${data.caseId}` : "/review"}
-            className={buttonClasses("primary", "sm", "mt-2.5 w-full whitespace-nowrap px-2 text-[12px]")}
+            className={buttonClasses("primary", "sm", "mt-3 w-full whitespace-nowrap px-2 text-[12.5px]")}
           >
             Open clinical review
           </Link>
         </motion.div>
       ) : (
-        <>
-          <p className="mt-2 text-[13px] font-semibold text-ink">Clinician review</p>
-          <p className="mt-0.5 text-[11.5px] text-muted">A clinician decides</p>
-        </>
+        <p className="mt-2.5 text-[13.5px] font-semibold text-muted">Clinician</p>
       )}
     </div>
   );
@@ -343,15 +423,16 @@ export function ReviewCard({ data, step }: { data: StoryData; step: number }) {
 /* -- Desktop graph -------------------------------------------------------- */
 
 export function StoryGraph({ data, step }: { data: StoryData; step: number }) {
-  const n = data.variantKeys.length;
-  const leadIndex = Math.max(0, data.variantKeys.indexOf(data.leadKey));
-  const scanning = step === STEP.scan;
-  const detected = step >= STEP.detect;
   const flowing = step === STEP.flow || step === STEP.scan;
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: `${W} / ${H}` }}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" aria-hidden focusable="false">
+    <div className="relative" style={{ width: GRAPH_W, height: GRAPH_H }}>
+      <svg
+        viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`}
+        className="absolute inset-0 h-full w-full"
+        aria-hidden
+        focusable="false"
+      >
         {PATHS.sources.map((d, i) => (
           <Connector
             key={d}
@@ -363,12 +444,7 @@ export function StoryGraph({ data, step }: { data: StoryData; step: number }) {
           />
         ))}
         <Connector d={PATHS.past} active={step >= STEP.flow} duration={0.5} flowing={flowing} />
-        <Connector
-          d={PATHS.present}
-          active={step >= STEP.reclassify}
-          tone="vermilion"
-          duration={0.35}
-        />
+        <Connector d={PATHS.present} active={step >= STEP.reclassify} tone="vermilion" duration={0.35} />
         {PATHS.patients.map((d, i) => (
           <Connector
             key={d}
@@ -381,106 +457,96 @@ export function StoryGraph({ data, step }: { data: StoryData; step: number }) {
         {PATHS.review.map((d, i) => (
           <Connector key={d} d={d} active={step >= STEP.review} delay={i * 0.05} duration={0.4} />
         ))}
-
-        {/* Core: the genomic object and the variants it watches. */}
-        <circle
-          cx={CORE.x}
-          cy={CY}
-          r={CORE.ring}
-          fill="none"
-          stroke="var(--color-line)"
-          strokeWidth={1}
-        />
-        <circle
-          cx={CORE.x}
-          cy={CY}
-          r={CORE.r}
-          fill="var(--color-surface)"
-          stroke={detected ? "var(--color-garnet)" : "var(--color-line-2)"}
-          strokeWidth={detected ? 1.6 : 1.2}
-          style={{ transition: "stroke 400ms ease" }}
-        />
-        {scanning ? (
-          <g transform={`translate(${CORE.x} ${CY})`}>
-            <motion.g
-              initial={{ rotate: 0 }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: secs(STEP.scan, STEP.detect), ease: "linear" }}
-            >
-              <circle r={CORE.ring + 8} fill="transparent" />
-              <line x1={0} y1={0} x2={CORE.ring + 8} y2={0} stroke="var(--color-garnet)" strokeOpacity={0.5} strokeWidth={1.4} />
-            </motion.g>
-          </g>
-        ) : null}
-        {data.variantKeys.map((key, i) => {
-          const angle = ((i - leadIndex) / n) * Math.PI * 2;
-          const x = CORE.x + CORE.ring * Math.cos(angle);
-          const y = CY + CORE.ring * Math.sin(angle);
-          const isLead = i === leadIndex;
-          const lit = isLead && detected;
-          return (
-            <g key={key}>
-              {lit ? (
-                <motion.circle
-                  cx={x}
-                  cy={y}
-                  r={7}
-                  fill="var(--color-vermilion)"
-                  initial={{ opacity: 0.55, scale: 1 }}
-                  animate={{ opacity: 0, scale: 3 }}
-                  transition={{ duration: 1.1, repeat: 2, ease: "easeOut" }}
-                  style={{ originX: `${x}px`, originY: `${y}px` }}
-                />
-              ) : null}
-              <circle
-                cx={x}
-                cy={y}
-                r={lit ? 7 : 4.5}
-                fill={lit ? "var(--color-vermilion)" : step >= STEP.scan ? "var(--color-slate)" : "var(--color-line-2)"}
-                stroke="var(--color-surface)"
-                strokeWidth={2}
-                style={{ transition: "fill 300ms ease" }}
-              />
-            </g>
-          );
-        })}
       </svg>
 
       {SOURCES.map((s, i) => (
-        <Place key={s.name} x={s.x} y={SOURCES_Y} w={120}>
+        <Place key={s.name} x={s.x} y={SOURCES_Y} w={116}>
           <SourceTile name={s.name} icon={s.icon} active={step >= STEP.sources} index={i} />
         </Place>
       ))}
 
       <Place x={PAST.x} y={CY} w={PAST.w}>
-        <PastCard data={data} step={step} />
+        <Labelled label="Past">
+          <PastCard data={data} step={step} />
+        </Labelled>
       </Place>
 
-      <Place x={CORE.x} y={CY} w={CORE.r * 2 - 20}>
-        <CoreCentre data={data} step={step} />
+      <Place x={CORE.x} y={CY} w={CORE.w}>
+        <Labelled label="VariantPulse">
+          <CoreCard data={data} step={step} />
+        </Labelled>
       </Place>
 
       <Place x={PRESENT.x} y={CY} w={PRESENT.w}>
-        <PresentCard data={data} step={step} />
+        <Labelled label="Present">
+          <PresentCard data={data} step={step} />
+        </Labelled>
       </Place>
 
       {data.patients.map((p, i) => (
-        <Place key={p.id} x={PATIENT_X} y={PATIENT_YS[i] ?? CY}>
+        <Place key={p.id} x={PATIENT_X} y={(PATIENT_YS[i] ?? CY) + 8}>
           <PatientAvatar id={p.id} shown={step >= STEP.patients} index={i} />
         </Place>
       ))}
-
-      <Place x={REVIEW.x} y={CY} w={REVIEW.w}>
-        <ReviewCard data={data} step={step} />
+      <Place x={PATIENT_X} y={(PATIENT_YS[PATIENT_YS.length - 1] ?? CY) + 64}>
+        <StageLabel>Affected patients</StageLabel>
       </Place>
 
-      {COLUMNS.map((c) => (
-        <Place key={c.label} x={c.x} y={H - 22}>
-          <p className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-            {c.label}
-          </p>
-        </Place>
-      ))}
+      <Place x={REVIEW.x} y={CY} w={REVIEW.w}>
+        <Labelled label="Clinical review">
+          <ReviewCard data={data} step={step} />
+        </Labelled>
+      </Place>
+    </div>
+  );
+}
+
+/**
+ * Scales the fixed-size graph as a unit to fill its container, leaving room
+ * for `footer` directly beneath it.
+ */
+export function FittedStoryGraph({
+  data,
+  step,
+  footer,
+  footerHeight,
+}: {
+  data: StoryData;
+  step: number;
+  footer: React.ReactNode;
+  footerHeight: number;
+}) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [scale, setScale] = React.useState<number | null>(null);
+
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const { width, height } = el.getBoundingClientRect();
+      setScale(Math.max(0.5, Math.min(width / GRAPH_W, (height - footerHeight) / GRAPH_H, 1.45)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [footerHeight]);
+
+  const s = scale ?? 1;
+  return (
+    <div
+      ref={ref}
+      className="flex h-full w-full flex-col items-center justify-center"
+      style={{ visibility: scale === null ? "hidden" : "visible" }}
+    >
+      <div className="relative shrink-0" style={{ width: GRAPH_W * s, height: GRAPH_H * s }}>
+        <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `scale(${s})` }}>
+          <StoryGraph data={data} step={step} />
+        </div>
+      </div>
+      <div className="w-full shrink-0" style={{ height: footerHeight }}>
+        {footer}
+      </div>
     </div>
   );
 }
@@ -500,53 +566,45 @@ function Rail({ active, tone = "garnet" }: { active: boolean; tone?: "garnet" | 
   );
 }
 
-function StageLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-faint">
-      {children}
-    </p>
-  );
-}
-
 export function StoryStack({ data, step }: { data: StoryData; step: number }) {
   return (
     <div className="mx-auto w-full max-w-md">
-      <StageLabel>Past</StageLabel>
+      <StageLabel className="mb-1.5 text-left">Past</StageLabel>
       <PastCard data={data} step={step} />
       <Rail active={step >= STEP.flow} />
 
-      <StageLabel>VariantPulse</StageLabel>
-      <div
-        className={cn(
-          "vp-card-flat p-3.5 transition-colors duration-500",
-          step >= STEP.detect && "border-garnet",
-        )}
-      >
+      <StageLabel className="mb-1.5 text-left">VariantPulse</StageLabel>
+      <div className={cn("vp-card-flat p-4 transition-colors duration-500", step >= STEP.detect && "border-garnet")}>
         <div className="grid grid-cols-4 gap-2">
           {SOURCES.map((s, i) => (
             <SourceTile key={s.name} name={s.name} icon={s.icon} active={step >= STEP.sources} index={i} />
           ))}
         </div>
-        <div className="mt-3 flex items-center justify-center gap-2 border-t border-line pt-3">
-          {step >= STEP.detect ? <span className="h-2 w-2 rounded-full bg-vermilion" aria-hidden /> : null}
-          <CoreCentre data={data} step={step} />
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="flex items-baseline justify-center gap-2">
+            <span className="text-[15px] font-semibold text-ink">{data.gene}</span>
+            <span className="font-mono text-[12px] text-ink-2">{data.hgvs}</span>
+          </p>
+          <div className="mx-auto mt-2 max-w-[260px]">
+            <VariantTrack data={data} step={step} />
+          </div>
         </div>
       </div>
       <Rail active={step >= STEP.reclassify} tone="vermilion" />
 
-      <StageLabel>Present</StageLabel>
+      <StageLabel className="mb-1.5 text-left">Present</StageLabel>
       <PresentCard data={data} step={step} />
       <Rail active={step >= STEP.records} />
 
-      <StageLabel>Affected patients</StageLabel>
-      <div className="vp-card-flat flex justify-around p-3.5">
+      <StageLabel className="mb-1.5 text-left">Affected patients</StageLabel>
+      <div className="vp-card-flat flex justify-around p-4">
         {data.patients.map((p, i) => (
           <PatientAvatar key={p.id} id={p.id} shown={step >= STEP.patients} index={i} />
         ))}
       </div>
       <Rail active={step >= STEP.review} />
 
-      <StageLabel>Clinical review</StageLabel>
+      <StageLabel className="mb-1.5 text-left">Clinical review</StageLabel>
       <ReviewCard data={data} step={step} />
     </div>
   );

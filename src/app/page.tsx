@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { MotionConfig } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
 import { FastForward, RefreshCw } from "lucide-react";
 
 import { evidenceModeMeta } from "@/components/story/mode";
-import { StoryGraph, StoryStack, type StoryData } from "@/components/story/story-graph";
+import { FittedStoryGraph, StoryStack, type StoryData } from "@/components/story/story-graph";
 import { STORY_STEPS, STORY_VARIANT_KEY } from "@/components/story/timeline";
 import { useBackgroundSync, useStoryTimeline } from "@/components/story/use-story";
 import { Button, StatusDot } from "@/components/ui";
@@ -36,6 +36,30 @@ export default function HomePage() {
     };
   }, [analysis]);
 
+  const payoff = (
+    <div className="flex h-full flex-col items-center justify-center text-center" aria-live="polite">
+      {done ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <p className="text-[22px] font-semibold tracking-tight text-ink sm:text-[30px]">
+            Your DNA didn&rsquo;t change. Science did.
+          </p>
+          <motion.p
+            className="mt-1 text-[15px] font-medium text-muted sm:text-[18px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            AI assists. Clinicians decide.
+          </motion.p>
+        </motion.div>
+      ) : null}
+    </div>
+  );
+
   const start = () => {
     background.start();
     run();
@@ -43,16 +67,16 @@ export default function HomePage() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="mx-auto flex min-h-full w-full max-w-[1400px] flex-col px-4 pb-5 pt-2 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[1760px] flex-col px-4 pb-6 pt-2 sm:px-6 lg:h-full lg:px-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-ink sm:text-[30px]">
               The same DNA. A different meaning.
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-faint">
-              <span className="inline-flex items-center gap-1.5" title={mode.detail}>
-                <StatusDot tone={mode.tone} />
-                <span className="font-medium text-ink-2">{mode.label}</span>
+              <span className="inline-flex items-center gap-1.5" title={mode.description}>
+                <StatusDot tone={mode.tone} pulse={mode.pulse} />
+                <span className="font-medium text-ink-2">{mode.indicator}</span>
               </span>
               <span aria-hidden>·</span>
               <span>Synthetic demonstration data</span>
@@ -76,35 +100,24 @@ export default function HomePage() {
           {STORY_STEPS[step]?.caption}
         </p>
 
-        <section className="flex flex-1 items-center py-4" aria-label="Genomic change story">
+        <section
+          className="flex flex-col py-4 lg:min-h-[420px] lg:flex-1 lg:py-2"
+          aria-label="Genomic change story"
+        >
           {data ? (
             <>
-              <div className="mx-auto hidden w-full max-w-[min(100%,calc((100dvh-250px)*1280/540))] lg:block">
-                <StoryGraph data={data} step={step} />
+              <div className="hidden min-h-0 flex-1 lg:block">
+                <FittedStoryGraph data={data} step={step} footer={payoff} footerHeight={96} />
               </div>
-              <div className="w-full lg:hidden">
+              <div className="lg:hidden">
                 <StoryStack data={data} step={step} />
+                <div className="mt-6">{payoff}</div>
               </div>
             </>
           ) : (
-            <p className="mx-auto text-[13px] text-muted">No monitored variant to show.</p>
+            <p className="m-auto text-[13px] text-muted">No monitored variant to show.</p>
           )}
         </section>
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-          <p
-            className={
-              done
-                ? "text-[15px] font-semibold tracking-tight text-ink transition-opacity duration-500"
-                : "text-[15px] font-semibold tracking-tight text-ink opacity-0 transition-opacity duration-500"
-            }
-            aria-hidden={!done}
-          >
-            Your DNA didn&rsquo;t change. Science did.
-            <span className="ml-3 font-medium text-muted">AI assists. Clinicians decide.</span>
-          </p>
-          <p className="text-[11px] text-faint">Built by Team Kanban</p>
-        </footer>
       </div>
     </MotionConfig>
   );

@@ -1,27 +1,11 @@
-import type { Tone } from "@/lib/classification";
+import { EVIDENCE_MODES, type EvidenceModeMeta } from "@/lib/evidence-mode";
+import type { EvidenceMode } from "@/lib/clinvar";
 
-export interface EvidenceModeMeta {
-  label: string;
-  detail: string;
-  tone: Tone;
+function isEvidenceMode(mode: string): mode is EvidenceMode {
+  return Object.prototype.hasOwnProperty.call(EVIDENCE_MODES, mode);
 }
 
-/** How the active evidence mode is shown. Unknown modes are treated as cached. */
-export function evidenceModeMeta(mode: string | undefined): EvidenceModeMeta {
-  switch (mode) {
-    case "demo":
-      return {
-        label: "Demo evidence",
-        detail: "Deterministic demo using the bundled ClinVar snapshot.",
-        tone: "neutral",
-      };
-    case "live":
-      return { label: "Live ClinVar", detail: "Evidence read live from NCBI ClinVar.", tone: "positive" };
-    default:
-      return {
-        label: "Cached evidence",
-        detail: "Serving the bundled ClinVar snapshot; the live source was unavailable.",
-        tone: "warning",
-      };
-  }
+/** Presentation for whichever mode the server reports. Unknown modes read as cached. */
+export function evidenceModeMeta(mode: string | null | undefined): EvidenceModeMeta {
+  return mode && isEvidenceMode(mode) ? EVIDENCE_MODES[mode] : EVIDENCE_MODES.cached;
 }

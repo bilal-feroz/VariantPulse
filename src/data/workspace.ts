@@ -220,7 +220,7 @@ const LAB = {
 } as const;
 
 export const PATIENTS: PatientRecord[] = [
-  // BRCA1:c.5309G>T — four records, the case that drives the review queue.
+  // BRCA1:c.5522G>T — four records, the case that drives the review queue.
   {
     id: "VP-10283",
     ageBand: "45-54",

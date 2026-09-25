@@ -70,7 +70,7 @@ export function Topbar() {
     .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Resolved");
 
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
-  const mode = evidenceModeMeta(analysis.mode);
+  const modeMeta = evidenceModeMeta(analysis.mode);
 
   return (
     <>
@@ -92,10 +92,16 @@ export function Topbar() {
         <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
           <span
             className="hidden items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 xl:inline-flex"
-            title={analysis.reason ? `${mode.detail} ${analysis.reason}` : mode.detail}
+            title={
+              analysis.mode === "cached"
+                ? `Serving the bundled snapshot. ${analysis.reason ?? "The live source was unavailable."}`
+                : modeMeta.description
+            }
           >
-            <StatusDot tone={mode.tone} pulse={analysis.mode === "live"} />
-            <span className="text-[12px] font-medium text-ink-2">{mode.label}</span>
+            <StatusDot tone={modeMeta.tone} pulse={modeMeta.pulse} />
+            <span className="text-[12px] font-medium text-ink-2">
+              {modeMeta.indicator}
+            </span>
             <RelativeTime value={lastChecked} className="text-[11.5px] text-faint vp-num" />
           </span>
 

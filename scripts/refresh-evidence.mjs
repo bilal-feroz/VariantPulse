@@ -170,6 +170,7 @@ async function main() {
   const snapshot = {
     source: "NCBI ClinVar (E-utilities)",
     sourceUrl: "https://www.ncbi.nlm.nih.gov/clinvar/",
+    capturedAt: new Date().toISOString(),
     recordCount: Object.keys(records).length,
     records,
   };

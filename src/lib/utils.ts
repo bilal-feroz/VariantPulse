@@ -61,7 +61,7 @@ export function relativeTime(value: string | null | undefined, now = Date.now())
   return `${Math.round(months / 12)}y ago`;
 }
 
-/** Splits `BRCA1:c.5309G>T` into its parts. */
+/** Splits `BRCA1:c.5522G>T` into its parts. */
 export function parseVariantKey(key: string): { gene: string; hgvs: string } {
   const index = key.indexOf(":");
   if (index === -1) return { gene: key, hgvs: "" };

@@ -17,6 +17,8 @@ import {
 import { PageHeader, PageShell } from "@/components/page-header";
 import { Badge, Card, Field, SectionHeading } from "@/components/ui";
 import { CURRENT_USER, MONITORED_FINDING_COUNT } from "@/data/workspace";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { WORKSPACE_TOTAL_LABELS } from "@/lib/narrative";
 import { cn, formatNumber } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
@@ -230,12 +232,12 @@ export default function SettingsPage() {
               label="Evidence mode"
               value={
                 <span className="inline-flex items-center gap-2">
-                  <Badge tone={analysis.mode === "live" ? "positive" : "warning"} dot>
-                    {analysis.mode === "live" ? "Live" : "Cached"}
+                  <Badge tone={EVIDENCE_MODES[analysis.mode].tone} dot>
+                    {EVIDENCE_MODES[analysis.mode].label}
                   </Badge>
-                  {analysis.reason ? (
-                    <span className="text-[12px] text-muted">{analysis.reason}</span>
-                  ) : null}
+                  <span className="text-[12px] text-muted">
+                    {analysis.reason ?? EVIDENCE_MODES[analysis.mode].description}
+                  </span>
                 </span>
               }
             />
@@ -245,7 +247,14 @@ export default function SettingsPage() {
               value={formatNumber(MONITORED_FINDING_COUNT)}
             />
             <Field label="Variants on panel" value={String(analysis.assessments.length)} />
-            <Field label="Open review cases" value={String(analysis.metrics.openCases)} />
+            <Field
+              label={WORKSPACE_TOTAL_LABELS.openCases}
+              value={String(analysis.metrics.openCases)}
+            />
+            <Field
+              label={WORKSPACE_TOTAL_LABELS.patientsImpacted}
+              value={String(analysis.metrics.patientsImpacted)}
+            />
             <Field
               label="Snapshot fallback"
               value={`Bundled evidence snapshot, ${analysis.assessments.length} records`}

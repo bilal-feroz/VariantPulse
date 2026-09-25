@@ -7,6 +7,7 @@ import { FolderOpen, ListPlus, Search, UserPlus } from "lucide-react";
 import { DecisionBlock, DecisionButtons } from "@/components/decision";
 import { ThenNow } from "@/components/domain";
 import { EvidenceBriefButton } from "@/components/evidence-brief";
+import { FhirExportButton } from "@/components/fhir-export";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { PatientLetterButton } from "@/components/patient-letter";
 import {
@@ -331,6 +332,7 @@ export default function ReviewCasePage() {
                 <PatientLetterButton assessment={assessment} />
               ) : null}
               <EvidenceBriefButton assessment={assessment} state={state} />
+              <FhirExportButton assessment={assessment} decision={decision} />
             </div>
           </Card>
 

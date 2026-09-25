@@ -25,7 +25,12 @@ import {
 } from "./classification";
 import { assessPriority, comparePriority, type PriorityAssessment } from "./priority";
 import { scanCorpus, type CorpusScan } from "./corpus";
-import { fetchCurrentEvidence, type EvidenceRecord, type EvidenceResult } from "./clinvar";
+import {
+  fetchCurrentEvidence,
+  type EvidenceRecord,
+  type EvidenceResult,
+  type RequestedEvidenceMode,
+} from "./clinvar";
 import { REGIONAL_BY_KEY, type RegionalEvidence } from "@/data/regional";
 import {
   MONITORED_VARIANTS,
@@ -34,6 +39,7 @@ import {
   type PatientRecord,
 } from "@/data/workspace";
 import { composeEvidenceSummary } from "./narrative";
+import { EVIDENCE_MODES } from "./evidence-mode";
 
 export interface PipelineStep {
   label: string;
@@ -115,7 +121,7 @@ function buildPipeline(input: {
     },
     {
       label: "Current evidence retrieved",
-      detail: `${mode === "live" ? "Read live from ClinVar" : "Served from the bundled snapshot"}: ${evidence.classification}, ${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"}, ${evidence.reviewStatus}.`,
+      detail: `${EVIDENCE_MODES[mode].pipelineSource}: ${evidence.classification}, ${evidence.submissionCount} submission${evidence.submissionCount === 1 ? "" : "s"}, ${evidence.reviewStatus}.`,
     },
     {
       label: "Classification difference detected",
@@ -226,8 +232,11 @@ function caseIdFor(index: number, year: number): string {
   return `VP-R-${year}-${String(index + 1).padStart(3, "0")}`;
 }
 
-export async function analyseWorkspace(options?: { force?: boolean }): Promise<WorkspaceAnalysis> {
-  const evidence = await fetchCurrentEvidence({ force: options?.force });
+export async function analyseWorkspace(options?: {
+  force?: boolean;
+  mode?: RequestedEvidenceMode;
+}): Promise<WorkspaceAnalysis> {
+  const evidence = await fetchCurrentEvidence({ force: options?.force, mode: options?.mode });
   const scan = scanCorpus();
 
   const partial = MONITORED_VARIANTS.map((variant) => {
@@ -239,7 +248,8 @@ export async function analyseWorkspace(options?: { force?: boolean }): Promise<W
     .filter((a) => a.requiresReview)
     .sort(comparePriority);
 
-  const year = new Date().getUTCFullYear();
+  // Derived from the evidence read, so demo mode yields the same ids on every run.
+  const year = new Date(evidence.checkedAt).getUTCFullYear();
   const caseIds = new Map<string, string>();
   reviewableSorted.forEach((assessment, index) => {
     caseIds.set(assessment.variant.key, caseIdFor(index, year));
@@ -292,7 +302,7 @@ export async function analyseWorkspace(options?: { force?: boolean }): Promise<W
       unchanged: assessments.filter((a) => a.changeType === "NO_MATERIAL_CHANGE").length,
       openCases: reviewable.length,
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt: evidence.mode === "demo" ? evidence.checkedAt : new Date().toISOString(),
   };
 }
 

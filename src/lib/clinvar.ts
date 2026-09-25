@@ -1,9 +1,14 @@
 /**
  * Current-evidence retrieval.
  *
- * Evidence is read live from NCBI ClinVar. If that call fails or is slow, the
- * bundled snapshot is served instead and the workspace says so rather than
- * quietly presenting stale data as current.
+ * Three modes, chosen by `VARIANTPULSE_EVIDENCE_MODE`:
+ *
+ * - `demo` (default): the bundled snapshot, with its timestamps taken from the
+ *   snapshot itself. No network, identical on every run and every render.
+ * - `live`: read from NCBI ClinVar. If that call fails or is slow, the bundled
+ *   snapshot is served instead with mode `cached`, and the workspace says so
+ *   rather than quietly presenting stale data as current.
+ * - `cached`: only ever reported, never selected; it is what `live` degrades to.
  */
 
 import "server-only";
@@ -11,7 +16,9 @@ import "server-only";
 import snapshot from "@/data/evidence-snapshot.json";
 import { MONITORED_VARIANTS } from "@/data/workspace";
 
-const EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
+/** Overridable so a ClinVar outage can be simulated with an unroutable host. */
+const EUTILS =
+  process.env.VARIANTPULSE_EUTILS_URL ?? "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 const REQUEST_TIMEOUT_MS = 6_000;
 /** How long a successful live read stays authoritative before refetching. */
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -51,20 +58,25 @@ export interface EvidenceRecord {
   citations: EvidenceCitation[];
 }
 
-export type EvidenceMode = "live" | "cached";
+export type EvidenceMode = "demo" | "live" | "cached";
+
+/** The mode a deployment asks for. `cached` is a fallback, not a choice. */
+export type RequestedEvidenceMode = Exclude<EvidenceMode, "cached">;
 
 export interface EvidenceResult {
   mode: EvidenceMode;
   /** Present when a live read was attempted and failed. */
   reason?: string;
   checkedAt: string;
-  /** When the served data was produced at source; null for the bundled snapshot. */
+  /** When the served data was produced at source; the capture time for the bundled snapshot. */
   sourceUpdatedAt: string | null;
   records: Record<string, EvidenceRecord>;
 }
 
 interface Snapshot {
   source: string;
+  /** ISO timestamp of when the snapshot was captured. */
+  capturedAt: string;
   sourceUrl: string;
   recordCount: number;
   records: Record<string, EvidenceRecord>;
@@ -73,13 +85,32 @@ interface Snapshot {
 const SNAPSHOT = snapshot as unknown as Snapshot;
 
 export const EVIDENCE_SOURCE_URL = SNAPSHOT.sourceUrl;
+export const SNAPSHOT_CAPTURED_AT = SNAPSHOT.capturedAt;
+
+export const EVIDENCE_MODE_ENV = "VARIANTPULSE_EVIDENCE_MODE";
+
+/** Anything other than an explicit `live` runs the deterministic demo. */
+export function resolveEvidenceMode(
+  raw: string | undefined = process.env[EVIDENCE_MODE_ENV],
+): RequestedEvidenceMode {
+  return raw?.trim().toLowerCase() === "live" ? "live" : "demo";
+}
+
+function demoResult(): EvidenceResult {
+  return {
+    mode: "demo",
+    checkedAt: SNAPSHOT.capturedAt,
+    sourceUpdatedAt: SNAPSHOT.capturedAt,
+    records: SNAPSHOT.records,
+  };
+}
 
 function cachedResult(reason?: string): EvidenceResult {
   return {
     mode: "cached",
     reason,
     checkedAt: new Date().toISOString(),
-    sourceUpdatedAt: null,
+    sourceUpdatedAt: SNAPSHOT.capturedAt,
     records: SNAPSHOT.records,
   };
 }
@@ -171,10 +202,17 @@ let cache: { value: EvidenceResult; expiresAt: number } | null = null;
 /**
  * Returns the current classification for every monitored variant.
  *
- * Never throws: an unreachable or malformed upstream response degrades to the
- * bundled snapshot with `mode: "cached"`.
+ * Never throws: in live mode an unreachable or malformed upstream response
+ * degrades to the bundled snapshot with `mode: "cached"`.
  */
-export async function fetchCurrentEvidence(options?: { force?: boolean }): Promise<EvidenceResult> {
+export async function fetchCurrentEvidence(options?: {
+  force?: boolean;
+  mode?: RequestedEvidenceMode;
+}): Promise<EvidenceResult> {
+  if ((options?.mode ?? resolveEvidenceMode()) === "demo") {
+    return demoResult();
+  }
+
   if (!options?.force && cache && cache.expiresAt > Date.now()) {
     return cache.value;
   }

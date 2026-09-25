@@ -18,8 +18,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "VariantPulse — Genomic Change Intelligence",
-    template: "%s — VariantPulse",
+    default: "VariantPulse · Genomic Change Intelligence",
+    template: "%s · VariantPulse",
   },
   description:
     "VariantPulse continuously monitors historical genomic findings against evolving scientific evidence and identifies when old patient records may require clinical review.",
@@ -38,8 +38,8 @@ export default async function RootLayout({
   const analysis = serialiseAnalysis(await analyseWorkspace());
 
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
         <WorkspaceProvider initial={analysis}>
           <a
             href="#workspace-content"

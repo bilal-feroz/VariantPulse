@@ -4,7 +4,7 @@
  * Global variant databases are dominated by European-ancestry cohorts. A
  * variant that looks common and harmless in that reference set can behave very
  * differently in a population with different founder history and higher
- * consanguinity — which is exactly when an old report deserves a second look.
+ * consanguinity, which is exactly when an old report deserves a second look.
  *
  * Scope and honesty: `observations`, `cohortSize`, `regionalFrequency` and
  * `globalFrequency` are REAL figures from gnomAD v4 (Middle Eastern genetic
@@ -134,7 +134,7 @@ export const REGIONAL_EVIDENCE: RegionalEvidence[] = [
     cohortSize: 3_031,
     regionalFrequency: 0.0018146,
     globalFrequency: 0.0004442,
-    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE records)"],
+    contributingCentres: ["CTGA, Centre for Arab Genomic Studies (UAE records)"],
     lastUpdated: "2026-09-25",
     note:
       "Haemoglobin D-Punjab. CTGA records it in UAE patients as likely pathogenic / pathogenic for sickle cell disease and beta-thalassaemia, and it is about four times more frequent in gnomAD's Middle Eastern group than globally. Global ClinVar submitters were still in conflict in January 2023 and only converged on pathogenic / likely pathogenic in March 2026: regional evidence was ahead of the global record.",
@@ -150,7 +150,7 @@ export const REGIONAL_EVIDENCE: RegionalEvidence[] = [
     cohortSize: 3_042,
     regionalFrequency: 0,
     globalFrequency: 0,
-    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE records)"],
+    contributingCentres: ["CTGA, Centre for Arab Genomic Studies (UAE records)"],
     lastUpdated: "2026-09-25",
     note:
       "CTGA lists this frameshift in a UAE patient as likely pathogenic for left ventricular non-compaction (record dated 2020). It did not appear in ClinVar until after January 2023 (first classified likely pathogenic, July 2025, single submitter). Another case where a regional catalogue carried the answer before global databases did.",
@@ -164,7 +164,7 @@ export const REGIONAL_EVIDENCE: RegionalEvidence[] = [
     cohortSize: 3_042,
     regionalFrequency: 0,
     globalFrequency: 0,
-    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE and Yemen records)"],
+    contributingCentres: ["CTGA, Centre for Arab Genomic Studies (UAE and Yemen records)"],
     lastUpdated: "2026-09-25",
     note:
       "CTGA records this frameshift in a UAE family (Rawashdeh et al. 2024) and a Yemeni patient (Al-Ali et al. 2023). Regional and global readings agree: pathogenic. Included as a control, so the system shows it does not raise an alert when nothing has changed.",

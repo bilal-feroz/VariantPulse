@@ -20,6 +20,7 @@ import {
   Eyebrow,
   SectionHeading,
 } from "@/components/ui";
+import { EvidenceLanes } from "@/components/clinical/evidence-lanes";
 
 /* -- Science timeline ------------------------------------------------------ */
 
@@ -113,7 +114,7 @@ export function ScienceTimeline({
     <Card className={cn("p-5", className)}>
       <SectionHeading
         title="How the interpretation changed"
-        description={`${assessment.variant.gene} ${assessment.variant.hgvsCoding} — the DNA is unchanged. The evidence around it is not.`}
+        description={`${assessment.variant.gene} ${assessment.variant.hgvsCoding}. The DNA is unchanged. The evidence around it is not.`}
       />
 
       <ol className="mt-5">
@@ -131,8 +132,8 @@ export function ScienceTimeline({
                 className={cn(
                   "z-10 grid h-14 w-14 shrink-0 place-items-center rounded-xl border text-[12px] font-semibold vp-num",
                   event.tone === "muted" && "border-line bg-surface-2 text-muted",
-                  event.tone === "warn" && "border-warn/20 bg-warn-soft text-warn",
-                  event.tone === "crit" && "border-crit/20 bg-crit-soft text-crit",
+                  event.tone === "warn" && "border-warn-border bg-warn-soft text-warn",
+                  event.tone === "crit" && "border-crit-border bg-crit-soft text-crit",
                   event.tone === "accent" && "border-accent-ring/60 bg-accent-soft text-accent",
                 )}
               >
@@ -314,13 +315,13 @@ export function EvidenceComparison({
         <span className="text-[12.5px] text-muted">No regional record</span>
       ),
       reviewLevel: regional ? `${regional.observations} regional observations` : "Not held",
-      updated: regional ? formatDate(regional.lastUpdated) : "—",
+      updated: regional ? formatDate(regional.lastUpdated) : "-",
       strength: regional ? (
         <span className="text-[12.5px] text-muted">
           Cohort {formatNumber(regional.cohortSize)}
         </span>
       ) : (
-        <span className="text-[12.5px] text-muted">—</span>
+        <span className="text-[12.5px] text-muted">-</span>
       ),
       note: REGIONAL_SOURCE.provenance,
     },
@@ -410,7 +411,7 @@ export function EvidenceComparison({
                 </a>
                 <span className="text-faint">
                   {" "}
-                  — {citation.journal} {citation.year} · PMID {citation.pmid}
+                  · {citation.journal} {citation.year} · PMID {citation.pmid}
                 </span>
               </li>
             ))}
@@ -449,6 +450,17 @@ export function RegionalComparison({
           </Badge>
         )}
       </div>
+
+      {regionalDisagreement ? (
+        <div className="border-b border-line p-5">
+          <EvidenceLanes
+            disagreement={regionalDisagreement}
+            regional={regional}
+            globalEvaluated={evidence.lastEvaluated}
+            globalMeta={evidence.reviewStatus}
+          />
+        </div>
+      ) : null}
 
       <div className="grid gap-px bg-line md:grid-cols-2">
         <div className="bg-surface p-5">
@@ -534,7 +546,7 @@ export function RegionalComparison({
                 </a>
                 <span className="text-faint">
                   {" "}
-                  — {citation.journal} {citation.year} · PMID {citation.pmid}
+                  · {citation.journal} {citation.year} · PMID {citation.pmid}
                 </span>
               </li>
             ))}

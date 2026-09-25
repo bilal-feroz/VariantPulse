@@ -51,7 +51,7 @@ export default function RegionalPage() {
             </p>
             <p className="mt-3 text-[12.5px] text-muted">
               <span className="font-medium text-ink vp-num">{analysis.assessments.length}</span>{" "}
-              variants read live from ClinVar
+              variants read from ClinVar
             </p>
           </div>
 
@@ -76,37 +76,23 @@ export default function RegionalPage() {
           </div>
         </div>
 
-        <p className="mt-5 border-t border-line pt-3.5 text-[11.5px] leading-relaxed text-faint">
+        <p className="mt-5 border-t border-line pt-3.5 text-[13px] leading-relaxed text-ink-2">
+          Of <span className="font-medium text-ink vp-num">{covered.length}</span> variants held in
+          both sources,{" "}
+          <span className="font-medium text-warn vp-num">{conflicts.length}</span> read differently
+          and need a clinician to weigh them;{" "}
+          <span className="font-medium text-ok vp-num">{agreeing.length}</span> fall in the same
+          clinical band, across{" "}
+          <span className="font-medium text-ink vp-num">
+            {formatNumber(covered.reduce((total, a) => total + (a.regional?.observations ?? 0), 0))}
+          </span>{" "}
+          regional observations.
+        </p>
+        <p className="mt-3 text-[11.5px] leading-relaxed text-faint">
           {REGIONAL_SOURCE.coverageNote} VariantPulse does not imply endorsement by, or
           integration with, any national programme or registry.
         </p>
       </Card>
-
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
-        <Card className="p-5">
-          <p className="text-[28px] font-semibold leading-none text-warn vp-num">
-            {conflicts.length}
-          </p>
-          <p className="mt-2 text-[13px] font-medium text-ink-2">Conflicting interpretations</p>
-          <p className="mt-1 text-[11.5px] text-faint">Global and regional readings differ</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-[28px] font-semibold leading-none text-ok vp-num">
-            {agreeing.length}
-          </p>
-          <p className="mt-2 text-[13px] font-medium text-ink-2">Consistent interpretations</p>
-          <p className="mt-1 text-[11.5px] text-faint">Both sources agree on the band</p>
-        </Card>
-        <Card className="p-5">
-          <p className="text-[28px] font-semibold leading-none text-ink vp-num">
-            {formatNumber(
-              covered.reduce((total, a) => total + (a.regional?.observations ?? 0), 0),
-            )}
-          </p>
-          <p className="mt-2 text-[13px] font-medium text-ink-2">Regional observations</p>
-          <p className="mt-1 text-[11.5px] text-faint">Across the variants held in the index</p>
-        </Card>
-      </div>
 
       <SectionHeading
         title="Regional evidence conflicts"
@@ -136,7 +122,7 @@ export default function RegionalPage() {
                 />
                 <Link href={assessment.caseId ? `/review/${assessment.caseId}` : "/review"}>
                   <Button variant="primary" size="sm">
-                    Create clinical review
+                    Open clinical review
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
@@ -194,10 +180,10 @@ export default function RegionalPage() {
                   )}
                 </td>
                 <td className="px-5 py-3 text-[12.5px] text-ink-2 vp-num">
-                  {assessment.regional?.observations ?? "—"}
+                  {assessment.regional?.observations ?? "-"}
                 </td>
                 <td className="px-5 py-3 text-[12.5px] text-muted vp-num">
-                  {assessment.regional ? formatNumber(assessment.regional.cohortSize) : "—"}
+                  {assessment.regional ? formatNumber(assessment.regional.cohortSize) : "-"}
                 </td>
               </tr>
             ))}

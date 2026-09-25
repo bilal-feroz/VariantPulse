@@ -10,7 +10,7 @@
  *
  * Small uppercase labels are still "normal text" under 1.4.3, so the faintest
  * tone is held to 4.5:1 rather than the 3:1 allowed for large text. The
- * lightness hierarchy is therefore shallow by design — size, case and tracking
+ * lightness hierarchy is therefore shallow by design; size, case and tracking
  * carry it instead.
  *
  * Garnet (brand), clinical red (critical) and vermilion (change) are all

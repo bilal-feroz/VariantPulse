@@ -4,7 +4,7 @@
  * These are composed from the structured fields of the records they cite:
  * classification codes, submission counts, review status, evaluation dates and
  * regional observation counts. Nothing is inferred beyond what those fields
- * state, and no summary is used to decide whether a change occurred — that is
+ * state, and no summary is used to decide whether a change occurred; that is
  * settled deterministically in `classification.ts` before a summary is written.
  *
  * The output is decision support. It is written to be checked against the
@@ -72,7 +72,7 @@ export function composeEvidenceSummary(input: SummaryInput): string {
     case "CLASSIFICATION_DRIFT": {
       const intoActionable = after.band === "pathogenic";
       sentences.push(
-        `Since the ${reportedYear} report, the consensus for ${label} has moved from ${before.label.toLowerCase()} to ${after.label.toLowerCase()}. That reading rests on ${submissionPhrase(evidence.submissionCount)} at ${confidence.strength.toLowerCase()} review confidence — ${confidence.label.toLowerCase()}.`,
+        `Since the ${reportedYear} report, the consensus for ${label} has moved from ${before.label.toLowerCase()} to ${after.label.toLowerCase()}. That reading rests on ${submissionPhrase(evidence.submissionCount)} at ${confidence.strength.toLowerCase()} review confidence, ${confidence.label.toLowerCase()}.`,
       );
       sentences.push(
         intoActionable
@@ -143,7 +143,7 @@ export function composeEvidenceSummary(input: SummaryInput): string {
 }
 
 /**
- * A single-line reason for the review queue. Deliberately terse — the queue is
+ * A single-line reason for the review queue. Deliberately terse, because the queue is
  * for triage, and the full summary lives inside the case.
  */
 export function composeReviewReason(changeType: ChangeType, gene: string): string {
@@ -181,4 +181,30 @@ export function composeRecommendation(changeType: ChangeType, impacted: number):
     default:
       return "No action required. Current evidence agrees with the interpretation on record.";
   }
+}
+
+/**
+ * Workspace totals span every monitored variant, whereas the headline story is a
+ * single variant (see `selectStoryAssessment`). Totals are always labelled
+ * with their scope so the two numbers never read as contradicting each other.
+ */
+export const WORKSPACE_TOTAL_LABELS = {
+  findingsMonitored: "Historical findings on file in this workspace",
+  evidenceChanges: "Reclassifications across all monitored variants",
+  patientsImpacted: "Records affected across all changed variants in this workspace",
+  regionalConflicts: "Regional conflicts across all monitored variants",
+  openCases: "Open review cases across this workspace",
+} as const;
+
+export function workspaceScope(metrics: {
+  evidenceChanges: number;
+  regionalConflicts: number;
+  patientsImpacted: number;
+}): string {
+  const { evidenceChanges: changes, regionalConflicts: conflicts, patientsImpacted: records } =
+    metrics;
+  return (
+    `${changes} change${changes === 1 ? "" : "s"} · ${conflicts} regional conflict${conflicts === 1 ? "" : "s"} · ` +
+    `${records} record${records === 1 ? "" : "s"} across all changed variants in this workspace`
+  );
 }

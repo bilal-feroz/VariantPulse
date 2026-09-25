@@ -11,7 +11,8 @@
     "evidence:refresh": "node scripts/refresh-evidence.mjs",
     "verify:data": "node scripts/verify-data.mjs",
     "verify:contrast": "node scripts/verify-contrast.mjs",
-    "verify": "npm run type-check && npm run lint && npm run verify:data && npm run verify:contrast"
+    "verify": "npm run type-check && npm run lint && npm run verify:data && npm run verify:contrast",
+    "test": "vitest run"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -33,7 +34,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.26",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.11"
   },
-  "description": "Genomic Change Intelligence — monitors historical genomic findings against evolving scientific evidence."
+  "description": "Genomic Change Intelligence: monitors historical genomic findings against evolving scientific evidence."
 }

@@ -8,6 +8,8 @@ import type { VariantAssessment } from "@/lib/analysis";
 import { cn, formatDate } from "@/lib/utils";
 import { Badge, ClassificationBadge, EmptyState } from "@/components/ui";
 import { RelativeTime } from "@/components/relative-time";
+import { reviewStateFor } from "@/components/clinical/patient-impact-graph";
+import type { CaseStatus } from "@/state/workspace";
 
 const STATE_TONE = {
   "Not reviewed": "warning",
@@ -20,12 +22,15 @@ export function PatientImpactTable({
   rows,
   byKey,
   showVariant = true,
+  caseStatus,
   className,
 }: {
   rows: PatientRecord[];
   /** Assessment for each variant key, used for the interpretation columns. */
   byKey: Map<string, VariantAssessment>;
   showVariant?: boolean;
+  /** The review case these rows belong to, when the table shows a single case. */
+  caseStatus?: CaseStatus;
   className?: string;
 }) {
   if (rows.length === 0) {
@@ -102,10 +107,10 @@ export function PatientImpactTable({
                   </td>
                 ) : null}
                 <td className="px-4 py-3">
-                  {assessment ? <ClassificationBadge code={assessment.recordedCode} /> : "—"}
+                  {assessment ? <ClassificationBadge code={assessment.recordedCode} /> : "-"}
                 </td>
                 <td className="px-4 py-3">
-                  {assessment ? <ClassificationBadge code={assessment.currentCode} /> : "—"}
+                  {assessment ? <ClassificationBadge code={assessment.currentCode} /> : "-"}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-[12.5px] text-ink-2">
                   {patient.orderingDepartment}
@@ -117,7 +122,9 @@ export function PatientImpactTable({
                   <RelativeTime value={patient.lastContact} />
                 </td>
                 <td className="px-4 py-3">
-                  <Badge tone={STATE_TONE[patient.reviewState]}>{patient.reviewState}</Badge>
+                  <Badge tone={STATE_TONE[reviewStateFor(patient, caseStatus)]}>
+                    {reviewStateFor(patient, caseStatus)}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3">
                   <Link

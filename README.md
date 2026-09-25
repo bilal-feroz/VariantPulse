@@ -9,7 +9,7 @@
 
 ## The problem
 
-A patient has genetic testing. A variant comes back as **VUS — a variant of uncertain
+A patient has genetic testing. A variant comes back as **VUS, a variant of uncertain
 significance**. The report is filed, and the patient goes home.
 
 Years later, new functional studies are published, new submissions reach ClinVar, and an expert
@@ -18,7 +18,7 @@ panel reviews the variant. The consensus moves. The variant is now considered pa
 The patient's DNA has not changed. The evidence around it has.
 
 But the report in the record system still says what it said on the day it was issued, and nobody
-is watching. Reclassification is not an edge case — it is the normal behaviour of a field where
+is watching. Reclassification is not an edge case - it is the normal behaviour of a field where
 evidence accumulates faster than old reports are revisited. At population scale, that gap widens
 quietly and continuously.
 
@@ -27,11 +27,11 @@ quietly and continuously.
 VariantPulse continuously compares historical genomic findings against current scientific
 evidence and surfaces:
 
-- **what changed** — the interpretation on record versus the interpretation held today
-- **when and why** — the submissions, review status and literature behind the move
-- **who is affected** — every historical record carrying the changed variant
-- **where sources disagree** — global consensus against regional evidence
-- **what needs a human** — a prioritised clinical review queue
+- **what changed**: the interpretation on record versus the interpretation held today
+- **when and why**: the submissions, review status and literature behind the move
+- **who is affected**: every historical record carrying the changed variant
+- **where sources disagree**: global consensus against regional evidence
+- **what needs a human**: a prioritised clinical review queue
 
 It raises cases. It does not diagnose, and it never writes to a patient record.
 
@@ -118,8 +118,8 @@ npm run evidence:refresh  # re-pull the ClinVar snapshot
 
 **`verify:data`** checks what the type system cannot: that every monitored variant
 is backed by a real evidence record, that no patient points at a variant outside
-the panel, that no citation renders as a link with no text, and — most importantly
-— that no variant is presented as reclassified when the source last evaluated it
+the panel, that no citation renders as a link with no text, and, most importantly,
+that no variant is presented as reclassified when the source last evaluated it
 *before* the report it is supposed to have superseded. A case built on that premise
 would be false, and it is the kind of error that reads as plausible right up until a
 clinician checks it.
@@ -137,15 +137,15 @@ works fully offline against its bundled evidence snapshot.
 
 | Source | What it provides | Live? |
 |---|---|---|
-| **ClinVar** (NCBI E-utilities) | Current classification, review status, submission counts, evaluation dates, dbSNP and genomic coordinates | **Yes** — read at each sync |
+| **ClinVar** (NCBI E-utilities) | Current classification, review status, submission counts, evaluation dates, dbSNP and genomic coordinates | **Yes**, read at each sync |
 | **PubMed** (NCBI E-utilities) | Publications linked to each variant record | Captured when the snapshot is refreshed |
-| **Regional evidence index** | Arab and Gulf population observations | Modelled — see below |
-| **Record system** | Historical genomic findings | Synthetic — see below |
+| **Regional evidence index** | Arab and Gulf population observations | Modelled, see below |
+| **Record system** | Historical genomic findings | Synthetic, see below |
 
 ### Live reads and fallback
 
 Evidence is read live from ClinVar on every sync. If that call fails, times out, or returns a
-partial response, the workspace serves its bundled snapshot instead and **says so** — the status
+partial response, the workspace serves its bundled snapshot instead and **says so**: the status
 indicator switches from `live` to `cached` everywhere, with the reason attached. A partial
 response is discarded rather than mixed with cached records, so a single comparison never spans
 two different reads. Change detection runs locally, so the queue stays correct even with every
@@ -169,12 +169,12 @@ This distinction is maintained deliberately and is stated throughout the interfa
 
 - Every patient record, record identifier, clinician, department and laboratory is fabricated.
   None corresponds to a real person or institution.
-- The historical classifications attributed to this workspace's record system are modelled — they
+- The historical classifications attributed to this workspace's record system are modelled; they
   represent what a hospital is taken to have reported at the time of testing.
 - The regional index's cohort counts and per-variant assertions are modelled for this workspace.
   They are not live extracts from any national programme or registry, and nothing in VariantPulse
   is endorsed by or integrated with any government entity. The cited regional literature is real
-  and is provided as supporting context for *why* regional interpretation can diverge — not as a
+  and is provided as supporting context for *why* regional interpretation can diverge, not as a
   per-variant assertion.
 
 The finding corpus is generated from a fixed seed, so a sync genuinely walks all 12,482 records
@@ -183,8 +183,8 @@ on every run rather than reporting a number it did not compute.
 ## The accent and the alarm
 
 The palette is defined in [docs/color-system.md](docs/color-system.md) and implemented as
-tokens in `src/app/globals.css`. The interface is mostly neutral — bone (`#F7F4ED`) canvas,
-warm-white (`#FFFEFB`) cards, carbon (`#17191C`) text, mineral-grey (`#DDDAD2`) borders — so
+tokens in `src/app/globals.css`. The interface is mostly neutral, with a bone (`#F7F4ED`) canvas,
+warm-white (`#FFFEFB`) cards, carbon (`#17191C`) text, mineral-grey (`#DDDAD2`) borders, so
 that colour always means something:
 
 - **Garnet** (`#7A263A`) is VariantPulse itself: active navigation, selection, key numbers.
@@ -201,8 +201,8 @@ distinction is carried by role and weight rather than hue alone: only a `CRITICA
 **filled** badge, everything else is tinted, and vermilion appears only at the moment of change.
 
 Every text pairing clears WCAG AA, enforced by `npm run verify:contrast`. Where an exact
-palette colour falls short as small text — slate `#74777D` is 4.09:1 on bone, amber text
-`#A86E11` is 4.05:1 on its soft background — a text-safe token derived from it is used for text
+palette colour falls short as small text (slate `#74777D` is 4.09:1 on bone, amber text
+`#A86E11` is 4.05:1 on its soft background), a text-safe token derived from it is used for text
 (`faint` `#6B6E74`, `warn` `#94620F`) and the original is kept for icons, dots and fills.
 
 ## Clinician in the loop
@@ -221,17 +221,17 @@ regulatory assessment.
 
 ## Walkthrough
 
-1. **Home** — the change in one screen: what was reported, what is held now, who is affected.
-2. **Run evidence sync** — re-reads ClinVar, walks all 12,482 findings, and reports what it found.
-3. **Evidence changes requiring attention** — each item opens a review case.
-4. **Open a case** — patient impact on the left, the evidence in the centre, the decision on the
+1. **Home**. The change in one screen: what was reported, what is held now, who is affected.
+2. **Run evidence sync**. Re-reads ClinVar, walks all 12,482 findings, and reports what it found.
+3. **Evidence changes requiring attention**. Each item opens a review case.
+4. **Open a case**. Patient impact on the left, the evidence in the centre, the decision on the
    right. Expand *How VariantPulse reached this result* for the full eight-step derivation.
-5. **Regional insights** — where global and regional evidence disagree, and why that matters for a
+5. **Regional insights**. Where global and regional evidence disagree, and why that matters for a
    population the reference cohorts under-represent.
-6. **Generate evidence brief** — a clinician-facing brief, printable and downloadable.
-7. **Activity** — the audit trail behind all of it.
+6. **Generate evidence brief**. A clinician-facing brief, printable and downloadable.
+7. **Activity**. The audit trail behind all of it.
 
-Global search is on `Ctrl`/`Cmd` + `K` — record IDs, gene symbols, HGVS strings, ClinVar
+Global search is on `Ctrl`/`Cmd` + `K` and covers record IDs, gene symbols, HGVS strings, ClinVar
 accessions and case numbers.
 
 ---

@@ -12,6 +12,13 @@ import { workspaceScope } from "@/lib/narrative";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
 
+/** Status text only: where a reviewed case can go, and how far each route has got. */
+const INTEGRATIONS = [
+  { name: "FHIR R4 export", status: "Available" },
+  { name: "HL7 v2 / EHR connector", status: "Pilot" },
+  { name: "Malaffi (Abu Dhabi HIE)", status: "Pilot target" },
+];
+
 export default function SourcesPage() {
   const { analysis, sync } = useWorkspace();
   const live = analysis.mode === "live";
@@ -204,6 +211,24 @@ export default function SourcesPage() {
             when every external source is down.
           </li>
         </ul>
+      </Card>
+
+      <Card className="mt-5 p-5">
+        <SectionHeading
+          title="Integrations"
+          description="How a reviewed case reaches hospital systems."
+        />
+        <dl className="mt-3 divide-y divide-line">
+          {INTEGRATIONS.map((integration) => (
+            <div
+              key={integration.name}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-2.5"
+            >
+              <dt className="text-[13.5px] font-medium text-ink">{integration.name}</dt>
+              <dd className="text-[13px] text-muted">{integration.status}</dd>
+            </div>
+          ))}
+        </dl>
       </Card>
     </PageShell>
   );

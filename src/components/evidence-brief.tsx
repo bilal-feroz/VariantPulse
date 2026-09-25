@@ -13,16 +13,24 @@ import { Download, FileText, Printer, X } from "lucide-react";
 
 import type { VariantAssessment } from "@/lib/analysis";
 import { meta } from "@/lib/classification";
+import { currentDecision } from "@/lib/decision";
 import { composeRecommendation } from "@/lib/narrative";
 import { REGIONAL_SOURCE } from "@/data/regional";
 import { CURRENT_USER } from "@/data/workspace";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui";
 import { CURRENT, HISTORICAL } from "@/components/clinical/tokens";
-import type { CaseState } from "@/state/workspace";
+import type { CaseNote, CaseState } from "@/state/workspace";
+
+/** The evidence summary most recently filed with "Use in brief", if any. */
+function filedSummary(state: CaseState): CaseNote | undefined {
+  return [...state.notes].reverse().find((note) => note.kind === "summary");
+}
 
 function briefText(assessment: VariantAssessment, state: CaseState, generatedAt: string): string {
   const { variant, evidence, regional } = assessment;
+  const decision = currentDecision(state.decisions);
+  const summaryNote = filedSummary(state);
   const lines = [
     "VARIANTPULSE CLINICAL EVIDENCE BRIEF",
     "",
@@ -54,6 +62,14 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     "",
     "EVIDENCE SUMMARY",
     ...wrap(assessment.summary, 78).map((l) => `  ${l}`),
+    ...(summaryNote
+      ? [
+          "",
+          "SUMMARY FILED FOR THIS CASE",
+          `  Added by ${summaryNote.author}, ${formatDate(summaryNote.at)}`,
+          ...wrap(summaryNote.body, 78).map((l) => `  ${l}`),
+        ]
+      : []),
     "",
     "AFFECTED RECORDS",
     ...assessment.impactedPatients.map(
@@ -68,7 +84,9 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     "CASE STATE",
     `  Status:            ${state.status}`,
     `  Assigned:          ${state.assignee ?? "Unassigned"}`,
-    `  Review note:       ${state.reviewNote ?? "-"}`,
+    `  Decision:          ${decision ? `${decision.decision} (${decision.reviewer}, ${formatDate(decision.at)})` : "-"}`,
+    `  Decision note:     ${decision?.note ?? "-"}`,
+    ...(state.decisions.length > 1 ? [`  Amendments:        ${state.decisions.length - 1}`] : []),
     `  Follow-ups:        ${state.followUps}`,
     `  Evidence request:  ${state.evidenceRequested ? "Requested" : "None"}`,
     `  Trail entries:     ${state.notes.length}`,
@@ -130,6 +148,8 @@ function EvidenceBrief({
   onClose: () => void;
 }) {
   const { variant, evidence, regional } = assessment;
+  const decision = currentDecision(state.decisions);
+  const summaryNote = filedSummary(state);
   const [generatedAt, setGeneratedAt] = React.useState("");
 
   // Rendered after mount so the printed timestamp is the reader's local time
@@ -252,6 +272,18 @@ function EvidenceBrief({
             <p className="text-[13.5px] leading-relaxed text-ink-2">{assessment.summary}</p>
           </Section>
 
+          {summaryNote ? (
+            <Section title="Summary filed for this case">
+              <p className="whitespace-pre-line text-[13.5px] leading-relaxed text-ink-2">
+                {summaryNote.body}
+              </p>
+              <p className="mt-2 text-[11.5px] text-faint">
+                Added by {summaryNote.author}, {formatDate(summaryNote.at)}, from the drafted
+                evidence summary on the case.
+              </p>
+            </Section>
+          ) : null}
+
           {regional && assessment.regionalDisagreement?.conflicting ? (
             <Section title="Regional evidence">
               <p className="text-[13.5px] leading-relaxed text-ink-2">
@@ -295,9 +327,10 @@ function EvidenceBrief({
               <Item label="Follow-ups" value={String(state.followUps)} />
               <Item label="Trail entries" value={String(state.notes.length)} />
             </dl>
-            {state.reviewNote ? (
+            {decision ? (
               <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
-                <strong className="font-medium text-ink">Clinician note:</strong> {state.reviewNote}
+                <strong className="font-medium text-ink">Clinician decision:</strong>{" "}
+                {decision.decision} ({decision.reviewer}, {formatDate(decision.at)}). {decision.note}
               </p>
             ) : null}
           </Section>

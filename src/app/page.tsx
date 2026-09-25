@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, MotionConfig } from "framer-motion";
 import { FastForward, RefreshCw } from "lucide-react";
 
+import { ImpactPanel } from "@/components/impact-panel";
 import { evidenceModeMeta } from "@/components/story/mode";
 import { FittedStoryGraph, StoryStack, type StoryData } from "@/components/story/story-graph";
 import { storyCaption } from "@/components/story/timeline";
@@ -14,7 +15,7 @@ import { selectStoryAssessment } from "@/lib/story";
 import { useWorkspace } from "@/state/workspace";
 
 export default function HomePage() {
-  const { analysis } = useWorkspace();
+  const { analysis, scanMs } = useWorkspace();
   const { step, run, skip, running, done } = useStoryTimeline();
   const background = useBackgroundSync();
   const mode = evidenceModeMeta(background.mode ?? analysis.mode);
@@ -97,6 +98,13 @@ export default function HomePage() {
             </Button>
           </div>
         </header>
+
+        <ImpactPanel
+          findingsChecked={analysis.scan.findingsChecked}
+          casesSurfaced={analysis.metrics.evidenceChanges}
+          scanMs={background.scanMs ?? scanMs}
+          className="mt-4 shrink-0"
+        />
 
         <p className="sr-only" aria-live="polite">
           {data

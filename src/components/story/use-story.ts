@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useReducedMotion } from "framer-motion";
 
+import { parseScanTiming } from "@/lib/impact";
+
 import { FINAL_STEP, STEP, STEP_STARTS_MS } from "./timeline";
 
 /**
@@ -44,10 +46,12 @@ export function useStoryTimeline() {
 
 /**
  * Fires the real sync in the background. It never touches the choreography;
- * it only reports which evidence mode the server ended up serving.
+ * it only reports which evidence mode the server ended up serving, and how long
+ * its scan took.
  */
 export function useBackgroundSync() {
   const [mode, setMode] = React.useState<string | null>(null);
+  const [scanMs, setScanMs] = React.useState<number | null>(null);
   const controller = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => () => controller.current?.abort(), []);
@@ -58,7 +62,12 @@ export function useBackgroundSync() {
     const next = new AbortController();
     controller.current = next;
     fetch("/api/sync", { method: "POST", signal: next.signal })
-      .then((r) => (r.ok ? (r.json() as Promise<{ mode?: unknown }>) : null))
+      .then((r) => {
+        if (!r.ok) return null;
+        const duration = parseScanTiming(r.headers.get("Server-Timing"));
+        if (duration !== null) setScanMs(duration);
+        return r.json() as Promise<{ mode?: unknown }>;
+      })
       .then((body) => {
         if (body && typeof body.mode === "string") setMode(body.mode);
       })
@@ -67,5 +76,5 @@ export function useBackgroundSync() {
       });
   }, []);
 
-  return { mode, start };
+  return { mode, scanMs, start };
 }

@@ -6,6 +6,7 @@ import { SyncOverlay } from "@/components/sync";
 import { Topbar } from "@/components/topbar";
 import { analyseWorkspace } from "@/lib/analysis";
 import { serialiseAnalysis } from "@/lib/dto";
+import { timed } from "@/lib/impact";
 import { WorkspaceProvider } from "@/state/workspace";
 
 import "./globals.css";
@@ -35,12 +36,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const analysis = serialiseAnalysis(await analyseWorkspace());
+  // Timed so the dashboard can show how long the scan behind it really took.
+  const { result, durationMs } = await timed(() => analyseWorkspace());
+  const analysis = serialiseAnalysis(result);
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
-        <WorkspaceProvider initial={analysis}>
+        <WorkspaceProvider initial={analysis} initialScanMs={durationMs}>
           <a
             href="#workspace-content"
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ink focus:px-4 focus:py-2 focus:text-[13px] focus:text-white"

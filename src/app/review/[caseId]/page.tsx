@@ -1,13 +1,12 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import {
-  AlertTriangle,
-  Check,
   CheckCircle2,
-  MessageSquarePlus,
+  ClipboardList,
+  FolderOpen,
+  ListPlus,
   Search,
   UserPlus,
 } from "lucide-react";
@@ -24,6 +23,7 @@ import {
   ScienceTimeline,
 } from "@/components/panels";
 import { PatientImpactTable } from "@/components/patient-table";
+import { PatientImpactGraph, SyntheticDataLabel } from "@/components/clinical/patient-impact-graph";
 import {
   Badge,
   Button,
@@ -36,18 +36,40 @@ import {
 } from "@/components/ui";
 import { REVIEWERS } from "@/data/workspace";
 import { composeRecommendation } from "@/lib/narrative";
-import { formatDate } from "@/lib/utils";
-import { useWorkspace } from "@/state/workspace";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { useWorkspace, type CaseNote, type CaseStatus } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
+
+const STATUS_TONE: Record<CaseStatus, "warning" | "neutral" | "positive"> = {
+  "Needs review": "warning",
+  Assigned: "neutral",
+  "In review": "neutral",
+  Reviewed: "positive",
+};
+
+const NOTE_LABEL: Record<NonNullable<CaseNote["kind"]>, string> = {
+  note: "Note",
+  "review-opened": "Review opened",
+  assignment: "Reviewer assigned",
+  "evidence-request": "Evidence request",
+  "follow-up": "Follow-up",
+  review: "Marked reviewed",
+};
+
+const EVIDENCE_REQUEST =
+  "Asked the reporting laboratory for functional or segregation data not present in the current submission set.";
+
+const FOLLOW_UP_DEFAULT =
+  "Contact the ordering department to confirm whether the affected records need re-reporting.";
 
 export default function ReviewCasePage() {
   const params = useParams<{ caseId: string }>();
   const caseId = decodeURIComponent(params.caseId);
-  const { analysis, getCase, assign, addNote, escalate, resolve, setStatus } = useWorkspace();
+  const { analysis, getCase, openReview, requestEvidence, assignReviewer, createFollowUp, markReviewed } =
+    useWorkspace();
 
   const assessment = analysis.assessments.find((a) => a.caseId === caseId);
-  const [note, setNote] = React.useState("");
-  const [requested, setRequested] = React.useState(false);
+  const [clinicianNote, setClinicianNote] = React.useState("");
 
   if (!assessment) notFound();
 
@@ -57,22 +79,20 @@ export default function ReviewCasePage() {
     assessment.changeType,
     assessment.impactedRecordCount,
   );
+  const reviewOpen = state.status === "In review" || state.status === "Reviewed";
+  const reviewed = state.status === "Reviewed";
+  const trimmed = clinicianNote.trim();
 
-  const submitNote = (event: React.FormEvent) => {
-    event.preventDefault();
-    const body = note.trim();
-    if (!body) return;
-    addNote(caseId, body);
-    setNote("");
+  const followUp = () => {
+    createFollowUp(caseId, trimmed || FOLLOW_UP_DEFAULT);
+    setClinicianNote("");
   };
 
-  const requestEvidence = () => {
-    addNote(
-      caseId,
-      "Additional evidence requested: asked the reporting laboratory for functional or segregation data not present in the current submission set.",
-    );
-    setStatus(caseId, "In progress");
-    setRequested(true);
+  const submitReviewed = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!trimmed) return;
+    markReviewed(caseId, trimmed);
+    setClinicianNote("");
   };
 
   return (
@@ -84,8 +104,8 @@ export default function ReviewCasePage() {
         description={assessment.variant.condition}
         actions={
           <>
-            <Badge tone={state.status === "Resolved" ? "positive" : "neutral"} dot>
-              {state.escalated ? "Escalated" : state.status}
+            <Badge tone={STATUS_TONE[state.status]} dot>
+              {state.status}
             </Badge>
             <PriorityBadge level={assessment.priority.level} />
           </>
@@ -97,10 +117,10 @@ export default function ReviewCasePage() {
           evidence table and the reasoning trail. */}
       <div className="grid gap-5 min-[1400px]:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,300px)]">
         {/* ── Left: what is affected ──────────────────────────────────── */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card className="p-5">
             <SectionHeading title="Classification change" />
-            <ThenNow assessment={assessment} stacked className="mt-4" />
+            <ThenNow assessment={assessment} stacked caption className="mt-4" />
             <div className="mt-4 border-t border-line pt-3.5">
               <ChangeTypeBadge type={assessment.changeType} />
             </div>
@@ -126,47 +146,21 @@ export default function ReviewCasePage() {
             </dl>
           </Card>
 
-          <Card className="overflow-hidden">
-            <div className="border-b border-line px-5 py-4">
-              <SectionHeading
-                title="Patient impact"
-                count={assessment.impactedRecordCount}
-                description="Records carrying this variant."
-              />
-            </div>
-            <ul className="divide-y divide-line">
-              {assessment.impactedPatients.map((patient) => (
-                <li key={patient.id}>
-                  <Link
-                    href={`/patients/${patient.id}`}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-mono text-[12.5px] font-medium text-ink">
-                        {patient.id}
-                      </span>
-                      <span className="block truncate text-[11.5px] text-muted">
-                        {patient.ageBand} · {patient.orderingDepartment}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-right">
-                      <span className="block text-[11.5px] text-muted vp-num">
-                        {formatDate(patient.testedOn)}
-                      </span>
-                      <span className="block text-[11px] text-faint">{patient.clinicalOwner}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
           <ScienceTimeline assessment={assessment} />
         </div>
 
         {/* ── Centre: the evidence ────────────────────────────────────── */}
         <div className="min-w-0 space-y-5">
           <EvidenceSummaryPanel assessment={assessment} />
+          <Card className="p-5">
+            <SectionHeading
+              title="Patient impact"
+              count={assessment.impactedRecordCount}
+              description="The changed variant and every historical record that carries it. Select a record to see its detail."
+            />
+            <SyntheticDataLabel className="mt-3" />
+            <PatientImpactGraph assessment={assessment} caseStatus={state.status} className="mt-5" />
+          </Card>
           <EvidenceComparison assessment={assessment} />
           {assessment.regional ? <RegionalComparison assessment={assessment} /> : null}
           <ReasoningPanel assessment={assessment} />
@@ -174,15 +168,24 @@ export default function ReviewCasePage() {
 
           <Card className="overflow-hidden">
             <div className="border-b border-line px-5 py-4">
-              <SectionHeading title="Case notes" count={state.notes.length} />
+              <SectionHeading
+                title="Case trail"
+                count={state.notes.length}
+                description="Every review action on this case, with who took it and when."
+              />
             </div>
             {state.notes.length > 0 ? (
               <ul className="divide-y divide-line">
                 {state.notes.map((entry) => (
                   <li key={entry.id} className="px-5 py-3.5">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-[12.5px] font-medium text-ink">{entry.author}</p>
-<RelativeTime value={entry.at} className="text-[11px] text-faint" />
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                      <p className="text-[12.5px] font-medium text-ink">
+                        {entry.author}
+                        <span className="ml-2 text-[11px] font-medium uppercase tracking-[0.07em] text-faint">
+                          {NOTE_LABEL[entry.kind ?? "note"]}
+                        </span>
+                      </p>
+                      <RelativeTime value={entry.at} className="text-[11px] text-faint" />
                     </div>
                     <p className="mt-1 text-[13px] leading-relaxed text-ink-2">{entry.body}</p>
                   </li>
@@ -190,140 +193,111 @@ export default function ReviewCasePage() {
               </ul>
             ) : (
               <p className="px-5 py-6 text-center text-[12.5px] text-muted">
-                No notes on this case yet.
+                No review actions on this case yet.
               </p>
             )}
-            <form onSubmit={submitNote} className="border-t border-line p-4">
-              <label htmlFor="case-note" className="sr-only">
-                Add a note
-              </label>
-              <textarea
-                id="case-note"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                rows={3}
-                placeholder="Record your reasoning for the next reviewer..."
-                className="w-full resize-y rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink outline-none transition-colors placeholder:text-faint focus:border-accent-ring focus:bg-surface"
-              />
-              <div className="mt-2.5 flex justify-end">
-                <Button type="submit" size="sm" disabled={!note.trim()}>
-                  <MessageSquarePlus className="h-3.5 w-3.5" />
-                  Add note
-                </Button>
-              </div>
-            </form>
           </Card>
         </div>
 
         {/* ── Right: the decision ─────────────────────────────────────── */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card className="p-5">
             <SectionHeading title="Recommendation" />
             <p className="mt-3 text-[13px] leading-relaxed text-ink-2">{recommendation}</p>
-
-            {state.status === "Resolved" ? (
-              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-ok/20 bg-ok-soft p-3.5">
+            {reviewed ? (
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-ok-border bg-ok-soft p-3.5">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" />
                 <div className="min-w-0">
                   <p className="text-[12.5px] font-medium text-ink">Reviewed</p>
-                  <p className="mt-0.5 text-[12px] leading-snug text-ink-2">{state.resolution}</p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-ink-2">{state.reviewNote}</p>
                 </div>
               </div>
-            ) : (
+            ) : null}
+          </Card>
+
+          <Card className="p-5">
+            <SectionHeading
+              title="Review actions"
+              description="Each action is recorded in the audit trail. None changes a classification or a diagnosis."
+            />
+            <div className="mt-4 space-y-2">
               <Button
                 variant="primary"
-                className="mt-4 w-full"
-                onClick={() =>
-                  resolve(
-                    caseId,
-                    "Reviewer accepted the recommendation. Affected records flagged for clinical follow-up.",
-                  )
-                }
+                className="w-full justify-start"
+                onClick={() => openReview(caseId)}
+                disabled={reviewOpen}
               >
-                <Check className="h-4 w-4" />
-                Approve review recommendation
+                <FolderOpen className="h-4 w-4" />
+                {reviewOpen ? "Clinical review open" : "Open clinical review"}
               </Button>
-            )}
-
-            <Button
-              className="mt-2 w-full"
-              onClick={requestEvidence}
-              disabled={requested}
-            >
-              <Search className="h-4 w-4" />
-              {requested ? "Evidence requested" : "Request more evidence"}
-            </Button>
-
-            <p className="mt-3 text-[11.5px] leading-relaxed text-faint">
-              Approving records a review decision inside VariantPulse. It does not write to any
-              patient record and does not issue a diagnosis.
-            </p>
-          </Card>
-
-          <Card className="p-5">
-            <SectionHeading title="Assign reviewer" icon={<UserPlus className="h-4 w-4" />} />
-            <label htmlFor="assignee" className="sr-only">
-              Assign a reviewer
-            </label>
-            <select
-              id="assignee"
-              value={state.assignee ?? ""}
-              onChange={(event) => assign(caseId, event.target.value)}
-              className="mt-3 w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] text-ink outline-none transition-colors focus:border-accent-ring focus:bg-surface"
-            >
-              <option value="" disabled>
-                Unassigned
-              </option>
-              {REVIEWERS.map((reviewer) => (
-                <option key={reviewer.id} value={reviewer.name}>
-                  {reviewer.name} — {reviewer.role}
-                </option>
-              ))}
-            </select>
-
-            <div className="mt-4 space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-[0.07em] text-faint">
-                Move case
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {(["Assigned", "In progress"] as const).map((status) => (
-                  <Button
-                    key={status}
-                    size="sm"
-                    onClick={() => setStatus(caseId, status)}
-                    className={state.status === status ? "border-accent-ring bg-accent-soft" : ""}
-                  >
-                    {status}
-                  </Button>
-                ))}
-              </div>
+              <Button
+                className="w-full justify-start"
+                onClick={() => requestEvidence(caseId, EVIDENCE_REQUEST)}
+                disabled={state.evidenceRequested}
+              >
+                <Search className="h-4 w-4" />
+                {state.evidenceRequested ? "More evidence requested" : "Request more evidence"}
+              </Button>
             </div>
-          </Card>
 
-          <Card className="p-5">
-            <SectionHeading title="Actions" />
-            <div className="mt-3 space-y-2">
+            <div className="mt-4 border-t border-line pt-4">
+              <label
+                htmlFor="assignee"
+                className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.07em] text-faint"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Assign reviewer
+              </label>
+              <select
+                id="assignee"
+                value={state.assignee ?? ""}
+                onChange={(event) => assignReviewer(caseId, event.target.value)}
+                className="mt-2 w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] text-ink outline-none transition-colors focus:border-accent-ring focus:bg-surface"
+              >
+                <option value="" disabled>
+                  Unassigned
+                </option>
+                {REVIEWERS.map((reviewer) => (
+                  <option key={reviewer.id} value={reviewer.name}>
+                    {reviewer.name} — {reviewer.role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <form onSubmit={submitReviewed} className="mt-4 border-t border-line pt-4">
+              <label
+                htmlFor="clinician-note"
+                className="text-[11px] font-medium uppercase tracking-[0.07em] text-faint"
+              >
+                Clinician note
+              </label>
+              <textarea
+                id="clinician-note"
+                value={clinicianNote}
+                onChange={(event) => setClinicianNote(event.target.value)}
+                rows={3}
+                placeholder="Record your reasoning for the follow-up or the review..."
+                className="mt-2 w-full resize-y rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink outline-none transition-colors placeholder:text-faint focus:border-accent-ring focus:bg-surface"
+              />
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 min-[1400px]:grid-cols-1">
+                <Button type="button" onClick={followUp}>
+                  <ListPlus className="h-4 w-4" />
+                  Create follow-up
+                </Button>
+                <Button type="submit" disabled={!trimmed}>
+                  <ClipboardList className="h-4 w-4" />
+                  Mark reviewed
+                </Button>
+              </div>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
+                Mark reviewed needs a clinician note. It records that the evidence was reviewed; it
+                does not write to any patient record or issue a diagnosis.
+              </p>
+            </form>
+
+            <div className="mt-4 border-t border-line pt-4">
               <EvidenceBriefButton assessment={assessment} state={state} />
-              <Button
-                className="w-full justify-start"
-                onClick={() => escalate(caseId)}
-                disabled={state.escalated}
-              >
-                <AlertTriangle className="h-4 w-4" />
-                {state.escalated ? "Escalated" : "Escalate for specialist opinion"}
-              </Button>
-              <Button
-                className="w-full justify-start"
-                onClick={() =>
-                  addNote(
-                    caseId,
-                    "Follow-up task created: contact the ordering department to confirm whether the affected records need re-reporting.",
-                  )
-                }
-              >
-                <MessageSquarePlus className="h-4 w-4" />
-                Create follow-up task
-              </Button>
             </div>
           </Card>
 
@@ -335,7 +309,7 @@ export default function ReviewCasePage() {
               <Field label="Assigned" value={state.assignee ?? "Unassigned"} />
               <Field
                 label="Evidence source"
-                value={analysis.mode === "live" ? "ClinVar (live)" : "ClinVar (cached snapshot)"}
+                value={`ClinVar · ${EVIDENCE_MODES[analysis.mode].indicator}`}
               />
               <Field
                 label="Records impacted"
@@ -354,11 +328,13 @@ export default function ReviewCasePage() {
             title="Affected records in full"
             count={assessment.impactedPatients.length}
           />
+          <SyntheticDataLabel className="mt-3" />
         </div>
         <PatientImpactTable
           rows={assessment.impactedPatients}
           byKey={byKey}
           showVariant={false}
+          caseStatus={state.status}
         />
       </Card>
     </PageShell>

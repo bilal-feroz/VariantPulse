@@ -79,7 +79,7 @@ export default function VariantsPage() {
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors",
                   filter === option.id
-                    ? "bg-surface text-ink shadow-[0_1px_2px_rgba(18,19,26,0.07)]"
+                    ? "bg-surface text-ink shadow-sm"
                     : "text-muted hover:text-ink",
                 )}
               >

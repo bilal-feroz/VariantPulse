@@ -10,14 +10,16 @@ import { Card, EmptyState, Eyebrow } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useWorkspace, type ActivityEntry } from "@/state/workspace";
 
-const FILTERS: { id: ActivityEntry["kind"] | "all"; label: string }[] = [
-  { id: "all", label: "Everything" },
-  { id: "sync", label: "Syncs" },
-  { id: "detection", label: "Detections" },
-  { id: "impact", label: "Impact" },
-  { id: "case", label: "Cases" },
-  { id: "decision", label: "Decisions" },
-  { id: "note", label: "Notes" },
+type Kind = ActivityEntry["kind"];
+
+const REVIEW_KINDS: Kind[] = ["case", "assignment", "evidence-request", "follow-up", "review", "note"];
+
+const FILTERS: { id: string; label: string; kinds: Kind[] | null }[] = [
+  { id: "all", label: "Everything", kinds: null },
+  { id: "review", label: "Review actions", kinds: REVIEW_KINDS },
+  { id: "sync", label: "Syncs", kinds: ["sync"] },
+  { id: "detection", label: "Detections", kinds: ["detection"] },
+  { id: "impact", label: "Impact", kinds: ["impact"] },
 ];
 
 /** Groups entries under a day heading so a long trail stays readable. */
@@ -35,9 +37,10 @@ function dayKey(iso: string): string {
 
 export default function ActivityPage() {
   const { activity } = useWorkspace();
-  const [filter, setFilter] = React.useState<ActivityEntry["kind"] | "all">("all");
+  const [filter, setFilter] = React.useState("all");
 
-  const rows = filter === "all" ? activity : activity.filter((entry) => entry.kind === filter);
+  const kinds = FILTERS.find((option) => option.id === filter)?.kinds ?? null;
+  const rows = kinds ? activity.filter((entry) => kinds.includes(entry.kind)) : activity;
 
   const groups = React.useMemo(() => {
     const map = new Map<string, ActivityEntry[]>();
@@ -55,7 +58,7 @@ export default function ActivityPage() {
       <PageHeader
         eyebrow="Audit trail"
         title="Activity"
-        description="Every sync, detection, case and decision recorded in this workspace, in order."
+        description="Every sync, detection and review action recorded in this workspace, newest first, with who took it and when."
         actions={<SyncButton />}
       />
 
@@ -69,7 +72,7 @@ export default function ActivityPage() {
             className={cn(
               "rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors",
               filter === option.id
-                ? "bg-surface text-ink shadow-[0_1px_2px_rgba(18,19,26,0.07)]"
+                ? "bg-surface text-ink shadow-sm"
                 : "text-muted hover:text-ink",
             )}
           >
@@ -99,6 +102,8 @@ export default function ActivityPage() {
                     title={entry.title}
                     detail={entry.detail}
                     kind={entry.kind}
+                    actor={entry.actor}
+                    absolute
                     last={index === entries.length - 1}
                   />
                 ))}
@@ -110,7 +115,8 @@ export default function ActivityPage() {
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-faint">
         The trail is held for this session. In a deployed system it would be written to an
-        append-only audit store alongside the identity of every actor.
+        append-only audit store. No entry records a change of classification or diagnosis:
+        VariantPulse surfaces evidence, clinicians decide.
       </p>
     </PageShell>
   );

@@ -5,7 +5,7 @@
  *
  * Indexes what a reviewer actually types: a record identifier, a gene, an HGVS
  * string, a ClinVar accession, or a review case number. Matching is plain
- * substring scoring rather than anything fuzzy — in a clinical context a
+ * substring scoring rather than anything fuzzy; in a clinical context a
  * near-miss on a variant string is worse than no match at all.
  */
 

@@ -18,7 +18,7 @@ import type { ClassificationCode } from "@/lib/classification";
 export const MONITORED_FINDING_COUNT = 12_482;
 
 export interface MonitoredVariant {
-  /** `GENE:cDNA` — the join key across evidence sources. */
+  /** `GENE:cDNA`, the join key across evidence sources. */
   key: string;
   gene: string;
   hgvsCoding: string;

@@ -24,19 +24,19 @@ import type { CaseState } from "@/state/workspace";
 function briefText(assessment: VariantAssessment, state: CaseState, generatedAt: string): string {
   const { variant, evidence, regional } = assessment;
   const lines = [
-    "VARIANTPULSE — CLINICAL EVIDENCE BRIEF",
+    "VARIANTPULSE CLINICAL EVIDENCE BRIEF",
     "",
-    `Case:                ${assessment.caseId ?? "—"}`,
+    `Case:                ${assessment.caseId ?? "-"}`,
     `Generated:           ${generatedAt}`,
     `Prepared for:        ${CURRENT_USER.name}, ${CURRENT_USER.role}`,
     "",
     "VARIANT",
     `  Gene:              ${variant.gene}`,
     `  HGVS (coding):     ${variant.hgvsCoding}`,
-    `  Protein:           ${variant.proteinChange ?? "—"}`,
+    `  Protein:           ${variant.proteinChange ?? "-"}`,
     `  Condition:         ${variant.condition}`,
     `  ClinVar:           ${evidence.accession ?? evidence.clinvarId}`,
-    `  dbSNP:             ${evidence.rsid ?? "—"}`,
+    `  dbSNP:             ${evidence.rsid ?? "-"}`,
     "",
     "CLASSIFICATION",
     `  As reported:       ${meta(assessment.recordedCode).label} (${formatDate(variant.recordedOn)})`,
@@ -45,10 +45,10 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     `  Review priority:   ${assessment.priority.level}`,
     "",
     "SOURCES REVIEWED",
-    `  ClinVar:           ${evidence.classification} — ${evidence.reviewStatus} (${evidence.submissionCount} submissions)`,
+    `  ClinVar:           ${evidence.classification}, ${evidence.reviewStatus} (${evidence.submissionCount} submissions)`,
     `  Literature:        ${evidence.citations.length} indexed publications`,
     regional
-      ? `  Regional index:    ${meta(regional.assertion).label} — ${regional.observations} observations in a cohort of ${formatNumber(regional.cohortSize)}`
+      ? `  Regional index:    ${meta(regional.assertion).label}, ${regional.observations} observations in a cohort of ${formatNumber(regional.cohortSize)}`
       : "  Regional index:    no record held",
     `  This institution:  ${meta(assessment.recordedCode).label}`,
     "",
@@ -68,7 +68,7 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     "CASE STATE",
     `  Status:            ${state.status}`,
     `  Assigned:          ${state.assignee ?? "Unassigned"}`,
-    `  Review note:       ${state.reviewNote ?? "—"}`,
+    `  Review note:       ${state.reviewNote ?? "-"}`,
     `  Follow-ups:        ${state.followUps}`,
     `  Evidence request:  ${state.evidenceRequested ? "Requested" : "None"}`,
     `  Trail entries:     ${state.notes.length}`,
@@ -228,21 +228,21 @@ function EvidenceBrief({
           <Section title="Sources reviewed">
             <ul className="space-y-1.5 text-[13px] text-ink-2">
               <li>
-                <strong className="font-medium text-ink">ClinVar</strong> —{" "}
+                <strong className="font-medium text-ink">ClinVar</strong>:{" "}
                 {evidence.classification}, {evidence.reviewStatus} ({evidence.accession ?? evidence.clinvarId})
               </li>
               <li>
-                <strong className="font-medium text-ink">Literature</strong> —{" "}
+                <strong className="font-medium text-ink">Literature</strong>:{" "}
                 {evidence.citations.length} indexed publications linked to this record
               </li>
               <li>
-                <strong className="font-medium text-ink">{REGIONAL_SOURCE.name}</strong> —{" "}
+                <strong className="font-medium text-ink">{REGIONAL_SOURCE.name}</strong>:{" "}
                 {regional
                   ? `${meta(regional.assertion).label}, ${regional.observations} observations across a cohort of ${formatNumber(regional.cohortSize)}`
                   : "no record held"}
               </li>
               <li>
-                <strong className="font-medium text-ink">This institution</strong> —{" "}
+                <strong className="font-medium text-ink">This institution</strong>:{" "}
                 {meta(assessment.recordedCode).label} on {formatDate(variant.recordedOn)}
               </li>
             </ul>
@@ -307,7 +307,7 @@ function EvidenceBrief({
               <ol className="space-y-1 text-[12px] text-ink-2">
                 {evidence.citations.map((citation) => (
                   <li key={citation.pmid}>
-                    {citation.title} — {citation.journal} {citation.year}. PMID {citation.pmid}.
+                    {citation.title}. {citation.journal} {citation.year}. PMID {citation.pmid}.
                   </li>
                 ))}
               </ol>

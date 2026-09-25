@@ -203,7 +203,7 @@ let failures = 0;
 for (const r of results) {
   const p = problems(r);
   if (p.length) failures += 1;
-  lines.push(`| ${r.viewport} | \`${r.route}\` | ${r.status} | ${r.mode ?? "—"} | ${p.length ? p.join("<br>") : "clean"} |`);
+  lines.push(`| ${r.viewport} | \`${r.route}\` | ${r.status} | ${r.mode ?? "-"} | ${p.length ? p.join("<br>") : "clean"} |`);
 }
 writeFileSync(resolve(OUT, "qa-results.md"), `${lines.join("\n")}\n`);
 console.log(lines.join("\n"));

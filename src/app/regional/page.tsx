@@ -180,10 +180,10 @@ export default function RegionalPage() {
                   )}
                 </td>
                 <td className="px-5 py-3 text-[12.5px] text-ink-2 vp-num">
-                  {assessment.regional?.observations ?? "—"}
+                  {assessment.regional?.observations ?? "-"}
                 </td>
                 <td className="px-5 py-3 text-[12.5px] text-muted vp-num">
-                  {assessment.regional ? formatNumber(assessment.regional.cohortSize) : "—"}
+                  {assessment.regional ? formatNumber(assessment.regional.cohortSize) : "-"}
                 </td>
               </tr>
             ))}

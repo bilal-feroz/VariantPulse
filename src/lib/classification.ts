@@ -310,7 +310,7 @@ export function detectDisagreement(
   const b = meta(regional);
 
   // An indeterminate reading on either side is not a disagreement between
-  // regions — it is an absence of a settled position to disagree with. That
+  // regions; it is an absence of a settled position to disagree with. That
   // belongs to consensus conflict, which is detected separately.
   if (a.band === "indeterminate" || b.band === "indeterminate") {
     return {

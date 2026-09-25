@@ -37,16 +37,16 @@ export function formatTime(value: string | null | undefined): string {
 
 /** Year component only, for the then-and-now comparison. */
 export function formatYear(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const match = /(\d{4})/.exec(value);
-  return match ? match[1] : "—";
+  return match ? match[1] : "-";
 }
 
 /** Compact relative time such as `2m ago` or `3d ago`. */
 export function relativeTime(value: string | null | undefined, now = Date.now()): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const then = new Date(value).getTime();
-  if (Number.isNaN(then)) return "—";
+  if (Number.isNaN(then)) return "-";
 
   const seconds = Math.max(0, Math.round((now - then) / 1000));
   if (seconds < 45) return "just now";

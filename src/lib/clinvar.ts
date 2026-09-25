@@ -8,7 +8,7 @@
  * - `live`: read from NCBI ClinVar. If that call fails or is slow, the bundled
  *   snapshot is served instead with mode `cached`, and the workspace says so
  *   rather than quietly presenting stale data as current.
- * - `cached`: only ever reported, never selected — it is what `live` degrades to.
+ * - `cached`: only ever reported, never selected; it is what `live` degrades to.
  */
 
 import "server-only";

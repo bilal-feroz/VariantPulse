@@ -22,7 +22,7 @@ export default function Error({
         <EmptyState
           icon={<TriangleAlert className="h-5 w-5" />}
           title="Something went wrong loading this view"
-          description="No records were changed. Retry, and if it persists the evidence source may be unreachable — the workspace will fall back to its cached snapshot."
+          description="No records were changed. Retry, and if it persists the evidence source may be unreachable; the workspace will fall back to its cached snapshot."
           action={
             <Button variant="primary" onClick={reset}>
               Try again

@@ -114,7 +114,7 @@ export function ScienceTimeline({
     <Card className={cn("p-5", className)}>
       <SectionHeading
         title="How the interpretation changed"
-        description={`${assessment.variant.gene} ${assessment.variant.hgvsCoding} — the DNA is unchanged. The evidence around it is not.`}
+        description={`${assessment.variant.gene} ${assessment.variant.hgvsCoding}. The DNA is unchanged. The evidence around it is not.`}
       />
 
       <ol className="mt-5">
@@ -315,13 +315,13 @@ export function EvidenceComparison({
         <span className="text-[12.5px] text-muted">No regional record</span>
       ),
       reviewLevel: regional ? `${regional.observations} regional observations` : "Not held",
-      updated: regional ? formatDate(regional.lastUpdated) : "—",
+      updated: regional ? formatDate(regional.lastUpdated) : "-",
       strength: regional ? (
         <span className="text-[12.5px] text-muted">
           Cohort {formatNumber(regional.cohortSize)}
         </span>
       ) : (
-        <span className="text-[12.5px] text-muted">—</span>
+        <span className="text-[12.5px] text-muted">-</span>
       ),
       note: REGIONAL_SOURCE.provenance,
     },
@@ -411,7 +411,7 @@ export function EvidenceComparison({
                 </a>
                 <span className="text-faint">
                   {" "}
-                  — {citation.journal} {citation.year} · PMID {citation.pmid}
+                  · {citation.journal} {citation.year} · PMID {citation.pmid}
                 </span>
               </li>
             ))}
@@ -546,7 +546,7 @@ export function RegionalComparison({
                 </a>
                 <span className="text-faint">
                   {" "}
-                  — {citation.journal} {citation.year} · PMID {citation.pmid}
+                  · {citation.journal} {citation.year} · PMID {citation.pmid}
                 </span>
               </li>
             ))}

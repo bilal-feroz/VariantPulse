@@ -194,7 +194,7 @@ export function PastCard({ data, step }: { data: StoryData; step: number }) {
       <p className="whitespace-nowrap text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint">
         Hospital record · {data.recordedOn.slice(0, 4)}
       </p>
-      <p className="mt-1.5 text-[15px] font-semibold tracking-tight text-ink">{patient?.id ?? "—"}</p>
+      <p className="mt-1.5 text-[15px] font-semibold tracking-tight text-ink">{patient?.id ?? "-"}</p>
       <p className="mt-0.5 text-[12.5px] text-ink-2">
         {data.gene} <span className="font-mono text-[12px]">{data.hgvs}</span>
       </p>

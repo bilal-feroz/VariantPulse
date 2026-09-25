@@ -17,7 +17,7 @@
  * distance lands every element on a position of identical phase. The loop is
  * seamless, the depth ordering stays correct, and it costs no JavaScript.
  *
- * It is decorative — every figure it stands for is stated in text nearby — so
+ * It is decorative (every figure it stands for is stated in text nearby), so
  * it is hidden from assistive technology.
  */
 

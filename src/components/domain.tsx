@@ -2,7 +2,7 @@
  * Domain components: the pieces that render an assessment.
  *
  * These are server-renderable and take a `VariantAssessment` straight from the
- * engine, so what appears on screen is what the engine concluded — there is no
+ * engine, so what appears on screen is what the engine concluded, and there is no
  * second, looser interpretation layer between them.
  */
 
@@ -93,7 +93,7 @@ export function ThenNow({
   /**
    * Stacks the two states vertically. Side by side, each panel gets under half
    * the container, which is not enough for a label like "Likely pathogenic" in
-   * a narrow column — it would hyphenate mid-word.
+   * a narrow column, where it would hyphenate mid-word.
    */
   stacked?: boolean;
   /** Shows the "DNA has not changed" line beneath the comparison. */

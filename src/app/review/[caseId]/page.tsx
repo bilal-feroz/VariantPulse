@@ -264,7 +264,7 @@ export default function ReviewCasePage() {
                 </option>
                 {REVIEWERS.map((reviewer) => (
                   <option key={reviewer.id} value={reviewer.name}>
-                    {reviewer.name} — {reviewer.role}
+                    {reviewer.name} · {reviewer.role}
                   </option>
                 ))}
               </select>

@@ -11,7 +11,7 @@ import { relativeTime } from "@/lib/utils";
  * a second later, renders "1m ago". React then treats the whole subtree as
  * mismatched and regenerates it. Branching on mount would fix the warning but
  * flash a placeholder, so instead the expected difference is suppressed and the
- * value re-renders on a timer — which it needs to do anyway to stay honest
+ * value re-renders on a timer, which it needs to do anyway to stay honest
  * about how stale the evidence is.
  */
 export function RelativeTime({

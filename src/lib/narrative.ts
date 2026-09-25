@@ -4,7 +4,7 @@
  * These are composed from the structured fields of the records they cite:
  * classification codes, submission counts, review status, evaluation dates and
  * regional observation counts. Nothing is inferred beyond what those fields
- * state, and no summary is used to decide whether a change occurred — that is
+ * state, and no summary is used to decide whether a change occurred; that is
  * settled deterministically in `classification.ts` before a summary is written.
  *
  * The output is decision support. It is written to be checked against the
@@ -72,7 +72,7 @@ export function composeEvidenceSummary(input: SummaryInput): string {
     case "CLASSIFICATION_DRIFT": {
       const intoActionable = after.band === "pathogenic";
       sentences.push(
-        `Since the ${reportedYear} report, the consensus for ${label} has moved from ${before.label.toLowerCase()} to ${after.label.toLowerCase()}. That reading rests on ${submissionPhrase(evidence.submissionCount)} at ${confidence.strength.toLowerCase()} review confidence — ${confidence.label.toLowerCase()}.`,
+        `Since the ${reportedYear} report, the consensus for ${label} has moved from ${before.label.toLowerCase()} to ${after.label.toLowerCase()}. That reading rests on ${submissionPhrase(evidence.submissionCount)} at ${confidence.strength.toLowerCase()} review confidence, ${confidence.label.toLowerCase()}.`,
       );
       sentences.push(
         intoActionable
@@ -143,7 +143,7 @@ export function composeEvidenceSummary(input: SummaryInput): string {
 }
 
 /**
- * A single-line reason for the review queue. Deliberately terse — the queue is
+ * A single-line reason for the review queue. Deliberately terse, because the queue is
  * for triage, and the full summary lives inside the case.
  */
 export function composeReviewReason(changeType: ChangeType, gene: string): string {

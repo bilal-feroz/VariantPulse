@@ -1,4 +1,4 @@
-# VariantPulse — Product Brief (hackathon MVP)
+# VariantPulse Product Brief (hackathon MVP)
 
 **Genomic Change Intelligence for Healthcare** · Built by Team Kanban
 
@@ -12,13 +12,13 @@ Copy to use (and little else):
 - **The same DNA. A different meaning.** (primary)
 - **Your DNA didn't change. Science did.** (secondary)
 - **AI assists. Clinicians decide.**
-- "Built by Team Kanban" — small and tasteful, never loud.
+- "Built by Team Kanban": small and tasteful, never loud.
 
 Design and colour rules live in [`docs/color-system.md`](./color-system.md). It is authoritative.
 
 ---
 
-## What already exists — extend it, don't rebuild it
+## What already exists: extend it, don't rebuild it
 
 | Area | Where |
 |---|---|
@@ -34,7 +34,7 @@ Design and colour rules live in [`docs/color-system.md`](./color-system.md). It 
 ## The demo story (real data, synthetic patients)
 
 - Variant **BRCA1 c.5056C>T** (p.His1686Tyr), ClinVar **VCV000531444**.
-- Hospital record: reported **VUS** on 2023-03-14 — which is what ClinVar said in its
+- Hospital record: reported **VUS** on 2023-03-14, which is what ClinVar said in its
   January 2023 release.
 - ClinVar history: VUS (Jan 2023) → Conflicting (Jan 2024, Jan 2025) → **Likely pathogenic**,
   reviewed by expert panel, last evaluated **2025-08-18**. Show the real dates; never invent one.
@@ -52,7 +52,7 @@ Design and colour rules live in [`docs/color-system.md`](./color-system.md). It 
   CTA, vermilion **only** for "something changed". Replace the current crimson tokens in
   `src/app/globals.css` and update `scripts/verify-contrast.mjs` so WCAG AA still passes.
 - Logo: `public/logo.png` (transparent PNG) is the official mark, together with `src/app/icon.png`
-  and `src/app/apple-icon.png`. Use it as-is — never redraw, recolour or replace it.
+  and `src/app/apple-icon.png`. Use it as-is; never redraw, recolour or replace it.
   `logo new.png` in the repo root is an unused duplicate and can be deleted.
 - Graphic-first, calm, clinical. Minimal text. **Not** a generic dashboard: no rows of KPI cards,
   no decorative charts, no large tables on the home screen. The sidebar stays compact.
@@ -60,7 +60,7 @@ Design and colour rules live in [`docs/color-system.md`](./color-system.md). It 
 
 ---
 
-## Workstream A — Home is the story graph
+## Workstream A: Home is the story graph
 
 One composition that reads left to right in five seconds:
 
@@ -73,7 +73,7 @@ evidence streams in from ClinVar, literature, regional evidence, hospital record
   supporting elements.
 - One primary action: **Run evidence sync**.
 
-### Run evidence sync — the choreography
+### Run evidence sync: the choreography
 
 Deterministic, 4–7 seconds, identical on every run, with a skip control:
 
@@ -93,12 +93,12 @@ End state: **Your DNA didn't change. Science did.** · **AI assists. Clinicians 
   only through the live/cached indicator.
 - A page reload returns to the initial state. With reduced motion, jump to the end state.
 
-## Workstream B — Clinical depth
+## Workstream B: Clinical depth
 
 - **Then vs Now** component: 2023 · VUS → *science evolves* → today · Likely pathogenic (cite the
   ClinVar evaluation date). "The DNA has not changed. Only the interpretation has." Use it on the
   variant page and the review case.
-- **Patient impact graph**: the changed variant linked to its affected patients — not a
+- **Patient impact graph**: the changed variant linked to its affected patients, not a
   spreadsheet. Selecting a patient shows the synthetic ID, test date, original classification,
   current evidence, clinical owner and review status.
 - **Global vs regional**: two evidence lanes that visibly diverge when they disagree and converge on
@@ -108,7 +108,7 @@ End state: **Your DNA didn't change. Science did.** · **AI assists. Clinicians 
   Every action lands in the audit trail (`/activity`).
 - Restyle the evidence brief to the palette; keep it printable and downloadable.
 
-## Workstream C — Evidence engine and data (small)
+## Workstream C: Evidence engine and data (small)
 
 - Change detection stays deterministic. No model ever decides a classification; AI only phrases
   summaries of cited, structured evidence.
@@ -123,10 +123,10 @@ End state: **Your DNA didn't change. Science did.** · **AI assists. Clinicians 
   `src/data/provenance.json`). It already includes reclassifications in both directions
   (VUS → pathogenic, pathogenic → VUS), reassuring VUS → benign changes, a conflicting case,
   controls and 2 regional conflicts. Don't change historical values without provenance. IDs are
-  `VP-xxxxx` only — never Emirates IDs. Show "Synthetic demonstration data" wherever patients appear.
+  `VP-xxxxx` only, never Emirates IDs. Show "Synthetic demonstration data" wherever patients appear.
 - Optional, only if cheap and safe: MyVariant.info enrichment behind the same fallback.
 
-## Workstream D — QA and demo readiness
+## Workstream D: QA and demo readiness
 
 - Gates for every change: `npm ci`, `npm run lint`, `npm run type-check`, `npm run build`,
   `npm run verify:data`, `npm run verify:contrast`, `npm test`.
@@ -141,7 +141,7 @@ End state: **Your DNA didn't change. Science did.** · **AI assists. Clinicians 
 
 ---
 
-## Acceptance test — the pitch demo
+## Acceptance test: the pitch demo
 
 Must pass from a clean page load, every time, with the network disabled:
 
@@ -162,5 +162,5 @@ No randomness. No dependency on external APIs.
   `hackathon` and opens a PR into `hackathon`.
 - Merge into `hackathon` only when every gate passes. Never push to or merge into `main`, never
   force-push. The final `hackathon` → `main` PR is reviewed and merged by the repository owner.
-- One design system, one demo dataset, one normalised variant model — no duplicate types and no
+- One design system, one demo dataset, one normalised variant model, with no duplicate types and no
   parallel mock data.

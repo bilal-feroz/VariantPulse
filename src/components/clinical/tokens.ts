@@ -1,11 +1,11 @@
 /**
  * Semantic class sets for the clinical views, so each colour role is decided
  * in one place:
- *   historical — the interpretation on file (slate)
- *   current    — today's interpretation, VariantPulse identity (garnet)
- *   change     — the knowledge-change signal (vermilion), used for nothing else
- *   review     — human review required (amber)
- *   cta        — primary clinical action (oxblood)
+ *   historical: the interpretation on file (slate)
+ *   current:    today's interpretation, VariantPulse identity (garnet)
+ *   change:     the knowledge-change signal (vermilion), used for nothing else
+ *   review:     human review required (amber)
+ *   cta:        primary clinical action (oxblood)
  * Palette slate is non-text only; historical text uses `text-muted`.
  */
 export const HISTORICAL = {

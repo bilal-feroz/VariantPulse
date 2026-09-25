@@ -2,8 +2,8 @@
  * Refreshes the bundled ClinVar evidence snapshot.
  *
  * VariantPulse reads current evidence live from NCBI ClinVar at runtime. This
- * script captures the same records to disk so the workspace keeps working —
- * with an honest "cached" badge — when the upstream service is unreachable.
+ * script captures the same records to disk so the workspace keeps working,
+ * with an honest "cached" badge, when the upstream service is unreachable.
  *
  *   node scripts/refresh-evidence.mjs
  */

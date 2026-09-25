@@ -107,10 +107,10 @@ export function PatientImpactTable({
                   </td>
                 ) : null}
                 <td className="px-4 py-3">
-                  {assessment ? <ClassificationBadge code={assessment.recordedCode} /> : "—"}
+                  {assessment ? <ClassificationBadge code={assessment.recordedCode} /> : "-"}
                 </td>
                 <td className="px-4 py-3">
-                  {assessment ? <ClassificationBadge code={assessment.currentCode} /> : "—"}
+                  {assessment ? <ClassificationBadge code={assessment.currentCode} /> : "-"}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-[12.5px] text-ink-2">
                   {patient.orderingDepartment}

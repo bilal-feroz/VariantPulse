@@ -246,7 +246,7 @@ export function ConfidenceMeter({
   return (
     <span
       className={cn("inline-flex items-center gap-2", className)}
-      title={`${strength} — ${stars} of 4 review criteria met`}
+      title={`${strength}, ${stars} of 4 review criteria met`}
     >
       <span className="inline-flex gap-0.5" aria-hidden>
         {[0, 1, 2, 3].map((i) => (

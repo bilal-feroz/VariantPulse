@@ -37,5 +37,5 @@
     "typescript": "^5",
     "vitest": "4.1.11"
   },
-  "description": "Genomic Change Intelligence — monitors historical genomic findings against evolving scientific evidence."
+  "description": "Genomic Change Intelligence: monitors historical genomic findings against evolving scientific evidence."
 }

@@ -18,8 +18,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "VariantPulse — Genomic Change Intelligence",
-    template: "%s — VariantPulse",
+    default: "VariantPulse · Genomic Change Intelligence",
+    template: "%s · VariantPulse",
   },
   description:
     "VariantPulse continuously monitors historical genomic findings against evolving scientific evidence and identifies when old patient records may require clinical review.",

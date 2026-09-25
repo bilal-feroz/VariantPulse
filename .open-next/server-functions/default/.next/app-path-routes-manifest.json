@@ -1,0 +1,19 @@
+{
+  "/icon.png/route": "/icon.png",
+  "/apple-icon.png/route": "/apple-icon.png",
+  "/_not-found/page": "/_not-found",
+  "/api/analysis/route": "/api/analysis",
+  "/api/sync/route": "/api/sync",
+  "/activity/page": "/activity",
+  "/evidence/page": "/evidence",
+  "/patients/[id]/page": "/patients/[id]",
+  "/patients/page": "/patients",
+  "/review/[caseId]/page": "/review/[caseId]",
+  "/page": "/",
+  "/regional/page": "/regional",
+  "/settings/page": "/settings",
+  "/review/page": "/review",
+  "/sources/page": "/sources",
+  "/variants/page": "/variants",
+  "/variants/[key]/page": "/variants/[key]"
+}

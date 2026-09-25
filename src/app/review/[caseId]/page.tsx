@@ -48,6 +48,8 @@ const STATUS_TONE: Record<CaseStatus, "warning" | "neutral" | "positive"> = {
 
 const NOTE_LABEL: Record<NonNullable<CaseNote["kind"]>, string> = {
   note: "Note",
+  "review-opened": "Review opened",
+  assignment: "Reviewer assigned",
   "evidence-request": "Evidence request",
   "follow-up": "Follow-up",
   review: "Marked reviewed",
@@ -331,6 +333,7 @@ export default function ReviewCasePage() {
           rows={assessment.impactedPatients}
           byKey={byKey}
           showVariant={false}
+          caseStatus={state.status}
         />
       </Card>
     </PageShell>

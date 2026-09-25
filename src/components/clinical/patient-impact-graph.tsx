@@ -28,7 +28,7 @@ const STATE_TONE: Record<ReviewState, "warning" | "neutral" | "positive" | "mute
 };
 
 /** A record's review state as this session's case has moved it. */
-function reviewStateFor(patient: PatientRecord, caseStatus?: CaseStatus): ReviewState {
+export function reviewStateFor(patient: PatientRecord, caseStatus?: CaseStatus): ReviewState {
   if (caseStatus === "Reviewed") return "Reviewed";
   if (caseStatus === "In review" || caseStatus === "Assigned") return "In review";
   return patient.reviewState;

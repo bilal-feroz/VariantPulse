@@ -26,7 +26,7 @@ export interface CaseNote {
   author: string;
   body: string;
   at: string;
-  kind?: "note" | "evidence-request" | "follow-up" | "review";
+  kind?: "note" | "review-opened" | "assignment" | "evidence-request" | "follow-up" | "review";
 }
 
 export interface CaseState {
@@ -283,9 +283,10 @@ export function WorkspaceProvider({
         ...s,
         status: s.status === "Reviewed" ? s.status : "In review",
       }));
+      note(caseId, "Clinical review opened.", "review-opened");
       log({ kind: "case", actor: CURRENT_USER.name, caseId, title: `Clinical review opened on ${caseId}` });
     },
-    [mutate, log],
+    [mutate, note, log],
   );
 
   const requestEvidence = React.useCallback(
@@ -310,6 +311,7 @@ export function WorkspaceProvider({
         assignee,
         status: s.status === "Needs review" ? "Assigned" : s.status,
       }));
+      note(caseId, `${assignee} assigned as reviewer.`, "assignment");
       log({
         kind: "assignment",
         actor: CURRENT_USER.name,
@@ -317,7 +319,7 @@ export function WorkspaceProvider({
         title: `${assignee} assigned as reviewer on ${caseId}`,
       });
     },
-    [mutate, log],
+    [mutate, note, log],
   );
 
   const createFollowUp = React.useCallback(

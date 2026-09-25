@@ -141,7 +141,12 @@ export default function VariantPage() {
             action={<SyntheticDataLabel />}
           />
         </div>
-        <PatientImpactTable rows={impactedPatients} byKey={byKey} showVariant={false} />
+        <PatientImpactTable
+          rows={impactedPatients}
+          byKey={byKey}
+          showVariant={false}
+          caseStatus={caseId ? getCase(caseId).status : undefined}
+        />
       </Card>
 
       <Card className="mt-5 p-5">

@@ -274,5 +274,62 @@
    6060
   ],
   "patients": 1
+ },
+ {
+  "key": "HBB:c.364G>C",
+  "clinvarVariationId": "15152",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/15152/",
+  "name": "NM_000518.5(HBB):c.364G>C (p.Glu122Gln) \u2014 Hb D-Punjab",
+  "clinvar_2023_01": "CONFLICTING",
+  "clinvar_2026_09": "PATHOGENIC (Pathogenic/Likely pathogenic, Mar 2026)",
+  "ctga": "UAE records; CTGA: Likely pathogenic, Pathogenic (sickle cell anaemia; beta-thalassaemia)",
+  "grch38": "11-5225678-C-G",
+  "gnomad_v4_global_ac_an": [
+   717,
+   1614096
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   11,
+   6062
+  ],
+  "patients": 2
+ },
+ {
+  "key": "MYBPC3:c.776delinsTT",
+  "clinvarVariationId": "4689837",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/4689837/",
+  "name": "NM_000256.3(MYBPC3):c.776delinsTT (p.Ala259fs)",
+  "clinvar_2023_01": "NOT IN CLINVAR",
+  "clinvar_2026_09": "LIKELY_PATHOGENIC (single submitter, Jul 2025)",
+  "ctga": "UAE record (2020); CTGA: Likely pathogenic (LV non-compaction 10)",
+  "grch38": "11-47347902-G-AA",
+  "gnomad_v4_global_ac_an": [
+   0,
+   0
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   0
+  ],
+  "patients": 2
+ },
+ {
+  "key": "BRCA1:c.1140dup",
+  "clinvarVariationId": "231732",
+  "clinvarUrl": "https://www.ncbi.nlm.nih.gov/clinvar/variation/231732/",
+  "name": "NM_007294.4(BRCA1):c.1140dup (p.Lys381fs)",
+  "clinvar_2023_01": "PATHOGENIC (expert panel)",
+  "clinvar_2026_09": "PATHOGENIC (expert panel)",
+  "ctga": "UAE (Rawashdeh et al. 2024) and Yemen (Al-Ali et al. 2023); CTGA: Likely pathogenic, Pathogenic",
+  "grch38": "17-43094390-T-TC",
+  "gnomad_v4_global_ac_an": [
+   0,
+   0
+  ],
+  "gnomad_v4_middle_eastern_ac_an": [
+   0,
+   0
+  ],
+  "patients": 1
  }
 ]

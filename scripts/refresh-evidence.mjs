@@ -29,6 +29,9 @@ const PANEL = [
   { key: "BRCA1:c.5123C>T", clinvarId: "37640" },
   { key: "LDLR:c.2479G>A", clinvarId: "36462" },
   { key: "CFTR:c.601G>A", clinvarId: "54022" },
+  { key: "HBB:c.364G>C", clinvarId: "15152" },
+  { key: "MYBPC3:c.776delinsTT", clinvarId: "4689837" },
+  { key: "BRCA1:c.1140dup", clinvarId: "231732" },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

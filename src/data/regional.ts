@@ -123,6 +123,53 @@ export const REGIONAL_EVIDENCE: RegionalEvidence[] = [
       {"pmid": "30415195", "title": "Spectrum of mutations of familial hypercholesterolemia in the 22 Arab countries.", "journal": "Atherosclerosis", "year": "2018"}
     ],
   },
+  // -- CTGA-backed regional cases (Catalogue of Transmission Genetics in Arabs,
+  // Centre for Arab Genomic Studies, cags.org.ae). Assertion = CTGA clinical
+  // significance for UAE records. Frequencies = gnomAD v4. --
+  {
+    variantKey: "HBB:c.364G>C",
+    assertion: "PATHOGENIC",
+    // gnomAD v4 Middle Eastern: 11 of 6,062 alleles vs 717 of 1,614,096 globally (~4x enriched)
+    observations: 11,
+    cohortSize: 3_031,
+    regionalFrequency: 0.0018146,
+    globalFrequency: 0.0004442,
+    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE records)"],
+    lastUpdated: "2026-09-25",
+    note:
+      "Haemoglobin D-Punjab. CTGA records it in UAE patients as likely pathogenic / pathogenic for sickle cell disease and beta-thalassaemia, and it is about four times more frequent in gnomAD's Middle Eastern group than globally. Global ClinVar submitters were still in conflict in January 2023 and only converged on pathogenic / likely pathogenic in March 2026: regional evidence was ahead of the global record.",
+    citations: [
+      {"pmid":"22074124","title":"Molecular basis of β-thalassemia in the United Arab Emirates.","journal":"Hemoglobin","year":"2011"}
+    ],
+  },
+  {
+    variantKey: "MYBPC3:c.776delinsTT",
+    assertion: "LIKELY_PATHOGENIC",
+    // Absent from gnomAD v4
+    observations: 0,
+    cohortSize: 3_042,
+    regionalFrequency: 0,
+    globalFrequency: 0,
+    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE records)"],
+    lastUpdated: "2026-09-25",
+    note:
+      "CTGA lists this frameshift in a UAE patient as likely pathogenic for left ventricular non-compaction (record dated 2020). It did not appear in ClinVar until after January 2023 (first classified likely pathogenic, July 2025, single submitter). Another case where a regional catalogue carried the answer before global databases did.",
+    citations: [],
+  },
+  {
+    variantKey: "BRCA1:c.1140dup",
+    assertion: "PATHOGENIC",
+    // Absent from gnomAD v4
+    observations: 0,
+    cohortSize: 3_042,
+    regionalFrequency: 0,
+    globalFrequency: 0,
+    contributingCentres: ["CTGA — Centre for Arab Genomic Studies (UAE and Yemen records)"],
+    lastUpdated: "2026-09-25",
+    note:
+      "CTGA records this frameshift in a UAE family (Rawashdeh et al. 2024) and a Yemeni patient (Al-Ali et al. 2023). Regional and global readings agree: pathogenic. Included as a control, so the system shows it does not raise an alert when nothing has changed.",
+    citations: [],
+  },
 ];
 
 export const REGIONAL_BY_KEY = new Map(REGIONAL_EVIDENCE.map((r) => [r.variantKey, r]));

@@ -1,21 +1,19 @@
 {
-  "generatedAt": "2026-09-25T05:21:14.423Z",
+  "generatedAt": null,
   "source": "NCBI ClinVar (E-utilities)",
   "sourceUrl": "https://www.ncbi.nlm.nih.gov/clinvar/",
-  "recordCount": 12,
+  "recordCount": 15,
   "provenance": {
     "origin": "Captured from NCBI ClinVar E-utilities and supplied with the final demonstration dataset",
-    "importedAt": "2026-09-25T11:27:12.416Z",
+    "importedAt": "2026-09-25T11:59:29.408Z",
     "notes": [
       "Records imported verbatim from the supplied snapshot.",
-      "BRCA1:c.5056C>T PMID 31479213: title/journal filled from PubMed booktitle/publishername",
-      "BRCA2:c.9538C>T PMID 32352694: title/journal filled from PubMed booktitle/publishername",
-      "BRCA1:c.5123C>T PMID 42258614: title/journal filled from PubMed booktitle/publishername"
+      "The supplied snapshot carries no capture timestamp; verifiedAgainstLive records when its content was last confirmed identical to a live read."
     ],
     "verifiedAgainstLive": {
-      "at": "2026-09-25T11:27:12.416Z",
-      "compared": 12,
-      "matched": 12,
+      "at": "2026-09-25T11:59:29.408Z",
+      "compared": 15,
+      "matched": 15,
       "fields": [
         "classification",
         "reviewStatus",
@@ -981,6 +979,202 @@
           "title": "CFTR-Related Metabolic Syndrome: Genetic Variants Increasing Pancreatitis Risk in the Pediatric Puerto Rican Population.",
           "journal": "Children (Basel)",
           "year": "2023"
+        }
+      ]
+    },
+    "HBB:c.364G>C": {
+      "clinvarId": "15152",
+      "accession": "VCV000015152",
+      "title": "NM_000518.4(HBB):c.364G>C (p.Glu122Gln)",
+      "gene": "HBB",
+      "cdnaChange": "c.364G>C",
+      "variantType": "single nucleotide variant",
+      "molecularConsequence": "missense variant",
+      "proteinChange": "E122Q",
+      "rsid": "rs33946267",
+      "classification": "Pathogenic/Likely pathogenic",
+      "reviewStatus": "criteria provided, multiple submitters, no conflicts",
+      "lastEvaluated": "2026-03-06",
+      "fdaRecognised": false,
+      "submissionCount": 23,
+      "conditions": [
+        "Hemoglobin D disease",
+        "beta Thalassemia",
+        "Hereditary persistence of fetal hemoglobin",
+        "Malaria, susceptibility to",
+        "Hb SS disease",
+        "Heinz body anemia",
+        "Erythrocytosis, familial, 6",
+        "Beta-thalassemia HBB/LCRB",
+        "METHEMOGLOBINEMIA, BETA TYPE",
+        "Dominant beta-thalassemia",
+        "Hb SS disease",
+        "HBB-related disorder",
+        "Heinz body anemia",
+        "Beta-thalassemia HBB/LCRB"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "11",
+        "band": "11p15.4",
+        "start": "5225678",
+        "stop": "5225678"
+      },
+      "peakAlleleFrequency": {
+        "value": 0.0006,
+        "source": "1000 Genomes Project"
+      },
+      "citations": [
+        {
+          "pmid": "33867742",
+          "title": "Hb Brugg [HBA1:c.63C>A]: Report of an Ultra-Rare Variant Hemoglobin and Its Co-inheritance with Hb D-Punjab.",
+          "journal": "Indian J Hematol Blood Transfus",
+          "year": "2021"
+        },
+        {
+          "pmid": "31973650",
+          "title": "An Unusual Compound Heterozygosity for Hb O-Arab (HBB: c.364G>A) and Hb D-Los Angeles (HBB: c.364G>C).",
+          "journal": "Hemoglobin",
+          "year": "2020"
+        },
+        {
+          "pmid": "31553106",
+          "title": "Curating the gnomAD database: Report of novel variants in the globin-coding genes and bioinformatics analysis.",
+          "journal": "Hum Mutat",
+          "year": "2020"
+        },
+        {
+          "pmid": "30626242",
+          "title": "Rare Association of Hb D-Los Angeles (HBB: c.364G>C) with Hb H Disease: Diagnosis and Clinical Implications.",
+          "journal": "Hemoglobin",
+          "year": "2018"
+        },
+        {
+          "pmid": "28492532",
+          "title": "Sherloc: a comprehensive refinement of the ACMG-AMP variant classification criteria.",
+          "journal": "Genet Med",
+          "year": "2017"
+        },
+        {
+          "pmid": "26467025",
+          "title": "A Standardized DNA Variant Scoring System for Pathogenicity Assessments in Mendelian Disorders.",
+          "journal": "Hum Mutat",
+          "year": "2016"
+        },
+        {
+          "pmid": "25818823",
+          "title": "Hemoglobin D-Punjab: origin, distribution and laboratory diagnosis.",
+          "journal": "Rev Bras Hematol Hemoter",
+          "year": "2015"
+        },
+        {
+          "pmid": "25741868",
+          "title": "Standards and guidelines for the interpretation of sequence variants: a joint consensus recommendation of the American College of Medical Genetics and Genomics and the Association for Molecular Pathology.",
+          "journal": "Genet Med",
+          "year": "2015"
+        }
+      ]
+    },
+    "MYBPC3:c.776delinsTT": {
+      "clinvarId": "4689837",
+      "accession": "VCV004689837",
+      "title": "NM_000256.3(MYBPC3):c.776delinsTT (p.Ala259fs)",
+      "gene": "MYBPC3",
+      "cdnaChange": "c.776delinsTT",
+      "variantType": "Indel",
+      "molecularConsequence": "frameshift variant",
+      "proteinChange": "A259fs",
+      "rsid": null,
+      "classification": "Likely pathogenic",
+      "reviewStatus": "criteria provided, single submitter",
+      "lastEvaluated": "2025-07-31",
+      "fdaRecognised": false,
+      "submissionCount": 1,
+      "conditions": [],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "11",
+        "band": "11p11.2",
+        "start": "47347902",
+        "stop": "47347902"
+      },
+      "peakAlleleFrequency": null,
+      "citations": []
+    },
+    "BRCA1:c.1140dup": {
+      "clinvarId": "231732",
+      "accession": "VCV000231732",
+      "title": "NM_007294.4(BRCA1):c.1140dup (p.Lys381fs)",
+      "gene": "BRCA1",
+      "cdnaChange": "c.1140dup",
+      "variantType": "Duplication",
+      "molecularConsequence": "frameshift variant",
+      "proteinChange": "K334fs",
+      "rsid": "rs876659327",
+      "classification": "Pathogenic",
+      "reviewStatus": "reviewed by expert panel",
+      "lastEvaluated": "2017-12-15",
+      "fdaRecognised": false,
+      "submissionCount": 12,
+      "conditions": [
+        "Breast-ovarian cancer, familial, susceptibility to, 1"
+      ],
+      "location": {
+        "assembly": "GRCh38",
+        "chr": "17",
+        "band": "17q21.31",
+        "start": "43094390",
+        "stop": "43094391"
+      },
+      "peakAlleleFrequency": null,
+      "citations": [
+        {
+          "pmid": "42258614",
+          "title": "ATM-Related Cancer Predisposition.",
+          "journal": "University of Washington, Seattle",
+          "year": "1993"
+        },
+        {
+          "pmid": "35802134",
+          "title": "ACMG SF v3.1 list for reporting of secondary findings in clinical exome and genome sequencing: A policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2022"
+        },
+        {
+          "pmid": "34980015",
+          "title": "Assessing frequency and clinical outcomes of BRCA mutated ovarian cancer in Saudi women.",
+          "journal": "BMC Cancer",
+          "year": "2022"
+        },
+        {
+          "pmid": "34242744",
+          "title": "Customizing local and systemic therapies for women with early breast cancer: the St. Gallen International Consensus Guidelines for treatment of early breast cancer 2021.",
+          "journal": "Ann Oncol",
+          "year": "2021"
+        },
+        {
+          "pmid": "34012068",
+          "title": "ACMG SF v3.0 list for reporting of secondary findings in clinical exome and genome sequencing: a policy statement of the American College of Medical Genetics and Genomics (ACMG).",
+          "journal": "Genet Med",
+          "year": "2021"
+        },
+        {
+          "pmid": "33410258",
+          "title": "Risk assessment and genetic counseling for hereditary breast and ovarian cancer syndromes-Practice resource of the National Society of Genetic Counselors.",
+          "journal": "J Genet Couns",
+          "year": "2021"
+        },
+        {
+          "pmid": "31479213",
+          "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA1/2-Related Cancer in Women: A Systematic Review for the U.S. Preventive Services Task Force",
+          "journal": "Agency for Healthcare Research and Quality (US)",
+          "year": "2019"
+        },
+        {
+          "pmid": "31429903",
+          "title": "Risk Assessment, Genetic Counseling, and Genetic Testing for BRCA-Related Cancer: US Preventive Services Task Force Recommendation Statement.",
+          "journal": "JAMA",
+          "year": "2019"
         }
       ]
     }

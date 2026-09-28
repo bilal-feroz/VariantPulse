@@ -1,0 +1,58 @@
+# Every gate from `npm run verify`, the unit tests and the Cloudflare Worker
+# build, on every push to main and every pull request. Each gate is its own
+# step so a failure names the gate that failed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: No generated output or secrets tracked
+        run: npm run verify:tree
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Data coherence
+        run: npm run verify:data
+
+      - name: Historical against current
+        run: npm run verify:history
+
+      - name: Colour contrast
+        run: npm run verify:contrast
+
+      - name: Unit tests
+        run: npm test
+
+      # The same build `npm run cf:deploy` ships: Next.js, then the OpenNext
+      # Worker bundle. Needs no Cloudflare credentials.
+      - name: Cloudflare Worker build
+        run: npm run cf:build

@@ -12,6 +12,7 @@ import {
 } from "@/components/panels";
 import { SyncButton } from "@/components/sync";
 import { Badge, Card, ClassificationBadge, SectionHeading, StatusDot } from "@/components/ui";
+import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { cn, formatDate } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
@@ -25,7 +26,7 @@ export default function EvidencePage() {
   const assessment =
     analysis.assessments.find((a) => a.variant.key === selected) ?? analysis.assessments[0];
 
-  const live = analysis.mode === "live";
+  const modeMeta = EVIDENCE_MODES[analysis.mode];
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
 
   if (!assessment) return null;
@@ -41,9 +42,13 @@ export default function EvidencePage() {
 
       <Card className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3.5">
         <span className="inline-flex items-center gap-2">
-          <StatusDot tone={live ? "positive" : "warning"} pulse={live} />
-          <span className="text-[13px] font-medium text-ink">
-            {live ? "Live ClinVar evidence" : "Cached verified evidence"}
+          <StatusDot tone={modeMeta.tone} pulse={modeMeta.pulse} />
+          <span className="text-[13px] font-medium text-ink" title={modeMeta.description}>
+            {analysis.mode === "live"
+              ? "Live ClinVar evidence"
+              : analysis.mode === "demo"
+                ? "Demo mode · verified ClinVar snapshot"
+                : "Cached verified evidence"}
           </span>
         </span>
         <span className="text-[12.5px] text-muted">
@@ -52,7 +57,7 @@ export default function EvidencePage() {
         <span className="text-[12.5px] text-muted">
           {analysis.assessments.length} variants on the monitored panel
         </span>
-        {!live && analysis.reason ? (
+        {analysis.mode === "cached" && analysis.reason ? (
           <Badge tone="warning">{analysis.reason}</Badge>
         ) : null}
         <a

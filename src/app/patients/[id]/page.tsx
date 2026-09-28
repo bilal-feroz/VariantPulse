@@ -169,7 +169,9 @@ export default function PatientPage() {
           description={
             analysis.mode === "live"
               ? "Read live from NCBI ClinVar at the last evidence sync."
-              : "From the cached, verified ClinVar snapshot; live ClinVar was not reachable."
+              : analysis.mode === "demo"
+                ? "Demo mode: from the bundled ClinVar snapshot, verified identical to a live read."
+                : "From the cached, verified ClinVar snapshot; live ClinVar was not reachable."
           }
         />
         <dl className="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">

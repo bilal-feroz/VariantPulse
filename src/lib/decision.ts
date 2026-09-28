@@ -1,22 +1,23 @@
 /**
  * Clinician decisions on a review case.
  *
- * A decision records the outcome of a clinical review: whether the change in
- * evidence applies to the records the case covers. It never changes a
- * classification, never writes to a patient record and never issues a
- * diagnosis.
+ * A decision records the outcome of a clinical review: what the service will
+ * do about a change in evidence for the records the case covers. It never
+ * changes a classification, never writes to a patient record and never issues
+ * a diagnosis. Every decision carries the clinician's rationale.
  *
  * The history is append-only. The first entry is the decision as made and
  * every later one is an amendment, so the trail always shows who decided what,
  * and when, rather than only the latest answer.
  */
 
-export const DECISIONS = ["Confirm change", "Not applicable", "Needs more evidence"] as const;
+export const DECISIONS = ["Refer to genetics", "Needs further evidence", "No action"] as const;
 
 export type Decision = (typeof DECISIONS)[number];
 
 export interface DecisionRecord {
   decision: Decision;
+  /** The clinician's rationale, as written. */
   note: string;
   /** The clinician who recorded it. */
   reviewer: string;
@@ -26,15 +27,15 @@ export interface DecisionRecord {
 
 /** What each decision asserts, in words a reviewer can check against. */
 export const DECISION_GUIDANCE: Record<Decision, string> = {
-  "Confirm change":
-    "The new evidence applies to the records on this case, and they need clinical follow-up.",
-  "Not applicable":
-    "The change in evidence does not alter what the records on this case mean.",
-  "Needs more evidence":
-    "The evidence is not yet sufficient to act on. The case stays open to further evidence.",
+  "Refer to genetics":
+    "The updated evidence applies to the records on this case. Refer them for clinical genetics review; follow-up tasks need approval before anything reaches a patient.",
+  "Needs further evidence":
+    "The evidence is not yet sufficient to act on. The case stays open until the requested evidence arrives and a final decision is recorded.",
+  "No action":
+    "The updated evidence does not change management for the records on this case. The rationale is kept, and the case can be closed.",
 };
 
-/** A decision is recorded only with a clinician note at least this long. */
+/** A decision is recorded only with a rationale at least this long. */
 export const DECISION_NOTE_MIN = 10;
 
 export function isDecisionNoteValid(note: string): boolean {
@@ -44,4 +45,14 @@ export function isDecisionNoteValid(note: string): boolean {
 /** The decision in force: the latest entry, amendments included. */
 export function currentDecision(history: readonly DecisionRecord[]): DecisionRecord | null {
   return history.length > 0 ? history[history.length - 1] : null;
+}
+
+/** Whether a decision settles the review, rather than holding it open for evidence. */
+export function isSettled(decision: Decision): boolean {
+  return decision !== "Needs further evidence";
+}
+
+/** Only a referral acts on the change, so only a referral leads to follow-up that reaches a patient. */
+export function actsOnChange(decision: Decision): boolean {
+  return decision === "Refer to genetics";
 }

@@ -27,6 +27,8 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { CHANGE_TYPES } from "@/lib/classification";
+import { caseStage } from "@/lib/workflow";
+import { WhatChanged } from "@/components/what-changed";
 import { composeRecommendation } from "@/lib/narrative";
 import { useWorkspace } from "@/state/workspace";
 
@@ -114,13 +116,14 @@ export default function VariantPage() {
         <SyntheticDataLabel className="mt-3" />
         <PatientImpactGraph
           assessment={assessment}
-          caseStatus={caseId ? getCase(caseId).status : undefined}
+          caseStatus={caseId ? caseStage(getCase(caseId)) : undefined}
           className="mt-5"
         />
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-5">
+          <WhatChanged assessment={assessment} read={analysis} />
           <EvidenceSummaryPanel assessment={assessment} />
           <EvidenceComparison assessment={assessment} />
           {assessment.regional ? <RegionalComparison assessment={assessment} /> : null}
@@ -146,7 +149,7 @@ export default function VariantPage() {
           rows={impactedPatients}
           byKey={byKey}
           showVariant={false}
-          caseStatus={caseId ? getCase(caseId).status : undefined}
+          caseStatus={caseId ? caseStage(getCase(caseId)) : undefined}
         />
       </Card>
 

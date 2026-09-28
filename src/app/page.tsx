@@ -76,6 +76,13 @@ export default function HomePage() {
             not alter patient records and does not make a diagnosis.
           </p>
         </div>
+        <Link
+          href="/pilot"
+          className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-line-2 bg-surface px-3.5 py-2 text-[13px] font-medium text-accent transition-colors hover:bg-canvas"
+        >
+          How a partner evaluates it
+          <ArrowRight className="h-4 w-4" />
+        </Link>
         <span className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-line-2 bg-surface px-3.5 py-2 text-[13px] font-medium text-ink-2">
           <Shield className="h-4 w-4 text-muted" />
           Not a diagnosis
@@ -176,7 +183,7 @@ function HowItWorks({ lead }: { lead: VariantAssessment }) {
             <ClipboardList className="h-5 w-5" />
           </StepIcon>
           <span className="text-[12.5px] leading-snug text-muted">
-            Review case opened for the care team
+            A named owner, a documented decision and approved follow-up, every step on record
           </span>
         </Step>
       </ol>
@@ -401,8 +408,8 @@ function DataSources({ mode }: { mode: string }) {
           icon={<Globe2 className="h-[18px] w-[18px]" />}
           tile="bg-warn-soft text-warn"
           name={REGIONAL_SOURCE.name}
-          description="gnomAD v4, Middle Eastern"
-          status="Modelled"
+          description="gnomAD v4 Middle Eastern, CTGA"
+          status="Bundled"
         />
         <SourceRow
           icon={<Building2 className="h-[18px] w-[18px]" />}

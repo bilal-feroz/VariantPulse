@@ -16,18 +16,24 @@ import { meta } from "@/lib/classification";
 import { currentDecision } from "@/lib/decision";
 import { composeRecommendation } from "@/lib/narrative";
 import { REGIONAL_SOURCE } from "@/data/regional";
-import { CURRENT_USER } from "@/data/workspace";
+import type { Persona } from "@/data/workspace";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui";
 import { CURRENT, HISTORICAL } from "@/components/clinical/tokens";
-import type { CaseNote, CaseState } from "@/state/workspace";
+import { FOLLOW_UP_KINDS, caseStage, type CaseEvent, type CaseState } from "@/lib/workflow";
+import { useWorkspace } from "@/state/workspace";
 
 /** The evidence summary most recently filed with "Use in brief", if any. */
-function filedSummary(state: CaseState): CaseNote | undefined {
-  return [...state.notes].reverse().find((note) => note.kind === "summary");
+function filedSummary(state: CaseState): CaseEvent | undefined {
+  return [...state.events].reverse().find((event) => event.type === "summary");
 }
 
-function briefText(assessment: VariantAssessment, state: CaseState, generatedAt: string): string {
+function briefText(
+  assessment: VariantAssessment,
+  state: CaseState,
+  generatedAt: string,
+  preparedFor: Persona,
+): string {
   const { variant, evidence, regional } = assessment;
   const decision = currentDecision(state.decisions);
   const summaryNote = filedSummary(state);
@@ -36,7 +42,7 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     "",
     `Case:                ${assessment.caseId ?? "-"}`,
     `Generated:           ${generatedAt}`,
-    `Prepared for:        ${CURRENT_USER.name}, ${CURRENT_USER.role}`,
+    `Prepared for:        ${preparedFor.name}, ${preparedFor.title}`,
     "",
     "VARIANT",
     `  Gene:              ${variant.gene}`,
@@ -66,8 +72,8 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
       ? [
           "",
           "SUMMARY FILED FOR THIS CASE",
-          `  Added by ${summaryNote.author}, ${formatDate(summaryNote.at)}`,
-          ...wrap(summaryNote.body, 78).map((l) => `  ${l}`),
+          `  Added by ${summaryNote.actor}, ${formatDate(summaryNote.at)}`,
+          ...wrap(summaryNote.detail ?? "", 78).map((l) => `  ${l}`),
         ]
       : []),
     "",
@@ -82,15 +88,22 @@ function briefText(assessment: VariantAssessment, state: CaseState, generatedAt:
     ),
     "",
     "CASE STATE",
-    `  Status:            ${state.status}`,
-    `  Assigned:          ${state.assignee ?? "Unassigned"}`,
+    `  Stage:             ${caseStage(state)}`,
+    `  Owner:             ${state.owner ?? "Unassigned"}`,
     `  Decision:          ${decision ? `${decision.decision} (${decision.reviewer}, ${formatDate(decision.at)})` : "-"}`,
-    `  Decision note:     ${decision?.note ?? "-"}`,
+    `  Rationale:         ${decision?.note ?? "-"}`,
     ...(state.decisions.length > 1 ? [`  Amendments:        ${state.decisions.length - 1}`] : []),
-    `  Follow-ups:        ${state.followUps}`,
     `  Evidence request:  ${state.evidenceRequested ? "Requested" : "None"}`,
-    `  Trail entries:     ${state.notes.length}`,
-    ...state.notes.map((n) => `    - ${n.author}: ${n.body}`),
+    `  Follow-ups:        ${state.followUps.length}`,
+    ...state.followUps.map(
+      (t) =>
+        `    - ${t.title}: ${t.status === "Done" ? FOLLOW_UP_KINDS[t.kind].doneLabel : t.status} (proposed by ${t.proposedBy}${t.reviewedBy ? `, reviewed by ${t.reviewedBy}` : ""})`,
+    ),
+    `  Closed:            ${state.closure ? `${state.closure.by}, ${formatDate(state.closure.at)}: ${state.closure.note}` : "No"}`,
+    `  History entries:   ${state.events.length}`,
+    ...state.events.map(
+      (e) => `    - ${formatDate(e.at)} ${e.actor} (${e.role}): ${e.summary}${e.detail ? `. ${e.detail}` : ""}`,
+    ),
     "",
     "DISCLAIMER",
     "  Decision support only. Final interpretation remains with the qualified",
@@ -148,6 +161,7 @@ function EvidenceBrief({
   onClose: () => void;
 }) {
   const { variant, evidence, regional } = assessment;
+  const { persona } = useWorkspace();
   const decision = currentDecision(state.decisions);
   const summaryNote = filedSummary(state);
   const [generatedAt, setGeneratedAt] = React.useState("");
@@ -171,7 +185,7 @@ function EvidenceBrief({
   }, [onClose]);
 
   const download = () => {
-    const blob = new Blob([briefText(assessment, state, generatedAt)], {
+    const blob = new Blob([briefText(assessment, state, generatedAt, persona)], {
       type: "text/plain;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
@@ -275,10 +289,10 @@ function EvidenceBrief({
           {summaryNote ? (
             <Section title="Summary filed for this case">
               <p className="whitespace-pre-line text-[13.5px] leading-relaxed text-ink-2">
-                {summaryNote.body}
+                {summaryNote.detail}
               </p>
               <p className="mt-2 text-[11.5px] text-faint">
-                Added by {summaryNote.author}, {formatDate(summaryNote.at)}, from the drafted
+                Added by {summaryNote.actor}, {formatDate(summaryNote.at)}, from the drafted
                 evidence summary on the case.
               </p>
             </Section>
@@ -322,16 +336,27 @@ function EvidenceBrief({
               {composeRecommendation(assessment.changeType, assessment.impactedRecordCount)}
             </p>
             <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Item label="Status" value={state.status} />
-              <Item label="Assigned" value={state.assignee ?? "Unassigned"} />
-              <Item label="Follow-ups" value={String(state.followUps)} />
-              <Item label="Trail entries" value={String(state.notes.length)} />
+              <Item label="Stage" value={caseStage(state)} />
+              <Item label="Owner" value={state.owner ?? "Unassigned"} />
+              <Item label="Follow-ups" value={String(state.followUps.length)} />
+              <Item label="History entries" value={String(state.events.length)} />
             </dl>
             {decision ? (
               <p className="mt-3 text-[12.5px] leading-relaxed text-ink-2">
                 <strong className="font-medium text-ink">Clinician decision:</strong>{" "}
                 {decision.decision} ({decision.reviewer}, {formatDate(decision.at)}). {decision.note}
               </p>
+            ) : null}
+            {state.followUps.length > 0 ? (
+              <ul className="mt-2.5 space-y-1 text-[12.5px] text-ink-2">
+                {state.followUps.map((task) => (
+                  <li key={task.id}>
+                    <strong className="font-medium text-ink">{task.title}</strong>:{" "}
+                    {task.status === "Done" ? FOLLOW_UP_KINDS[task.kind].doneLabel : task.status}
+                    {task.reviewedBy ? ` (reviewed by ${task.reviewedBy})` : ""}
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </Section>
 

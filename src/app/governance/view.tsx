@@ -16,7 +16,8 @@ import {
   KNOWN_LIMITATIONS,
 } from "@/data/governance";
 import { deploymentPackage, type DeploymentFacts } from "@/lib/governance";
-import { ROLES } from "@/lib/roles";
+import { ROLES, denial } from "@/lib/roles";
+import { RoleNote } from "@/components/workflow/role-note";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 
@@ -299,7 +300,8 @@ function Inventory({ facts }: { facts: DeploymentFacts }) {
 }
 
 function SessionData() {
-  const { cases, activity, adjudications, lastImport, clearSession, hydrated } = useWorkspace();
+  const { cases, activity, adjudications, lastImport, clearSession, hydrated, can, persona } = useWorkspace();
+  const deleteDenied = denial(persona, "session:delete");
   const [confirming, setConfirming] = React.useState(false);
   const [cleared, setCleared] = React.useState(false);
   const worked = Object.values(cases).filter((c) => c.events.length > 0).length;
@@ -343,7 +345,7 @@ function SessionData() {
             </Button>
           </>
         ) : (
-          <Button size="sm" onClick={() => setConfirming(true)} disabled={!hydrated}>
+          <Button size="sm" onClick={() => setConfirming(true)} disabled={!hydrated || !can("session:delete")}>
             <Trash2 className="h-3.5 w-3.5" />
             Delete session data
           </Button>
@@ -352,6 +354,7 @@ function SessionData() {
           {cleared ? "Deleted. The trail records that it happened." : confirming ? "This cannot be undone." : null}
         </span>
       </div>
+      <RoleNote className="mt-3" reason={deleteDenied} switchTo="mansour" />
     </Card>
   );
 }

@@ -47,6 +47,7 @@ export type CaseEventType =
   | "follow-up-proposed"
   | "follow-up-approved"
   | "follow-up-declined"
+  | "follow-up-withdrawn"
   | "follow-up-done"
   | "escalated"
   | "closed"
@@ -69,7 +70,12 @@ export interface CaseEvent {
 
 export type FollowUpKind = "genetics-referral" | "notify-clinician" | "patient-letter" | "other";
 
-export type FollowUpStatus = "Proposed" | "Approved" | "Declined" | "Done";
+/**
+ * `Withdrawn`: taken back by its proposer before a decision on it.
+ * `Superseded`: still open when the decision it served was amended, so it
+ * no longer applies; the new decision needs its own follow-up.
+ */
+export type FollowUpStatus = "Proposed" | "Approved" | "Declined" | "Done" | "Withdrawn" | "Superseded";
 
 export interface FollowUpTask {
   id: string;
@@ -79,6 +85,8 @@ export interface FollowUpTask {
   status: FollowUpStatus;
   proposedBy: string;
   proposedAt: string;
+  /** The decision this follow-up serves, by the time it was recorded. */
+  decisionAt: string;
   /** Who approved or declined it, when, and why. */
   reviewedBy?: string;
   reviewedAt?: string;
@@ -133,6 +141,7 @@ export const CASE_EVENT_LABEL: Record<CaseEventType, string> = {
   "follow-up-proposed": "Follow-up proposed",
   "follow-up-approved": "Follow-up approved",
   "follow-up-declined": "Follow-up declined",
+  "follow-up-withdrawn": "Follow-up withdrawn",
   "follow-up-done": "Follow-up done",
   escalated: "Escalated",
   closed: "Closed",
@@ -174,12 +183,35 @@ export const STAGE_META: Record<CaseStage, { tone: Tone; description: string }> 
 
 const isApproved = (task: FollowUpTask) => task.status === "Approved" || task.status === "Done";
 
+/**
+ * The follow-ups that serve the decision in force. Those proposed under an
+ * earlier decision stay in the list as history, but no longer approve,
+ * block or release anything.
+ */
+export function activeFollowUps(state: CaseState): FollowUpTask[] {
+  const decision = currentDecision(state.decisions);
+  return decision ? state.followUps.filter((task) => task.decisionAt === decision.at) : [];
+}
+
+/**
+ * What an amendment does to the follow-ups of the decision it replaces: any
+ * still awaiting approval, or approved but not yet carried out, no longer
+ * apply. Those already done or declined stay as they were, as history.
+ */
+export function supersedeFollowUps(tasks: FollowUpTask[], previousAt: string, at: string): FollowUpTask[] {
+  return tasks.map((task) =>
+    task.decisionAt === previousAt && (task.status === "Proposed" || task.status === "Approved")
+      ? { ...task, status: "Superseded", reviewedAt: at, reviewNote: "The decision it served was amended." }
+      : task,
+  );
+}
+
 export function caseStage(state: CaseState): CaseStage {
   if (state.closure) return "Closed";
   const decision = currentDecision(state.decisions);
   if (decision) {
     if (!isSettled(decision.decision)) return "Awaiting evidence";
-    return state.followUps.some(isApproved) ? "Follow-up approved" : "Decision recorded";
+    return activeFollowUps(state).some(isApproved) ? "Follow-up approved" : "Decision recorded";
   }
   if (state.reviewOpenedAt) return "In review";
   if (state.owner) return "Assigned";
@@ -371,12 +403,12 @@ export function suggestedFollowUps({ decision, gene, records }: SuggestionInput)
 }
 
 export function pendingApprovals(state: CaseState): FollowUpTask[] {
-  return state.followUps.filter((task) => task.status === "Proposed");
+  return activeFollowUps(state).filter((task) => task.status === "Proposed");
 }
 
-/** A patient letter is released only through an approved follow-up. */
+/** A patient letter is released only through an approved follow-up of the decision in force. */
 export function letterApproved(state: CaseState): boolean {
-  return state.followUps.some((task) => task.kind === "patient-letter" && isApproved(task));
+  return activeFollowUps(state).some((task) => task.kind === "patient-letter" && isApproved(task));
 }
 
 /* -- Closure --------------------------------------------------------------- */
@@ -396,8 +428,13 @@ export function closureBlocker(state: CaseState): string | null {
   if (pending > 0) {
     return `${pending} follow-up${pending === 1 ? " still awaits" : "s still await"} approval.`;
   }
-  if (actsOnChange(decision.decision) && !state.followUps.some(isApproved)) {
-    return "A referral needs at least one approved follow-up before the case can close.";
+  // A referral decision is carried out by a referral, not by a notification
+  // or a letter on their own.
+  if (
+    actsOnChange(decision.decision) &&
+    !activeFollowUps(state).some((task) => task.kind === "genetics-referral" && isApproved(task))
+  ) {
+    return "A referral decision needs an approved genetics referral before the case can close.";
   }
   return null;
 }
@@ -454,7 +491,8 @@ function latest(state: CaseState, type: CaseEventType): CaseEvent | undefined {
 export function caseJourney(state: CaseState, context: JourneyContext): JourneyStep[] {
   const decision = currentDecision(state.decisions);
   const settled = decision ? isSettled(decision.decision) : false;
-  const approved = state.followUps.filter(isApproved);
+  const active = activeFollowUps(state);
+  const approved = active.filter(isApproved);
   const firstApproved = [...approved].sort((a, b) =>
     (a.reviewedAt ?? "").localeCompare(b.reviewedAt ?? ""),
   )[0];
@@ -514,7 +552,7 @@ export function caseJourney(state: CaseState, context: JourneyContext): JourneyS
       detail: followUpSkipped
         ? "Not required for no action"
         : approved.length > 0
-          ? `${approved.length} of ${state.followUps.filter((t) => t.status !== "Declined").length} approved`
+          ? `${approved.length} of ${active.filter((t) => t.status !== "Declined" && t.status !== "Withdrawn").length} approved`
           : null,
       at: firstApproved?.reviewedAt ?? null,
       actor: firstApproved?.reviewedBy ?? null,

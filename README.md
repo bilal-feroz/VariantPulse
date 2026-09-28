@@ -237,11 +237,14 @@ with who did it and when.
 - **Follow-up** is proposed from the decision (a genetics referral, notifying the ordering
   clinicians, a patient explanation letter) and approved or declined by someone other than its
   proposer. A patient letter can be drafted only through an approved letter follow-up.
-- **Closure** needs a settled decision, nothing awaiting approval, at least one approved follow-up
-  for a referral, and a note. Only the owner or the service lead can close; reopening is recorded.
+- **Closure** needs a settled decision, nothing awaiting approval, an approved genetics referral for
+  a referral decision, and a note. Only the owner or the service lead can close; reopening is
+  recorded. Amending a decision supersedes follow-ups still open under the old one, and a proposer
+  can withdraw a follow-up nobody has approved yet.
 - **Roles.** Four demonstration identities, switched from the top bar, show separation of duties:
-  a reviewing clinician, the service lead (approves, closes, assigns), a data steward (imports) and
-  a read-only pilot sponsor. The interface says which role an unavailable action needs.
+  a reviewing clinician (proposes follow-ups), the service lead (approves them, closes, assigns, and
+  proposes none, so every approval has a second person), a data steward (imports, retention) and a
+  read-only pilot sponsor. The interface says which role an unavailable action needs.
 
 Each alert also has a **What changed?** panel: ClinVar's own reading then and now, in its words,
 with links to the archived release and the live record; the reading at each archived checkpoint;

@@ -80,7 +80,7 @@ export default function ReviewCasePage() {
           <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             <strong className="font-semibold">Silent pilot.</strong> Review, decisions and approvals are
-            recorded for evaluation, but nothing reaches a patient and nothing is exported.{" "}
+            recorded for evaluation, but nothing reaches a patient and nothing is exported to hospital systems.{" "}
             <Link href="/pilot" className="font-medium underline underline-offset-2">
               Pilot settings
             </Link>

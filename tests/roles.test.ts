@@ -22,10 +22,27 @@ describe("roles", () => {
     expect(can("reviewer", "case:close")).toBe(false);
   });
 
-  it("gives the sponsor nothing but reading, and the data steward only imports", () => {
+  it("gives the sponsor nothing but reading, and the data steward only imports and retention", () => {
     expect(ROLES.sponsor.permissions).toEqual([]);
-    expect(ROLES["data-steward"].permissions).toEqual(["data:import"]);
+    expect(ROLES["data-steward"].permissions).toEqual(["data:import", "session:delete"]);
     expect(denial(persona("idris"), "case:decide")).toMatch(/reviewing clinician or service lead/);
+  });
+
+  it("keeps the only approver from proposing, so every follow-up can be approved by someone", () => {
+    expect(can("approver", "follow-up:propose")).toBe(false);
+    expect(can("reviewer", "follow-up:propose")).toBe(true);
+    const proposers = PERSONAS.filter((p) => can(p.role, "follow-up:propose"));
+    const approvers = PERSONAS.filter((p) => can(p.role, "follow-up:approve"));
+    for (const proposer of proposers) {
+      expect(approvers.some((approver) => canApproveFollowUp(approver, proposer.name) === null), proposer.name).toBe(true);
+    }
+  });
+
+  it("lets only the service lead and the data steward delete session data", () => {
+    expect(PERSONAS.filter((p) => can(p.role, "session:delete")).map((p) => p.role).sort()).toEqual([
+      "approver",
+      "data-steward",
+    ]);
   });
 
   it("never lets anyone approve their own follow-up", () => {

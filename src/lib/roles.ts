@@ -32,7 +32,8 @@ export type Permission =
   | "output:export"
   | "pilot:adjudicate"
   | "pilot:configure"
-  | "data:import";
+  | "data:import"
+  | "session:delete";
 
 export interface RoleMeta {
   role: Role;
@@ -63,22 +64,25 @@ export const ROLES: Record<Role, RoleMeta> = {
     role: "approver",
     label: "Service lead",
     description:
-      "Everything a reviewer can do, and approves follow-ups, assigns owners, closes and reopens cases, and sets the pilot's terms.",
+      "Reviews and decides like a clinician, approves the follow-ups others propose, assigns owners, closes and reopens cases, and sets the pilot's terms. Proposes no follow-up, so every approval has a second person.",
+    // Everything clinical except proposing a follow-up: the service lead is
+    // the only approver, and nobody approves their own proposal.
     permissions: [
-      ...CLINICAL,
+      ...CLINICAL.filter((permission) => permission !== "follow-up:propose"),
       "case:assign",
       "follow-up:approve",
       "case:close",
       "case:reopen",
       "pilot:configure",
+      "session:delete",
     ],
   },
   "data-steward": {
     role: "data-steward",
     label: "Data steward",
     description:
-      "Imports and validates historical results. Reads cases but takes no clinical action.",
-    permissions: ["data:import"],
+      "Imports and validates historical results, and holds the retention controls. Reads cases but takes no clinical action.",
+    permissions: ["data:import", "session:delete"],
   },
   sponsor: {
     role: "sponsor",

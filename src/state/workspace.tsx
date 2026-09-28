@@ -17,6 +17,10 @@
  * Every action checks the signed-in role itself, as well as the interface
  * offering only what the role may do, so a control that slipped through the
  * interface still cannot act.
+ *
+ * Case state is keyed by variant, not by case identifier. A case identifier is
+ * a position in the priority order, so a live resync that reorders the queue
+ * would otherwise move an owner or a decision onto a different variant.
  */
 
 import * as React from "react";
@@ -49,6 +53,7 @@ import {
   emptyCase,
   needsEscalation,
   reviewDeadline,
+  supersedeFollowUps,
   type CaseEvent,
   type CaseEventType,
   type CaseState,
@@ -114,6 +119,7 @@ interface WorkspaceValue {
   switchPersona: (id: string) => void;
   can: (permission: Permission) => boolean;
 
+  /** Case state by variant key. Read a case through `getCase`. */
   cases: Record<string, CaseState>;
   getCase: (caseId: string) => CaseState;
   assignOwner: (caseId: string, owner: string) => void;
@@ -123,6 +129,8 @@ interface WorkspaceValue {
   recordDecision: (caseId: string, decision: Decision, rationale: string) => void;
   proposeFollowUps: (caseId: string, drafts: FollowUpDraft[]) => void;
   reviewFollowUp: (caseId: string, taskId: string, verdict: "Approved" | "Declined", note?: string) => void;
+  /** The proposer takes back a follow-up nobody has approved yet. */
+  withdrawFollowUp: (caseId: string, taskId: string) => void;
   completeFollowUp: (caseId: string, taskId: string) => void;
   closeCase: (caseId: string, note: string) => void;
   reopenCase: (caseId: string, reason: string) => void;
@@ -131,7 +139,7 @@ interface WorkspaceValue {
 
   activity: ActivityEntry[];
 
-  /** While on, nothing leaves VariantPulse: no patient contact, no export. */
+  /** While on, nothing reaches a patient and nothing is exported to hospital systems. */
   silentMode: boolean;
   setSilentMode: (on: boolean) => void;
   adjudications: Record<string, Adjudication>;
@@ -150,10 +158,15 @@ interface WorkspaceValue {
 
 const WorkspaceContext = React.createContext<WorkspaceValue | null>(null);
 
-// v4: case workflow with owners, deadlines, follow-ups and closure; roles;
-// the silent pilot. Earlier shapes are discarded rather than migrated.
-const STORAGE_KEY = "variantpulse.session.v4";
-const RETIRED_KEYS = ["variantpulse.session.v3", "variantpulse.session.v2", "variantpulse.session.v1"];
+// v5: case state keyed by variant, and follow-ups tied to the decision they
+// serve. Earlier shapes are discarded rather than migrated.
+const STORAGE_KEY = "variantpulse.session.v5";
+const RETIRED_KEYS = [
+  "variantpulse.session.v4",
+  "variantpulse.session.v3",
+  "variantpulse.session.v2",
+  "variantpulse.session.v1",
+];
 
 const SYNC_STEPS = [
   { label: "Reading historical findings", detail: "Opening the connected record system" },
@@ -233,6 +246,7 @@ function seedActivity(analysis: ClientAnalysis): ActivityEntry[] {
 interface Persisted {
   /** When this session's cases were raised; deadlines run from here. */
   raisedAt: string;
+  /** Case state by variant key. */
   personaId: string;
   cases: Record<string, CaseState>;
   activity: ActivityEntry[];
@@ -275,9 +289,13 @@ export function WorkspaceProvider({
     try {
       for (const key of RETIRED_KEYS) sessionStorage.removeItem(key);
       const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<Persisted>;
-        if (saved.raisedAt) setRaisedAt(saved.raisedAt);
+      const saved = raw ? (JSON.parse(raw) as Partial<Persisted>) : null;
+      // A case is raised in this workspace when the session first sees it. In
+      // demo mode the evidence read carries the snapshot's fixed date, which
+      // would put every deadline in the past once that date is far enough
+      // behind; the session's own start is the honest clock.
+      setRaisedAt(saved?.raisedAt ?? new Date().toISOString());
+      if (saved) {
         if (saved.personaId && PERSONA_BY_ID.has(saved.personaId)) setPersonaId(saved.personaId);
         if (saved.cases) setCases(saved.cases);
         if (saved.activity?.length) setActivity(saved.activity);
@@ -329,12 +347,21 @@ export function WorkspaceProvider({
     [raisedAt],
   );
 
-  const getCase = React.useCallback((caseId: string) => withDefaults(cases[caseId]), [cases, withDefaults]);
-
   const byCase = React.useMemo(
     () => new Map(analysis.assessments.filter((a) => a.caseId).map((a) => [a.caseId as string, a])),
     [analysis],
   );
+
+  /** The variant a case identifier currently belongs to: where its state is kept. */
+  const keyOf = React.useCallback((caseId: string) => byCase.get(caseId)?.variant.key ?? caseId, [byCase]);
+
+  /** A case's state as of this render. */
+  const read = React.useCallback(
+    (caseId: string) => withDefaults(cases[keyOf(caseId)]),
+    [cases, keyOf, withDefaults],
+  );
+
+  const getCase = read;
 
   /** Applies a change to one case and appends its history entry in the same update. */
   const change = React.useCallback(
@@ -355,12 +382,13 @@ export function WorkspaceProvider({
         summary,
         ...(detail ? { detail } : {}),
       };
+      const key = keyOf(caseId);
       setCases((prev) => {
-        const next = apply(withDefaults(prev[caseId]), at);
-        return { ...prev, [caseId]: { ...next, events: [...next.events, event] } };
+        const next = apply(withDefaults(prev[key]), at);
+        return { ...prev, [key]: { ...next, events: [...next.events, event] } };
       });
     },
-    [persona.name, roleLabel, withDefaults],
+    [persona.name, roleLabel, withDefaults, keyOf],
   );
 
   const allowed = React.useCallback((permission: Permission) => roleCan(persona.role, permission), [persona.role]);
@@ -418,8 +446,10 @@ export function WorkspaceProvider({
   React.useEffect(() => {
     if (!hydrated || !now) return;
     const due: VariantAssessment[] = [];
-    for (const [caseId, assessment] of byCase) {
-      if (needsEscalation(withDefaults(cases[caseId]), assessment.priority.level, now)) due.push(assessment);
+    for (const assessment of byCase.values()) {
+      if (needsEscalation(withDefaults(cases[assessment.variant.key]), assessment.priority.level, now)) {
+        due.push(assessment);
+      }
     }
     if (due.length === 0) return;
 
@@ -427,11 +457,11 @@ export function WorkspaceProvider({
     setCases((prev) => {
       const next = { ...prev };
       for (const assessment of due) {
-        const caseId = assessment.caseId as string;
-        const state = withDefaults(prev[caseId]);
+        const key = assessment.variant.key;
+        const state = withDefaults(prev[key]);
         if (!needsEscalation(state, assessment.priority.level, now)) continue;
         const dueAt = reviewDeadline(state.raisedAt ?? raisedAt, assessment.priority.level);
-        next[caseId] = {
+        next[key] = {
           ...state,
           escalatedAt: at,
           events: [
@@ -487,7 +517,7 @@ export function WorkspaceProvider({
 
   const assignOwner = React.useCallback(
     (caseId: string, owner: string) => {
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       if (!owner || owner === state.owner || state.closure) return;
       // A reviewer can take a case on; handing it to someone else, or
       // reassigning it, is the service lead's.
@@ -498,12 +528,12 @@ export function WorkspaceProvider({
       change(caseId, "owner", summary, (s) => ({ ...s, owner }), state.owner ? `Previously ${state.owner}.` : undefined);
       log({ kind: "assignment", actor: persona.name, role: roleLabel, caseId, title: `${summary} on ${caseId}` });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, change, log],
+    [read, persona.name, roleLabel, allowed, change, log],
   );
 
   const openReview = React.useCallback(
     (caseId: string) => {
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       if (!allowed("case:review") || state.reviewOpenedAt || state.closure) return;
       // Opening an unowned case takes ownership of it: someone is accountable
       // from the moment review starts.
@@ -515,17 +545,17 @@ export function WorkspaceProvider({
       change(caseId, "review-opened", "Clinical review opened", (s, at) => ({ ...s, reviewOpenedAt: at }));
       log({ kind: "case", actor: persona.name, role: roleLabel, caseId, title: `Clinical review opened on ${caseId}` });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, change, log],
+    [read, persona.name, roleLabel, allowed, change, log],
   );
 
   const requestEvidence = React.useCallback(
     (caseId: string, detail: string) => {
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       if (!allowed("case:review") || state.evidenceRequested || state.closure) return;
       change(caseId, "evidence-request", "More evidence requested", (s) => ({ ...s, evidenceRequested: true }), detail);
       log({ kind: "evidence-request", actor: persona.name, role: roleLabel, caseId, title: `More evidence requested for ${caseId}`, detail });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, change, log],
+    [read, persona.name, roleLabel, allowed, change, log],
   );
 
   /* A decision is appended, never written over. When the case already has one
@@ -533,17 +563,29 @@ export function WorkspaceProvider({
   const recordDecision = React.useCallback(
     (caseId: string, decision: Decision, rationale: string) => {
       const body = rationale.trim();
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       if (!allowed("case:decide") || !isDecisionNoteValid(body) || !state.owner || state.closure) return;
 
       const previous = currentDecision(state.decisions);
       const record: DecisionRecord = { decision, note: body, reviewer: persona.name, at: new Date().toISOString() };
+      const superseded = previous
+        ? state.followUps.filter(
+            (t) => t.decisionAt === previous.at && (t.status === "Proposed" || t.status === "Approved"),
+          ).length
+        : 0;
       change(
         caseId,
         previous ? "amendment" : "decision",
         previous ? `Decision amended to ${decision}` : `Decision: ${decision}`,
-        (s) => ({ ...s, decisions: [...s.decisions, record] }),
-        previous ? `Previously ${previous.decision}. Rationale: ${body}` : `Rationale: ${body}`,
+        (s, at) => ({
+          ...s,
+          decisions: [...s.decisions, record],
+          // Follow-ups still open under the replaced decision no longer apply.
+          followUps: previous ? supersedeFollowUps(s.followUps, previous.at, at) : s.followUps,
+        }),
+        previous
+          ? `Previously ${previous.decision}. Rationale: ${body}${superseded ? ` ${superseded} open follow-up${superseded === 1 ? " was" : "s were"} superseded.` : ""}`
+          : `Rationale: ${body}`,
       );
       log({
         kind: "review",
@@ -554,12 +596,12 @@ export function WorkspaceProvider({
         detail: previous ? `Previously ${previous.decision}. Rationale: ${body}` : `Rationale: ${body}`,
       });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, change, log],
+    [read, persona.name, roleLabel, allowed, change, log],
   );
 
   const proposeFollowUps = React.useCallback(
     (caseId: string, drafts: FollowUpDraft[]) => {
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       const decision = currentDecision(state.decisions);
       if (!allowed("follow-up:propose") || !decision || !isSettled(decision.decision) || state.closure) return;
       const valid = drafts.filter((d) => d.title.trim() && d.detail.trim());
@@ -574,6 +616,7 @@ export function WorkspaceProvider({
         status: "Proposed",
         proposedBy: persona.name,
         proposedAt: at,
+        decisionAt: decision.at,
       }));
       change(
         caseId,
@@ -591,14 +634,15 @@ export function WorkspaceProvider({
         detail: tasks.map((t) => t.title).join("; "),
       });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, change, log],
+    [read, persona.name, roleLabel, allowed, change, log],
   );
 
   const reviewFollowUp = React.useCallback(
     (caseId: string, taskId: string, verdict: "Approved" | "Declined", note?: string) => {
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       const task = state.followUps.find((t) => t.id === taskId);
       if (!task || task.status !== "Proposed" || state.closure) return;
+      if (task.decisionAt !== currentDecision(state.decisions)?.at) return;
       if (canApproveFollowUp(persona, task.proposedBy)) return;
       const reason = note?.trim() || undefined;
 
@@ -623,14 +667,32 @@ export function WorkspaceProvider({
         detail: `Proposed by ${task.proposedBy}.${reason ? ` ${reason}` : ""}`,
       });
     },
-    [cases, withDefaults, persona, roleLabel, change, log],
+    [read, persona, roleLabel, change, log],
+  );
+
+  const withdrawFollowUp = React.useCallback(
+    (caseId: string, taskId: string) => {
+      const state = read(caseId);
+      const task = state.followUps.find((t) => t.id === taskId);
+      if (!task || task.status !== "Proposed" || state.closure || task.proposedBy !== persona.name) return;
+
+      change(caseId, "follow-up-withdrawn", `Withdrawn: ${task.title}`, (s, at) => ({
+        ...s,
+        followUps: s.followUps.map((t) =>
+          t.id === taskId ? { ...t, status: "Withdrawn", reviewedBy: persona.name, reviewedAt: at } : t,
+        ),
+      }));
+      log({ kind: "follow-up", actor: persona.name, role: roleLabel, caseId, title: `${task.title} withdrawn on ${caseId}` });
+    },
+    [read, persona.name, roleLabel, change, log],
   );
 
   const completeFollowUp = React.useCallback(
     (caseId: string, taskId: string) => {
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       const task = state.followUps.find((t) => t.id === taskId);
       if (!task || task.status !== "Approved" || !allowed("follow-up:complete")) return;
+      if (task.decisionAt !== currentDecision(state.decisions)?.at) return;
       if (silentMode && FOLLOW_UP_KINDS[task.kind].patientFacing) return;
       const done = FOLLOW_UP_KINDS[task.kind].doneLabel;
 
@@ -642,31 +704,31 @@ export function WorkspaceProvider({
       }));
       log({ kind: "follow-up", actor: persona.name, role: roleLabel, caseId, title: `${done} on ${caseId}`, detail: task.title });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, silentMode, change, log],
+    [read, persona.name, roleLabel, allowed, silentMode, change, log],
   );
 
   const closeCase = React.useCallback(
     (caseId: string, note: string) => {
       const body = note.trim();
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       if (body.length < CLOSURE_NOTE_MIN || closureBlocker(state) || canCloseCase(persona, state.owner)) return;
 
       change(caseId, "closed", "Case closed", (s, at) => ({ ...s, closure: { by: persona.name, at, note: body } }), body);
       log({ kind: "closure", actor: persona.name, role: roleLabel, caseId, title: `${caseId} closed`, detail: body });
     },
-    [cases, withDefaults, persona, roleLabel, change, log],
+    [read, persona, roleLabel, change, log],
   );
 
   const reopenCase = React.useCallback(
     (caseId: string, reason: string) => {
       const body = reason.trim();
-      const state = withDefaults(cases[caseId]);
+      const state = read(caseId);
       if (!state.closure || !allowed("case:reopen") || body.length < CLOSURE_NOTE_MIN) return;
 
       change(caseId, "reopened", "Case reopened", (s) => ({ ...s, closure: null }), body);
       log({ kind: "closure", actor: persona.name, role: roleLabel, caseId, title: `${caseId} reopened`, detail: body });
     },
-    [cases, withDefaults, persona.name, roleLabel, allowed, change, log],
+    [read, persona.name, roleLabel, allowed, change, log],
   );
 
   const addNote = React.useCallback(
@@ -698,7 +760,7 @@ export function WorkspaceProvider({
         role: roleLabel,
         title: on ? "Silent pilot mode switched on" : "Silent pilot mode switched off",
         detail: on
-          ? "Patient-facing follow-ups, patient letters and exports are held. Review continues for evaluation."
+          ? "Patient-facing follow-ups, patient letters and exports to hospital systems are held. Review continues for evaluation."
           : "Patient-facing follow-ups and exports are available again.",
       });
     },
@@ -792,13 +854,14 @@ export function WorkspaceProvider({
   /* -- Session ------------------------------------------------------------- */
 
   const clearSession = React.useCallback(() => {
+    if (!allowed("session:delete")) return;
     try {
       sessionStorage.removeItem(STORAGE_KEY);
     } catch {
       // Nothing stored to remove.
     }
     const at = new Date().toISOString();
-    setRaisedAt(analysis.checkedAt);
+    setRaisedAt(at);
     setPersonaId(DEFAULT_PERSONA.id);
     setCases({});
     setSilentModeState(false);
@@ -817,7 +880,7 @@ export function WorkspaceProvider({
       },
       ...seedActivity(analysis),
     ]);
-  }, [analysis, persona.name, roleLabel]);
+  }, [analysis, persona.name, roleLabel, allowed]);
 
   const value = React.useMemo<WorkspaceValue>(
     () => ({
@@ -838,6 +901,7 @@ export function WorkspaceProvider({
       recordDecision,
       proposeFollowUps,
       reviewFollowUp,
+      withdrawFollowUp,
       completeFollowUp,
       closeCase,
       reopenCase,
@@ -872,6 +936,7 @@ export function WorkspaceProvider({
       recordDecision,
       proposeFollowUps,
       reviewFollowUp,
+      withdrawFollowUp,
       completeFollowUp,
       closeCase,
       reopenCase,

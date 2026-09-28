@@ -64,7 +64,8 @@ function download(name: string, type: string, body: string) {
   URL.revokeObjectURL(url);
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
+// The reader's own calendar day: a report dated today is not in the future anywhere it is read.
+const today = () => new Date().toLocaleDateString("en-CA");
 
 export default function OnboardingPage() {
   const { analysis, recordImport, persona, lastImport } = useWorkspace();

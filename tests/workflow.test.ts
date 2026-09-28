@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { DecisionRecord } from "@/lib/decision";
 import {
   REVIEW_SLA_DAYS,
+  activeFollowUps,
   caseJourney,
   caseStage,
   closureBlocker,
@@ -11,9 +12,11 @@ import {
   emptyCase,
   letterApproved,
   needsEscalation,
+  pendingApprovals,
   reviewDeadline,
   reviewDurationMs,
   suggestedFollowUps,
+  supersedeFollowUps,
   timeToDecisionMs,
   type CaseState,
   type FollowUpTask,
@@ -30,14 +33,16 @@ const decision = (value: DecisionRecord["decision"], day: number): DecisionRecor
   at: at(day).toISOString(),
 });
 
-const task = (overrides: Partial<FollowUpTask> = {}): FollowUpTask => ({
-  id: "t1",
+/** A follow-up serving `under`, the decision it was proposed for. */
+const task = (under: DecisionRecord, overrides: Partial<FollowUpTask> = {}): FollowUpTask => ({
+  id: `t-${Math.random().toString(36).slice(2, 7)}`,
   kind: "genetics-referral",
   title: "Refer to Clinical Genetics",
   detail: "Refer the records for review.",
   status: "Proposed",
   proposedBy: "Dr. A. Kassim",
-  proposedAt: at(1).toISOString(),
+  proposedAt: under.at,
+  decisionAt: under.at,
   ...overrides,
 });
 
@@ -56,22 +61,30 @@ const JOURNEY_CONTEXT = {
 
 describe("case stage", () => {
   it("moves from new to closed as the history grows, never ahead of it", () => {
+    const refer = decision("Refer to genetics", 2);
     expect(caseStage(raised())).toBe("New");
     expect(caseStage(raised({ owner: "Dr. A. Kassim" }))).toBe("Assigned");
     expect(caseStage(raised({ owner: "Dr. A. Kassim", reviewOpenedAt: at(1).toISOString() }))).toBe("In review");
     expect(caseStage(raised({ decisions: [decision("Needs further evidence", 2)] }))).toBe("Awaiting evidence");
-    expect(caseStage(raised({ decisions: [decision("Refer to genetics", 2)] }))).toBe("Decision recorded");
+    expect(caseStage(raised({ decisions: [refer] }))).toBe("Decision recorded");
+    expect(caseStage(raised({ decisions: [refer], followUps: [task(refer, { status: "Approved" })] }))).toBe(
+      "Follow-up approved",
+    );
     expect(
-      caseStage(raised({ decisions: [decision("Refer to genetics", 2)], followUps: [task({ status: "Approved" })] })),
-    ).toBe("Follow-up approved");
-    expect(
-      caseStage(raised({ decisions: [decision("No action", 2)], closure: { by: "Dr. S. Hamdan", at: at(3).toISOString(), note: "Closed after review." } })),
+      caseStage(
+        raised({
+          decisions: [decision("No action", 2)],
+          closure: { by: "Dr. S. Hamdan", at: at(3).toISOString(), note: "Closed after review." },
+        }),
+      ),
     ).toBe("Closed");
   });
 
-  it("does not count a declined follow-up as approved", () => {
-    const state = raised({ decisions: [decision("Refer to genetics", 2)], followUps: [task({ status: "Declined" })] });
-    expect(caseStage(state)).toBe("Decision recorded");
+  it("does not count a declined or withdrawn follow-up as approved", () => {
+    const refer = decision("Refer to genetics", 2);
+    for (const status of ["Declined", "Withdrawn"] as const) {
+      expect(caseStage(raised({ decisions: [refer], followUps: [task(refer, { status })] }))).toBe("Decision recorded");
+    }
   });
 });
 
@@ -133,27 +146,105 @@ describe("follow-ups and closure", () => {
 
   it("suggests nothing while evidence is awaited", () => {
     expect(
-      suggestedFollowUps({ decision: "Needs further evidence", gene: "BRCA1", records: [{ id: "VP-10247", clinicalOwner: "Dr. L. Haddad" }] }),
+      suggestedFollowUps({
+        decision: "Needs further evidence",
+        gene: "BRCA1",
+        records: [{ id: "VP-10247", clinicalOwner: "Dr. L. Haddad" }],
+      }),
     ).toEqual([]);
   });
 
   it("closes only with a settled decision and no follow-up awaiting approval", () => {
+    const refer = decision("Refer to genetics", 1);
     expect(closureBlocker(raised())).toMatch(/Record a decision/);
-    expect(closureBlocker(raised({ decisions: [decision("Needs further evidence", 1)] }))).toMatch(/awaiting further evidence/);
-    expect(closureBlocker(raised({ decisions: [decision("Refer to genetics", 1)] }))).toMatch(/approved follow-up/);
-    expect(
-      closureBlocker(raised({ decisions: [decision("Refer to genetics", 1)], followUps: [task()] })),
-    ).toBe("1 follow-up still awaits approval.");
-    expect(
-      closureBlocker(raised({ decisions: [decision("Refer to genetics", 1)], followUps: [task({ status: "Approved" })] })),
-    ).toBeNull();
+    expect(closureBlocker(raised({ decisions: [decision("Needs further evidence", 1)] }))).toMatch(
+      /awaiting further evidence/,
+    );
+    expect(closureBlocker(raised({ decisions: [refer] }))).toMatch(/approved genetics referral/);
+    expect(closureBlocker(raised({ decisions: [refer], followUps: [task(refer)] }))).toBe(
+      "1 follow-up still awaits approval.",
+    );
+    expect(closureBlocker(raised({ decisions: [refer], followUps: [task(refer, { status: "Approved" })] }))).toBeNull();
     expect(closureBlocker(raised({ decisions: [decision("No action", 1)] }))).toBeNull();
   });
 
+  it("will not close a referral on a notification or letter alone", () => {
+    const refer = decision("Refer to genetics", 1);
+    const state = raised({
+      decisions: [refer],
+      followUps: [
+        task(refer, { kind: "genetics-referral", status: "Withdrawn" }),
+        task(refer, { kind: "notify-clinician", status: "Approved" }),
+        task(refer, { kind: "patient-letter", status: "Approved" }),
+      ],
+    });
+    expect(closureBlocker(state)).toMatch(/approved genetics referral/);
+  });
+
   it("releases a patient letter only through an approved letter follow-up", () => {
-    expect(letterApproved(raised({ followUps: [task({ kind: "patient-letter" })] }))).toBe(false);
-    expect(letterApproved(raised({ followUps: [task({ kind: "patient-letter", status: "Approved" })] }))).toBe(true);
-    expect(letterApproved(raised({ followUps: [task({ kind: "genetics-referral", status: "Approved" })] }))).toBe(false);
+    const refer = decision("Refer to genetics", 1);
+    const withTask = (overrides: Partial<FollowUpTask>) =>
+      letterApproved(raised({ decisions: [refer], followUps: [task(refer, overrides)] }));
+    expect(withTask({ kind: "patient-letter" })).toBe(false);
+    expect(withTask({ kind: "patient-letter", status: "Approved" })).toBe(true);
+    expect(withTask({ kind: "genetics-referral", status: "Approved" })).toBe(false);
+  });
+});
+
+describe("amending a decision", () => {
+  it("supersedes what was open under the old decision, and keeps what was done as history", () => {
+    const refer = decision("Refer to genetics", 1);
+    const tasks = [
+      task(refer, { id: "a", status: "Proposed" }),
+      task(refer, { id: "b", status: "Approved", kind: "patient-letter" }),
+      task(refer, { id: "c", status: "Done", kind: "notify-clinician" }),
+      task(refer, { id: "d", status: "Declined" }),
+    ];
+    const after = supersedeFollowUps(tasks, refer.at, at(3).toISOString());
+    expect(after.map((t) => t.status)).toEqual(["Superseded", "Superseded", "Done", "Declined"]);
+  });
+
+  it("leaves no referral follow-up in force after amending to no action", () => {
+    const refer = decision("Refer to genetics", 1);
+    const noAction = decision("No action", 3);
+    const state = raised({
+      owner: "Dr. A. Kassim",
+      decisions: [refer, noAction],
+      followUps: supersedeFollowUps(
+        [task(refer, { status: "Approved" }), task(refer, { kind: "patient-letter", status: "Approved" })],
+        refer.at,
+        noAction.at,
+      ),
+    });
+    expect(activeFollowUps(state)).toEqual([]);
+    expect(caseStage(state)).toBe("Decision recorded");
+    expect(letterApproved(state)).toBe(false);
+    expect(closureBlocker(state)).toBeNull();
+  });
+
+  it("will not close a referral on follow-up approved under an earlier no-action decision", () => {
+    const noAction = decision("No action", 1);
+    const refer = decision("Refer to genetics", 3);
+    const state = raised({
+      owner: "Dr. A. Kassim",
+      decisions: [noAction, refer],
+      followUps: [task(noAction, { kind: "notify-clinician", status: "Done" })],
+    });
+    expect(closureBlocker(state)).toMatch(/approved genetics referral/);
+    expect(pendingApprovals(state)).toEqual([]);
+  });
+
+  it("does not show follow-up as done once the case is held for evidence again", () => {
+    const refer = decision("Refer to genetics", 1);
+    const hold = decision("Needs further evidence", 3);
+    const state = raised({
+      owner: "Dr. A. Kassim",
+      decisions: [refer, hold],
+      followUps: [task(refer, { status: "Done" })],
+    });
+    const steps = caseJourney(state, JOURNEY_CONTEXT);
+    expect(steps.find((s) => s.key === "decision")?.status).toBe("current");
+    expect(steps.find((s) => s.key === "follow-up")?.status).toBe("upcoming");
   });
 });
 
@@ -178,13 +269,14 @@ describe("case journey", () => {
   });
 
   it("names who approved the follow-up and who closed the case", () => {
+    const refer = decision("Refer to genetics", 1);
     const state = raised({
       owner: "Dr. A. Kassim",
       events: [
         { id: "e1", at: at(0.5).toISOString(), type: "owner", actor: "Dr. S. Hamdan", role: "Service lead", summary: "Owner assigned" },
       ],
-      decisions: [decision("Refer to genetics", 1)],
-      followUps: [task({ status: "Approved", reviewedBy: "Dr. S. Hamdan", reviewedAt: at(2).toISOString() })],
+      decisions: [refer],
+      followUps: [task(refer, { status: "Approved", reviewedBy: "Dr. S. Hamdan", reviewedAt: at(2).toISOString() })],
       closure: { by: "Dr. S. Hamdan", at: at(3).toISOString(), note: "Referral sent and letter approved." },
     });
     const steps = caseJourney(state, JOURNEY_CONTEXT);

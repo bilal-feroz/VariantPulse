@@ -19,6 +19,7 @@ import {
   MessageSquarePlus,
   RotateCcw,
   Search,
+  Undo2,
   UserCheck,
   X,
 } from "lucide-react";
@@ -46,6 +47,7 @@ import {
   CLOSURE_NOTE_MIN,
   FOLLOW_UP_KINDS,
   REVIEW_SLA_DAYS,
+  activeFollowUps,
   closureBlocker,
   letterApproved,
   pendingApprovals,
@@ -330,16 +332,41 @@ const STATUS_TONE: Record<FollowUpTask["status"], "warning" | "positive" | "mute
   Approved: "positive",
   Declined: "muted",
   Done: "neutral",
+  Withdrawn: "muted",
+  Superseded: "muted",
 };
 
+function statusLabel(task: FollowUpTask): string {
+  if (task.status === "Done") return FOLLOW_UP_KINDS[task.kind].doneLabel;
+  if (task.status === "Proposed") return "Awaiting approval";
+  return task.status;
+}
+
+function reviewTrail(task: FollowUpTask): string {
+  const kind = FOLLOW_UP_KINDS[task.kind];
+  const parts = [`Proposed by ${task.proposedBy}`];
+  if (task.reviewedBy && (task.status === "Approved" || task.status === "Done")) parts.push(`approved by ${task.reviewedBy}`);
+  if (task.reviewedBy && task.status === "Declined") parts.push(`declined by ${task.reviewedBy}`);
+  if (task.status === "Withdrawn") parts.push("withdrawn by its proposer");
+  if (task.completedBy) parts.push(`${kind.doneLabel.toLowerCase()} by ${task.completedBy}`);
+  return parts.join(" · ") + (task.reviewNote ? ` · "${task.reviewNote}"` : "");
+}
+
 export function FollowUpCard({ caseId, assessment, state }: CaseProps) {
-  const { persona, can, silentMode, proposeFollowUps, reviewFollowUp, completeFollowUp } = useWorkspace();
+  const { persona, can, silentMode, proposeFollowUps, reviewFollowUp, withdrawFollowUp, completeFollowUp } =
+    useWorkspace();
   const decision = currentDecision(state.decisions);
   const settled = decision ? isSettled(decision.decision) : false;
   const closed = Boolean(state.closure);
   const canPropose = can("follow-up:propose") && settled && !closed;
 
-  const proposedTitles = new Set(state.followUps.filter((t) => t.status !== "Declined").map((t) => t.title));
+  // Only the decision in force has live follow-ups; the rest are history.
+  const active = activeFollowUps(state);
+  const earlier = state.followUps.filter((task) => !active.includes(task));
+
+  const proposedTitles = new Set(
+    active.filter((t) => t.status !== "Declined" && t.status !== "Withdrawn").map((t) => t.title),
+  );
   const suggestions = decision
     ? suggestedFollowUps({
         decision: decision.decision,
@@ -386,32 +413,28 @@ export function FollowUpCard({ caseId, assessment, state }: CaseProps) {
     <Card className="p-5">
       <SectionHeading
         title="Follow-up"
-        count={state.followUps.length || undefined}
+        count={active.length || undefined}
         description="Tasks for the care team. Anything that could reach a patient waits for approval by someone other than its proposer."
       />
 
-      {state.followUps.length > 0 ? (
+      {active.length > 0 ? (
         <ul className="mt-4 space-y-2.5">
-          {state.followUps.map((task) => {
+          {active.map((task) => {
             const kind = FOLLOW_UP_KINDS[task.kind];
             const approveDenied = canApproveFollowUp(persona, task.proposedBy);
             const heldBySilence = silentMode && kind.patientFacing;
+            const mine = task.proposedBy === persona.name;
             return (
               <li key={task.id} className="rounded-xl border border-line bg-surface-2 p-3.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={STATUS_TONE[task.status]} dot>
-                    {task.status === "Done" ? kind.doneLabel : task.status === "Proposed" ? "Awaiting approval" : task.status}
+                    {statusLabel(task)}
                   </Badge>
                   <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-faint">{kind.label}</span>
                 </div>
                 <p className="mt-2 text-[13px] font-medium text-ink">{task.title}</p>
                 <p className="mt-0.5 text-[12.5px] leading-relaxed text-ink-2">{task.detail}</p>
-                <p className="mt-1.5 text-[11px] leading-relaxed text-faint">
-                  Proposed by {task.proposedBy}
-                  {task.reviewedBy ? ` · ${task.status === "Declined" ? "declined" : "approved"} by ${task.reviewedBy}` : ""}
-                  {task.completedBy ? ` · ${kind.doneLabel.toLowerCase()} by ${task.completedBy}` : ""}
-                  {task.reviewNote ? ` · "${task.reviewNote}"` : ""}
-                </p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-faint">{reviewTrail(task)}</p>
 
                 {task.status === "Proposed" && !closed && !approveDenied ? (
                   declining === task.id ? (
@@ -456,6 +479,17 @@ export function FollowUpCard({ caseId, assessment, state }: CaseProps) {
                   )
                 ) : null}
 
+                {task.status === "Proposed" && !closed && mine ? (
+                  <button
+                    type="button"
+                    onClick={() => withdrawFollowUp(caseId, task.id)}
+                    className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-muted transition-colors hover:text-accent"
+                  >
+                    <Undo2 className="h-3 w-3" />
+                    Withdraw
+                  </button>
+                ) : null}
+
                 {task.status === "Approved" && can("follow-up:complete") ? (
                   heldBySilence ? (
                     <p className="mt-2.5 flex items-start gap-2 text-[11.5px] leading-relaxed text-warn">
@@ -489,7 +523,7 @@ export function FollowUpCard({ caseId, assessment, state }: CaseProps) {
       <RoleNote className="mt-3" reason={approvalNote} switchTo={SERVICE_LEAD.id} />
 
       {canPropose ? (
-        <div className={cn("space-y-2.5", state.followUps.length > 0 ? "mt-4 border-t border-line pt-4" : "mt-4")}>
+        <div className={cn("space-y-2.5", active.length > 0 ? "mt-4 border-t border-line pt-4" : "mt-4")}>
           {suggestions.length > 0 ? (
             <>
               <p className={LABEL}>Suggested for &ldquo;{decision?.decision}&rdquo;</p>
@@ -531,7 +565,7 @@ export function FollowUpCard({ caseId, assessment, state }: CaseProps) {
             Propose for approval
           </Button>
         </div>
-      ) : state.followUps.length === 0 ? (
+      ) : active.length === 0 ? (
         <p className="mt-3 text-[12.5px] text-muted">
           {!decision
             ? "Follow-ups are proposed once a decision is recorded."
@@ -544,6 +578,22 @@ export function FollowUpCard({ caseId, assessment, state }: CaseProps) {
       ) : null}
       {settled && !closed && !can("follow-up:propose") ? (
         <RoleNote className="mt-3" reason={denial(persona, "follow-up:propose")} switchTo="kassim" />
+      ) : null}
+
+      {earlier.length > 0 ? (
+        <div className="mt-4 border-t border-line pt-3.5">
+          <p className={LABEL}>From earlier decisions</p>
+          <ul className="mt-2 space-y-1.5">
+            {earlier.map((task) => (
+              <li key={task.id} className="text-[12px] leading-relaxed text-muted">
+                <Badge tone={STATUS_TONE[task.status]} className="mr-1.5">
+                  {statusLabel(task)}
+                </Badge>
+                {task.title}
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
     </Card>
   );
@@ -668,7 +718,8 @@ export function OutputsCard({ assessment, state }: CaseProps) {
         {silentMode ? (
           <p className="flex items-start gap-2 rounded-xl border border-warn-border bg-warn-soft px-3 py-2.5 text-[12px] leading-relaxed text-warn">
             <Lock className="mt-[3px] h-3 w-3 shrink-0" aria-hidden />
-            Silent pilot: FHIR export and patient letters are held. Nothing leaves VariantPulse.
+            Silent pilot: FHIR export and patient letters are held, so nothing reaches a patient or a hospital
+            system. The evidence brief stays available for the review itself.
           </p>
         ) : exportDenied ? (
           <RoleNote reason={exportDenied} switchTo="kassim" />

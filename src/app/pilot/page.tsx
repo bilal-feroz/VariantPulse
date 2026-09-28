@@ -394,7 +394,7 @@ function Worklist({ alertKeys }: { alertKeys: string[] }) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    const { rows } = parseDelimited(await file.text());
+    const { rows, lines } = parseDelimited(await file.text());
     const [header, ...body] = rows;
     const index = (name: string) => header?.findIndex((cell) => cell.trim().toLowerCase() === name) ?? -1;
     const [variant, expected, reviewer, note] = ["variant", "expected", "reviewer", "note"].map(index);
@@ -404,7 +404,8 @@ function Worklist({ alertKeys }: { alertKeys: string[] }) {
       return;
     }
     const result = adjudicationsFromReference(
-      body.map((cells) => ({
+      body.map((cells, index) => ({
+        line: lines[index + 1],
         variant: cells[variant] ?? "",
         expected: cells[expected] ?? "",
         reviewer: reviewer >= 0 ? cells[reviewer] : undefined,

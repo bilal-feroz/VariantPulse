@@ -150,14 +150,33 @@ function detectDelimiter(firstLine: string): Delimiter {
   return (Object.keys(counts) as Delimiter[]).reduce((best, d) => (counts[d] > counts[best] ? d : best), ",");
 }
 
-/** RFC 4180 parsing: quoted fields, doubled quotes, embedded delimiters and newlines. */
-export function parseDelimited(text: string): { delimiter: Delimiter; rows: string[][] } {
-  const source = text.replace(/^﻿/, "");
-  const delimiter = detectDelimiter(source.split(/\r?\n/, 1)[0] ?? "");
+/**
+ * RFC 4180 parsing: quoted fields, doubled quotes, embedded delimiters and
+ * newlines. Blank rows are dropped, and `lines` keeps the physical line each
+ * remaining row starts on, so a report points at the line a person would find
+ * in their editor, whatever came before it.
+ */
+export function parseDelimited(text: string): { delimiter: Delimiter; rows: string[][]; lines: number[] } {
+  const source = text.replace(/^\uFEFF/, "");
+  const firstLine = source.split(/\r\n|\n|\r/).find((candidate) => candidate.trim() !== "") ?? "";
+  const delimiter = detectDelimiter(firstLine);
   const rows: string[][] = [];
+  const lines: number[] = [];
   let row: string[] = [];
   let field = "";
   let quoted = false;
+  let line = 1;
+  let rowStart = 1;
+
+  const endRow = () => {
+    row.push(field);
+    if (row.some((cell) => cell.trim() !== "")) {
+      rows.push(row);
+      lines.push(rowStart);
+    }
+    row = [];
+    field = "";
+  };
 
   for (let i = 0; i < source.length; i += 1) {
     const char = source[i];
@@ -168,6 +187,8 @@ export function parseDelimited(text: string): { delimiter: Delimiter; rows: stri
       } else if (char === '"') {
         quoted = false;
       } else {
+        // A newline inside quotes belongs to the value but still starts a new physical line.
+        if (char === "\n" || (char === "\r" && source[i + 1] !== "\n")) line += 1;
         field += char;
       }
     } else if (char === '"' && field === "") {
@@ -177,20 +198,16 @@ export function parseDelimited(text: string): { delimiter: Delimiter; rows: stri
       field = "";
     } else if (char === "\n" || char === "\r") {
       if (char === "\r" && source[i + 1] === "\n") i += 1;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
+      endRow();
+      line += 1;
+      rowStart = line;
     } else {
       field += char;
     }
   }
-  if (field !== "" || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
+  if (field !== "" || row.length > 0) endRow();
 
-  return { delimiter, rows: rows.filter((cells) => cells.some((cell) => cell.trim() !== "")) };
+  return { delimiter, rows, lines };
 }
 
 function headerKey(header: string): string {
@@ -278,7 +295,10 @@ const EMPTY_TOTALS: ImportTotals = {
 
 const EMIRATES_ID = /^784[-\s]?\d{4}[-\s]?\d{7}[-\s]?\d$/;
 const EMAIL = /\S+@\S+\.\S+/;
-const PHONE = /^(?:\+|00)\d[\d\s-]{7,}$|^05\d{8}$/;
+/** An international number written with its prefix: unmistakably contact details. */
+const PHONE = /^\+\d[\d\s-]{7,}$|^00971\d{8,9}$/;
+/** A UAE mobile number, which a numeric record key can also look like. */
+const UAE_MOBILE = /^05\d{8}$/;
 const PERSONAL_NAME = /^[A-Za-z][A-Za-z'.-]*(?:\s+[A-Za-z][A-Za-z'.-]*)+$/;
 
 function checkRecordId(value: string): { severity: Severity; message: string } | null {
@@ -292,6 +312,12 @@ function checkRecordId(value: string): { severity: Severity; message: string } |
   if (EMAIL.test(value) || PHONE.test(value)) {
     return { severity: "error", message: "Looks like contact details. Import a pseudonymous record key instead." };
   }
+  if (UAE_MOBILE.test(value)) {
+    return {
+      severity: "warning",
+      message: "Has the shape of a UAE mobile number. Confirm it is a pseudonymous record key, not contact details.",
+    };
+  }
   if (PERSONAL_NAME.test(value)) {
     return { severity: "error", message: "Looks like a personal name. Import a pseudonymous record key instead." };
   }
@@ -299,7 +325,8 @@ function checkRecordId(value: string): { severity: Severity; message: string } |
 }
 
 function parseBuild(raw: string): { build: "GRCh38" | "GRCh37" | null; exact: boolean } {
-  const value = raw.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  // Patch releases (GRCh38.p14) share their coordinates with the major build.
+  const value = raw.trim().toLowerCase().replace(/[\s_-]+/g, "").replace(/\.p\d+$/, "");
   if (["grch38", "hg38", "38", "b38"].includes(value)) return { build: "GRCh38", exact: raw.trim() === "GRCh38" };
   if (["grch37", "hg19", "37", "b37"].includes(value)) return { build: "GRCh37", exact: raw.trim() === "GRCh37" };
   return { build: null, exact: false };
@@ -337,7 +364,7 @@ export function validateImport(text: string, options: ValidateOptions): ImportRe
   const variants = options.variants ?? MONITORED_VARIANTS;
   const byKey = new Map(variants.map((v) => [v.key, v]));
   const byClinvar = new Map(variants.map((v) => [v.clinvarId, v]));
-  const { delimiter, rows: table } = parseDelimited(text);
+  const { delimiter, rows: table, lines: lineOf } = parseDelimited(text);
 
   const report: ImportReport = {
     fileName: options.fileName ?? null,
@@ -384,9 +411,11 @@ export function validateImport(text: string, options: ValidateOptions): ImportRe
   }
 
   let body = table.slice(1);
+  let bodyLines = lineOf.slice(1);
   if (body.length > MAX_ROWS) {
     report.fileNotes.push(`Only the first ${MAX_ROWS.toLocaleString("en-US")} of ${body.length.toLocaleString("en-US")} rows were checked.`);
     body = body.slice(0, MAX_ROWS);
+    bodyLines = bodyLines.slice(0, MAX_ROWS);
   }
   if (body.length === 0) {
     report.fileErrors.push("The file has a header but no rows.");
@@ -396,7 +425,7 @@ export function validateImport(text: string, options: ValidateOptions): ImportRe
   const seen = new Map<string, number>();
 
   body.forEach((cells, index) => {
-    const line = index + 2;
+    const line = bodyLines[index] ?? index + 2;
     const cell = (key: ColumnKey) => {
       const at = indexOf.get(key);
       return at === undefined ? "" : (cells[at] ?? "").trim();
@@ -407,6 +436,22 @@ export function validateImport(text: string, options: ValidateOptions): ImportRe
 
     for (const column of IMPORT_COLUMNS) {
       if (column.required && !cell(column.key)) issue(column.key, "error", `${column.label} is missing.`);
+    }
+
+    // A value with an unquoted delimiter in it shifts every field after it.
+    const extra = cells.slice(header.length).filter((value) => value.trim() !== "");
+    if (extra.length > 0) {
+      issue(
+        null,
+        "error",
+        `This row has ${header.length + extra.length} values but the header has ${header.length}, so its fields cannot be matched to columns. A value probably contains an unquoted ${delimiter === "\t" ? "tab" : delimiter === ";" ? "semicolon" : "comma"}.`,
+      );
+    } else if (cells.length < header.length) {
+      issue(
+        null,
+        "warning",
+        `This row has ${cells.length} values but the header has ${header.length}; the missing ones at the end were read as empty.`,
+      );
     }
 
     // Record identifier: pseudonymous, never personal.
@@ -470,7 +515,8 @@ export function validateImport(text: string, options: ValidateOptions): ImportRe
     const rawClinvar = cell("clinvar_id");
     let clinvarId: string | null = null;
     if (rawClinvar) {
-      const digits = rawClinvar.replace(/^VCV0*/i, "");
+      // VCV000531444.5 names version 5 of variation 531444.
+      const digits = rawClinvar.replace(/^VCV0*/i, "").replace(/\.\d+$/, "");
       if (/^\d+$/.test(digits)) clinvarId = String(Number(digits));
       else issue("clinvar_id", "warning", `"${rawClinvar}" is not a ClinVar variation ID, so it was ignored.`);
     }

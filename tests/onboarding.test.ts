@@ -112,9 +112,55 @@ describe("row checks", () => {
   });
 });
 
+describe("what a real extract throws at it", () => {
+  it("rejects a row whose unquoted comma shifts its fields, instead of misreading it", () => {
+    const shifted = GOOD.replace("Clinical Genetics,Dr. L. Haddad", "Oncology, Adult,Dr. R. Okonjo");
+    const row = validate(shifted).rows[0];
+    expect(row.status).toBe("rejected");
+    expect(row.issues.map((i) => i.message).join(" ")).toMatch(/11 values but the header has 10/);
+    // A trailing empty field is harmless.
+    expect(validate(`${GOOD},`).rows[0].status).toBe("accepted");
+  });
+
+  it("numbers issues by the line a person would find in their editor", () => {
+    const report = validateImport([HEADER, GOOD, ",,,,,,,,,", "", GOOD.replace("PX-1", "PX-2"), GOOD].join("\n"), {
+      today: TODAY,
+    });
+    expect(report.rows.map((r) => r.line)).toEqual([2, 5, 6]);
+    expect(report.rows[2].issues.map((i) => i.message)).toContain(
+      "Duplicate of line 2: the same record with the same variant.",
+    );
+  });
+
+  it("detects the delimiter from the first line that has content", () => {
+    const text = ["", HEADER.replaceAll(",", ";"), GOOD.replaceAll(",", ";")].join("\n");
+    const report = validateImport(text, { today: TODAY });
+    expect(report.delimiter).toBe(";");
+    expect(report.rows[0]).toMatchObject({ status: "accepted", line: 3 });
+  });
+
+  it("reads legal older notation, patch builds and versioned accessions", () => {
+    const dup = validate("PX-1,BRCA1,c.1140dupG,NM_007294.4,231732,Pathogenic,2022-10-03,GRCh38.p14,,").rows[0];
+    expect(dup.hgvs).toBe("c.1140dup");
+    expect(dup.build).toBe("GRCh38");
+    expect(dup.match).toMatchObject({ status: "matched", variantKey: "BRCA1:c.1140dup" });
+
+    const versioned = validate(GOOD.replace("531444", "VCV000531444.5")).rows[0];
+    expect(versioned.clinvarId).toBe("531444");
+    expect(versioned.match.basis).toBe("HGVS and ClinVar ID agree");
+  });
+
+  it("does not mistake a zero-padded record key for a phone number", () => {
+    expect(validate(GOOD.replace("PX-1", "0001234567")).rows[0].status).toBe("accepted");
+    expect(validate(GOOD.replace("PX-1", "0501234567")).rows[0].status).toBe("warnings");
+  });
+});
+
 describe("HGVS normalisation", () => {
   it("only canonicalises; it never invents a variant", () => {
     expect(normaliseHgvs("c.776delinstt").value).toBe("c.776delinsTT");
+    expect(normaliseHgvs("c.68_69delAG").value).toBe("c.68_69del");
+    expect(normaliseHgvs("c.5946delt")).toMatchObject({ value: "c.5946del", valid: true });
     expect(normaliseHgvs("5056C>T")).toMatchObject({ value: "c.5056C>T", valid: true });
     expect(normaliseHgvs("NM_007294.4(BRCA1):c.5056C>T")).toMatchObject({
       value: "c.5056C>T",

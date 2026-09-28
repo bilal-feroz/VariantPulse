@@ -375,7 +375,7 @@ export function formatMinutes(minutes: number): string {
  * monitored are reported back, never guessed at.
  */
 export function adjudicationsFromReference(
-  rows: { variant: string; expected: string; reviewer?: string; note?: string }[],
+  rows: { variant: string; expected: string; reviewer?: string; note?: string; line?: number }[],
   alertKeys: readonly string[],
   at: string,
 ): { adjudications: Adjudication[]; problems: string[] } {
@@ -386,7 +386,7 @@ export function adjudicationsFromReference(
   const problems: string[] = [];
 
   rows.forEach((row, index) => {
-    const line = index + 2;
+    const line = row.line ?? index + 2;
     const raw = row.variant.trim();
     const key = byKey.has(raw) ? raw : byClinvar.get(raw.replace(/^VCV0*/i, ""));
     if (!key) {

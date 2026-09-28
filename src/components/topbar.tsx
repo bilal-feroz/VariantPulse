@@ -98,7 +98,7 @@ export function Topbar() {
           {silentMode ? (
             <Link
               href="/pilot"
-              title="Silent pilot: nothing reaches a patient and nothing is exported."
+              title="Silent pilot: nothing reaches a patient and nothing is exported to hospital systems."
               className="hidden items-center gap-1.5 rounded-full border border-warn-border bg-warn-soft px-3 py-1.5 text-[12px] font-medium text-warn md:inline-flex"
             >
               <Lock className="h-3.5 w-3.5" />

@@ -73,5 +73,14 @@ export function normaliseHgvs(raw: string): NormalisedHgvs {
   if (cased !== value) changes.push("normalised the case of bases and keywords");
   value = cased;
 
+  // c.5266dupC and c.68_69delAG are legal, and common in older reports, but
+  // current HGVS leaves the bases out: the reference sequence already names
+  // them. Dropping them is what lets the change match its canonical form.
+  const bare = value.replace(/(del|dup)([ACGT]+)$/i, "$1");
+  if (bare !== value) {
+    changes.push("dropped the bases after del/dup, which current HGVS leaves out");
+    value = bare;
+  }
+
   return { value, transcript, gene, changes, valid: HGVS_CODING.test(value), protein: false };
 }

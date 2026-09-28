@@ -33,6 +33,11 @@ evidence and surfaces:
 - **where sources disagree**: global consensus against regional evidence
 - **what needs a human**: a prioritised clinical review queue
 
+Then it carries each case to a documented end: a named owner and a review deadline, a decision
+with its rationale, follow-up approved by a second clinician, and a closed case, with the history
+of who did what at every step. For a partner who wants to evaluate before anything changes, a
+silent pilot replays it over historical data and measures it against expert review.
+
 It raises cases. It does not diagnose, and it never writes to a patient record.
 
 > **AI assists. Clinicians decide.**
@@ -61,7 +66,16 @@ Evidence intelligence ─ brief composed from the cited records
 Review queue ────────── prioritised cases with full reasoning attached
         │
         ▼
-Human decision ──────── a clinician decides; nothing is written automatically
+Named owner ─────────── review deadline by priority; escalation when it passes
+        │
+        ▼
+Human decision ──────── refer, await evidence, or no action, with a rationale
+        │
+        ▼
+Approved follow-up ──── a second clinician approves anything that reaches a patient
+        │
+        ▼
+Closed case ─────────── with a note; every step in an append-only history
 ```
 
 ### Why change detection is deterministic
@@ -93,7 +107,7 @@ sentence traces back to a cited field. No language model decides or phrases a ve
 | Framework | Next.js 15 (App Router) · React 19 |
 | Language | TypeScript, strict |
 | Styling | Tailwind CSS v4 |
-| 3D | three.js, drawing the glTF helix on the home screen |
+| Helix | Hand-drawn SVG, depth-sorted and CSS-animated |
 | Icons | lucide-react |
 | Evidence | NCBI ClinVar and PubMed via E-utilities |
 
@@ -108,20 +122,30 @@ Open <http://localhost:3000>.
 
 ```bash
 npm run build             # production build
-npm run verify            # type-check, lint, data, history and contrast checks
+npm run verify            # tree, type-check, lint, data, history and contrast checks
+npm test                  # unit tests (Vitest)
 npm run verify:history    # historical vs current, variant by variant (--live, --archive)
 npm run evidence:refresh  # re-pull the ClinVar snapshot (deliberate; never at runtime)
 ```
 
-`npm run verify` runs five gates:
+`npm run verify` runs six gates:
 
 | Gate | What it catches |
 |---|---|
+| `verify:tree` | generated output, `node_modules`, `.env` files or Wrangler secrets tracked by git |
 | `type-check` | `tsc --noEmit` |
 | `lint` | `eslint` |
 | `verify:data` | incoherent clinical data |
 | `verify:history` | prints historical against current for every variant |
 | `verify:contrast` | inaccessible colour |
+
+CI runs every gate, the unit tests and the Cloudflare Worker build on each push to `main` and each
+pull request (`.github/workflows/ci.yml`).
+
+**`verify:tree`** exists because `.open-next/` (1,400+ bundled files from `npm run cf:build`) and
+`.wrangler/` (local SQLite state) were once committed. ESLint and TypeScript now ignore both, but a
+tracked copy still churns on every build, so the gate fails with the exact `git rm --cached`
+command to run if either, or anything else generated or secret, is ever tracked again.
 
 **`verify:data`** checks what the type system cannot, and runs the application's own engine
 against the snapshot to do it: identifiers that disagree between the panel, the snapshot and
@@ -198,6 +222,53 @@ reported on the Data sources page and in the server log. The snapshot is never o
 runtime; refreshing it is a deliberate `npm run evidence:refresh`, which reads the panel from
 `src/data/workspace.ts` and refuses to replace a complete snapshot with a partial one.
 
+## The review workflow
+
+Every case moves through the same six steps, drawn at the top of the case: **evidence updated →
+records matched → owner assigned → decision documented → follow-up approved → case closed**, each
+with who did it and when.
+
+- **Owner and deadline.** Opening a review takes ownership; the service lead can assign or reassign.
+  A case must be decided within 7, 14, 30 or 60 days of being raised, by priority. These are
+  placeholders for a pilot to agree with the partner. An undecided case past its deadline is
+  escalated to the service lead once, and the history says so.
+- **Decisions**: *Refer to genetics*, *Needs further evidence* (holds the case open) or *No action*.
+  Each needs a written rationale, and an amendment is added beside the original, never over it.
+- **Follow-up** is proposed from the decision (a genetics referral, notifying the ordering
+  clinicians, a patient explanation letter) and approved or declined by someone other than its
+  proposer. A patient letter can be drafted only through an approved letter follow-up.
+- **Closure** needs a settled decision, nothing awaiting approval, at least one approved follow-up
+  for a referral, and a note. Only the owner or the service lead can close; reopening is recorded.
+- **Roles.** Four demonstration identities, switched from the top bar, show separation of duties:
+  a reviewing clinician, the service lead (approves, closes, assigns), a data steward (imports) and
+  a read-only pilot sponsor. The interface says which role an unavailable action needs.
+
+Each alert also has a **What changed?** panel: ClinVar's own reading then and now, in its words,
+with links to the archived release and the live record; the reading at each archived checkpoint;
+VariantPulse's change type and priority, labelled as inference rather than a source statement; how
+every record was matched; conflicts and limitations; and data freshness. It downloads as an
+evidence snapshot.
+
+## Pilot tooling
+
+- **Silent pilot** (`/pilot`). While on, nothing reaches a patient and nothing is exported, but
+  review carries on so it can be measured. A **retrospective replay** runs ClinVar's archived
+  releases against the classifications on record: VariantPulse would have held 4 open alerts by
+  January 2024, 7 by January 2025 and 12 by September 2026. The **evaluation** computes agreement
+  with expert review, missed changes, false or duplicate alerts, review time per case and import
+  errors, only from labels entered in the session or loaded from a reference set, and success
+  criteria stay unset until agreed with the partner. No figure is supplied.
+- **Data onboarding** (`/onboarding`). A structured-file import validated row by row in the
+  browser: missing fields, national-ID-shaped or personal record keys, GRCh37 rows, HGVS notation,
+  identifiers that disagree, transcript versions, duplicates and unmonitored variants. Nothing is
+  accepted silently, and a synthetic sample file carries one seeded problem per row.
+- **Oversight** (`/oversight`). The sponsor's view: records monitored, cases awaiting a decision,
+  overdue cases, turnaround, each reviewer's load, a deadline forecast, and referrals and letters.
+- **Trust & governance** (`/governance`). Hosting options, a controls matrix (what this demonstration
+  does against what a pilot needs), the register of external data flows including AI services, the
+  AI inventory, known limitations, human-oversight controls, session deletion, and the whole
+  package as a downloadable Markdown document. It describes; it does not certify.
+
 ### What is real and what is synthetic
 
 This distinction is maintained deliberately and is stated throughout the interface.
@@ -246,11 +317,17 @@ regulatory assessment.
 - It does not rank a regional source above a global one; where they disagree, it says so and asks
   for a human.
 - Every generated summary is labelled as such and shown beside the citations it was composed from.
-- Only a variant identifier is ever sent to an external service. No patient identifier, genotype,
-  or record content leaves the workspace.
-- Review actions are attributed to the signed-in clinician and recorded in the audit trail.
+- No patient identifier, genotype or record content leaves the workspace. Live ClinVar reads send
+  variant identifiers only. With an AI key configured, the evidence summary sends the case's variant
+  facts, and a patient letter is sent for rewording only with its record reference, test date, team
+  and clinician replaced by placeholders, restored after the reply is checked. Every flow is
+  registered on the Trust & governance page.
+- Review actions are attributed to the signed-in person and role, and recorded in the audit trail.
 
 ## Walkthrough
+
+One synthetic patient from historical result to documented review, then how a partner would
+evaluate it. The same path is linked step by step at the foot of `/pilot`.
 
 1. **Home**. A historical synthetic patient, VP-10247: BRCA1 c.5056C>T, reported in 2023 as
    uncertain significance, which is what ClinVar said in its January 2023 release.
@@ -258,27 +335,40 @@ regulatory assessment.
    classifications, walks the 26 synthetic records and compares regional evidence. It ends on the
    highest-priority change: uncertain significance → likely pathogenic, four synthetic patients,
    one clinical review case.
-3. **Evidence changes requiring attention**. Each item opens a review case. The unchanged
-   controls (LDLR c.2479G>A, BRCA1 c.1140dup) raise nothing.
-4. **Open a case**. Patient impact on the left, the evidence in the centre, the decision on the
-   right. Expand *How VariantPulse reached this result* for the full eight-step derivation.
-5. **Regional insights**. gnomAD v4 Middle Eastern frequencies against the global figure, CTGA
-   readings, the two regional signals (HBB c.380T>G, CFTR c.601G>A), and the two cases where the
-   regional record was ahead of ClinVar (Hb D-Punjab, MYBPC3 c.776delinsTT).
-6. **Generate evidence brief**. A clinician-facing brief, printable and downloadable.
-7. **Activity**. The audit trail behind all of it.
+3. **Open the case**. *What changed?* shows ClinVar's reading then and now, the archived
+   checkpoints, how the four records were matched, and what limits the evidence.
+4. **Take ownership and decide**. Open the review, write a rationale, choose *Refer to genetics*,
+   and propose the suggested follow-ups.
+5. **Approve and close**. Sign in as Dr. S. Hamdan, the service lead, from the prompt on the case;
+   approve the follow-ups; close with a note. The journey reads six of six, with names and dates.
+6. **Evaluate**. On `/pilot`, switch silent mode on, label a few alerts and silent variants, and
+   watch the metrics fill in; the replay shows when each alert would first have fired.
+7. **Onboard, oversee, govern**. Load the sample file on `/onboarding`, read the sponsor's view on
+   `/oversight`, and download the governance package from `/governance`.
+8. **Audit trail**. Every action above, with who, which role and when, exportable as CSV or JSON.
 
 Global search is on `Ctrl`/`Cmd` + `K` and covers record IDs, gene symbols, HGVS strings, ClinVar
 accessions and case numbers.
 
+## Deploying to Cloudflare
+
+The app runs on Cloudflare Workers through OpenNext, at `variantpulse.kanbanstudios.ae` (the custom
+domain is declared in `wrangler.jsonc`, with `VARIANTPULSE_EVIDENCE_MODE=live`).
+
+```bash
+npx wrangler login
+npm run cf:deploy          # builds with OpenNext, then deploys the Worker
+```
+
+If your Cloudflare login can reach more than one account, set `CLOUDFLARE_ACCOUNT_ID` to the
+account that owns the zone first. To enable AI drafting, add the key as a Worker secret
+(`npx wrangler secret put AI_API_KEY`); without it every summary and letter uses its template.
+`.open-next/` and `.wrangler/` are build output: never commit them (`verify:tree` will stop you).
+
 ## Credits
 
-The helix on the home screen is
-[“DNA Helix with Base Pairing (3D)”](https://sketchfab.com/3d-models/dna-helix-with-base-pairing-3d-212e5422645f4432a61dc2f3aac3c8c8)
-by [naratech](https://sketchfab.com/naratech), licensed under
-[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The model file is used unmodified
-and credited in the dashboard footer, as the licence requires. The licence does not permit
-commercial use: replace the model before VariantPulse is used commercially.
+The helix on the home screen is drawn by VariantPulse itself. An earlier 3D model, licensed for
+non-commercial use only, has been removed from the repository.
 
 ---
 

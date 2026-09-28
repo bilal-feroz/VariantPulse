@@ -91,6 +91,11 @@ export interface EvidenceResult {
   checkedAt: string;
   /** When the served data was produced at source: the live read, or the snapshot's verification. */
   sourceUpdatedAt: string | null;
+  /**
+   * The last live ClinVar read this server instance completed, whatever is
+   * being served now. Null in demo mode, and until a live read has succeeded.
+   */
+  lastLiveReadAt: string | null;
   snapshot: SnapshotInfo;
   /** Live reads only: where ClinVar has moved on since the snapshot was taken. */
   snapshotDrift: SnapshotDifference[];
@@ -147,6 +152,7 @@ function demoResult(): EvidenceResult {
     mode: "demo",
     checkedAt: SNAPSHOT_CAPTURED_AT ?? new Date().toISOString(),
     sourceUpdatedAt: SNAPSHOT_CAPTURED_AT,
+    lastLiveReadAt: null,
     snapshot: SNAPSHOT_INFO,
     snapshotDrift: [],
     records: SNAPSHOT.records,
@@ -159,6 +165,9 @@ function liveReadsDisabled(): boolean {
   return flag === "1" || flag === "true";
 }
 
+/** When this server instance last completed a live ClinVar read. */
+let lastLiveReadAt: string | null = null;
+
 /** The bundled snapshot, labelled as such. */
 export function readSnapshotEvidence(reason?: string): EvidenceResult {
   return {
@@ -166,6 +175,7 @@ export function readSnapshotEvidence(reason?: string): EvidenceResult {
     reason,
     checkedAt: new Date().toISOString(),
     sourceUpdatedAt: SNAPSHOT_INFO.verifiedAt ?? SNAPSHOT_INFO.generatedAt,
+    lastLiveReadAt,
     snapshot: SNAPSHOT_INFO,
     snapshotDrift: [],
     records: SNAPSHOT.records,
@@ -345,10 +355,12 @@ export async function fetchCurrentEvidence(options?: {
     }
 
     const now = new Date().toISOString();
+    lastLiveReadAt = now;
     const value: EvidenceResult = {
       mode: "live",
       checkedAt: now,
       sourceUpdatedAt: now,
+      lastLiveReadAt: now,
       snapshot: SNAPSHOT_INFO,
       snapshotDrift,
       records,

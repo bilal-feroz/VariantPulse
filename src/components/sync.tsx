@@ -168,7 +168,12 @@ export function SyncOverlay() {
                 <p className="text-[14px] font-semibold text-ink">Evidence sync complete</p>
                 <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
                   {formatNumber(analysis.scan.findingsChecked)} synthetic records checked against{" "}
-                  {analysis.mode === "live" ? "live ClinVar evidence" : "cached verified ClinVar evidence"}.{" "}
+                  {analysis.mode === "live"
+                    ? "live ClinVar evidence"
+                    : analysis.mode === "demo"
+                      ? "the demo snapshot of ClinVar evidence"
+                      : "the cached, verified ClinVar snapshot"}
+                  .{" "}
                   {sync.changed > 0 || consensusConflicts > 0 || regionalConflicts > 0 ? (
                     <>
                       <span className="font-medium text-ink">

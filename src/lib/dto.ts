@@ -15,6 +15,8 @@ export interface ClientAnalysis {
   reason?: string;
   checkedAt: string;
   sourceUpdatedAt: string | null;
+  /** The last live ClinVar read the server completed; null in demo mode or before one succeeds. */
+  lastLiveReadAt: string | null;
   snapshot: SnapshotInfo;
   snapshotDrift: SnapshotDifference[];
   generatedAt: string;
@@ -35,6 +37,7 @@ export function serialiseAnalysis(analysis: WorkspaceAnalysis): ClientAnalysis {
     reason: analysis.evidence.reason,
     checkedAt: analysis.evidence.checkedAt,
     sourceUpdatedAt: analysis.evidence.sourceUpdatedAt,
+    lastLiveReadAt: analysis.evidence.lastLiveReadAt,
     snapshot: analysis.evidence.snapshot,
     snapshotDrift: analysis.evidence.snapshotDrift,
     generatedAt: analysis.generatedAt,

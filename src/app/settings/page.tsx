@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import {
+  ArrowRight,
   Building2,
   ClipboardList,
   Database,
@@ -16,8 +18,8 @@ import {
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { Badge, Card, Field, SectionHeading } from "@/components/ui";
-import { CURRENT_USER } from "@/data/workspace";
 import { EVIDENCE_MODES } from "@/lib/evidence-mode";
+import { ROLES } from "@/lib/roles";
 import { WORKSPACE_TOTAL_LABELS } from "@/lib/narrative";
 import { cn, formatNumber } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
@@ -98,7 +100,7 @@ const AGENTS = [
 ];
 
 export default function SettingsPage() {
-  const { analysis, sync } = useWorkspace();
+  const { analysis, sync, persona } = useWorkspace();
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
 
   return (
@@ -110,13 +112,19 @@ export default function SettingsPage() {
       />
 
       <Card className="mb-5 p-5">
-        <SectionHeading title="Signed in" />
+        <SectionHeading
+          title="Signed in"
+          description="A demonstration identity; switch it from the top bar. In a pilot, identity and MFA come from the facility's identity provider."
+        />
         <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Name" value={CURRENT_USER.name} />
-          <Field label="Role" value={CURRENT_USER.role} />
-          <Field label="Department" value={CURRENT_USER.department} />
-          <Field label="Organisation" value={CURRENT_USER.organisation} />
+          <Field label="Name" value={persona.name} />
+          <Field label="Title" value={persona.title} />
+          <Field label="Access role" value={ROLES[persona.role].label} />
+          <Field label="Organisation" value={persona.organisation} />
         </dl>
+        <p className="mt-4 border-t border-line pt-3.5 text-[12.5px] leading-relaxed text-muted">
+          {ROLES[persona.role].description}
+        </p>
       </Card>
 
       {/* ── Architecture ──────────────────────────────────────────────── */}
@@ -201,17 +209,19 @@ export default function SettingsPage() {
           />
           <ul className="mt-4 space-y-3 text-[13px] leading-relaxed text-ink-2">
             <Point>
-              <strong className="font-medium text-ink">Role-based access.</strong> Review actions
-              are attributed to the signed-in clinician and recorded in the audit trail.
+              <strong className="font-medium text-ink">Role-based access.</strong> Four roles with
+              fixed permissions, and separation of duties on anything that reaches a patient. Every
+              action is attributed to the signed-in person and role in the audit trail.
             </Point>
             <Point>
               <strong className="font-medium text-ink">Read-only on records.</strong> VariantPulse
               never writes to the record system. It raises a case; a clinician acts on it.
             </Point>
             <Point>
-              <strong className="font-medium text-ink">Minimal external context.</strong> Only a
-              variant identifier is ever sent to an external service. No patient identifier, no
-              genotype, and no record content leaves the workspace.
+              <strong className="font-medium text-ink">Minimal external context.</strong> Every
+              external flow is registered, AI services included. No patient identifier, genotype or
+              record content leaves the workspace; a patient letter is sent for rewording only with
+              its identifying facts replaced by placeholders.
             </Point>
             <Point>
               <strong className="font-medium text-ink">Synthetic records.</strong> Every patient,
@@ -223,6 +233,13 @@ export default function SettingsPage() {
             This workspace is not a certified medical device and has not been through regulatory
             assessment. It is decision support for a clinical team, not a diagnostic system.
           </p>
+          <Link
+            href="/governance"
+            className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-accent hover:underline"
+          >
+            Controls, data flows and the AI inventory
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </Card>
 
         <Card className="p-5">

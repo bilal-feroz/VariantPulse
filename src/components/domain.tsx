@@ -433,8 +433,14 @@ const ACTIVITY_TONE: Record<string, string> = {
   assignment: CURRENT.fill,
   "evidence-request": "bg-warn",
   "follow-up": "bg-warn",
+  approval: "bg-ok",
   note: "bg-faint",
-  review: "bg-ok",
+  review: CURRENT.fill,
+  escalation: "bg-crit",
+  closure: "bg-ok",
+  import: "bg-info",
+  pilot: "bg-info",
+  session: "bg-slate",
 };
 
 export function ActivityItem({
@@ -443,6 +449,7 @@ export function ActivityItem({
   detail,
   kind,
   actor,
+  role,
   absolute = false,
   last = false,
 }: {
@@ -451,6 +458,8 @@ export function ActivityItem({
   detail?: string;
   kind: string;
   actor?: string;
+  /** The actor's role at the time, shown beside their name. */
+  role?: string;
   /** Adds the full date and time next to the relative one. */
   absolute?: boolean;
   last?: boolean;
@@ -473,6 +482,12 @@ export function ActivityItem({
         ) : null}
         <span className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[11px] text-faint">
           {actor ? <span className="font-medium text-ink-2">{actor}</span> : null}
+          {actor && role ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>{role}</span>
+            </>
+          ) : null}
           {actor ? <span aria-hidden>·</span> : null}
           <RelativeTime value={at} className="vp-num" />
           {absolute ? <span aria-hidden>·</span> : null}

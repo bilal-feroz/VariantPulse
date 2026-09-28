@@ -784,11 +784,82 @@ export const REVIEWERS: Reviewer[] = [
   { id: "usr-8", name: "K. Mansour", role: "Senior Clinical Scientist", department: "Genomics Core Laboratory" },
 ];
 
-/** The signed-in account this workspace renders for. */
-export const CURRENT_USER = {
-  name: "Dr. A. Kassim",
-  initials: "A",
-  role: "Consultant Clinical Geneticist",
-  department: "Clinical Genetics",
-  organisation: "Genomic Medicine Service",
-};
+/* -- Signed-in identities (demonstration) ---------------------------------- */
+
+/**
+ * What an identity may do. `reviewer` works cases, `approver` also approves
+ * follow-ups and closes cases, `data-steward` runs data imports, and `sponsor`
+ * only reads. The permissions themselves are in `lib/roles.ts`.
+ */
+export type Role = "reviewer" | "approver" | "data-steward" | "sponsor";
+
+export interface Persona {
+  id: string;
+  name: string;
+  initials: string;
+  title: string;
+  department: string;
+  organisation: string;
+  role: Role;
+}
+
+/**
+ * The identities this demonstration can sign in as, one role each, so the
+ * workflow can show separation of duties: whoever proposes a follow-up cannot
+ * also approve it. Fabricated, like every other person in this file. In a
+ * pilot, identity, MFA and role come from the facility's identity provider.
+ */
+export const PERSONAS: Persona[] = [
+  {
+    id: "kassim",
+    name: "Dr. A. Kassim",
+    initials: "AK",
+    title: "Consultant Clinical Geneticist",
+    department: "Clinical Genetics",
+    organisation: "Genomic Medicine Service",
+    role: "reviewer",
+  },
+  {
+    id: "hamdan",
+    name: "Dr. S. Hamdan",
+    initials: "SH",
+    title: "Clinical Lead, Genomic Medicine Service",
+    department: "Genomic Medicine Service",
+    organisation: "Genomic Medicine Service",
+    role: "approver",
+  },
+  {
+    id: "mansour",
+    name: "K. Mansour",
+    initials: "KM",
+    title: "Senior Clinical Scientist",
+    department: "Genomics Core Laboratory",
+    organisation: "Genomic Medicine Service",
+    role: "data-steward",
+  },
+  {
+    id: "idris",
+    name: "R. Idris",
+    initials: "RI",
+    title: "Pilot sponsor",
+    department: "Programme office",
+    organisation: "Genomic Medicine Service",
+    role: "sponsor",
+  },
+];
+
+export const PERSONA_BY_ID = new Map(PERSONAS.map((p) => [p.id, p]));
+
+/** Who a session signs in as until it switches. */
+export const DEFAULT_PERSONA = PERSONAS[0];
+
+/** The service lead: approves follow-ups, and receives cases that pass their review deadline. */
+export const SERVICE_LEAD = PERSONAS[1];
+
+/** Everyone a case can be owned by: the signed-in clinicians first, then the care team. */
+export const CASE_OWNERS: string[] = [
+  ...new Set([
+    ...PERSONAS.filter((p) => p.role === "reviewer" || p.role === "approver").map((p) => p.name),
+    ...REVIEWERS.map((r) => r.name),
+  ]),
+];

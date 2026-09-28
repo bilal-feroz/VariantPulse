@@ -97,6 +97,119 @@ export function gnomadVariantUrl(variantId: string): string {
 }
 
 /**
+ * How a source reaches the workspace. Kept apart on every surface, so curated
+ * demonstration content is never mistaken for a live integration.
+ */
+export type SourceKind = "live" | "bundled" | "curated";
+
+export const SOURCE_KIND: Record<SourceKind, { label: string; description: string }> = {
+  live: {
+    label: "Live integration",
+    description: "Read from the source at each sync, with the verified snapshot as a labelled fallback.",
+  },
+  bundled: {
+    label: "Bundled public data",
+    description: "Read from the public source once, checked, and shipped with the dataset. Not refreshed at runtime.",
+  },
+  curated: {
+    label: "Curated demonstration content",
+    description: "Written for this demonstration dataset. It cites published work but is not a finding about the variant.",
+  },
+};
+
+export interface EvidenceSource {
+  name: string;
+  publisher: string;
+  kind: SourceKind;
+  /** What the workspace takes from it. */
+  provides: string;
+  /** Who it describes, where that matters. */
+  coverage: string;
+  obtained: string;
+  limitations: string;
+  /** Whether reuse beyond this demonstration has been confirmed. */
+  permission: string;
+  permissionConfirmed: boolean;
+  url: string;
+}
+
+/** The register of every evidence source, with its provenance and reuse status. */
+export const EVIDENCE_SOURCES: EvidenceSource[] = [
+  {
+    name: "ClinVar",
+    publisher: "NCBI",
+    kind: "live",
+    provides: "Current classification, review status, last-evaluated date and submission count for each monitored variant.",
+    coverage: "Global submissions, dominated by European-ancestry cohorts.",
+    obtained: "E-utilities at each sync in live mode; a snapshot verified identical to a live read on 25 Sep 2026 otherwise.",
+    limitations: "Aggregates submitters; \"last evaluated\" is the submitters' date, not the date the aggregate changed.",
+    permission: "Public NCBI data, reused under NCBI's data-use policies.",
+    permissionConfirmed: true,
+    url: "https://www.ncbi.nlm.nih.gov/clinvar/",
+  },
+  {
+    name: "ClinVar archived releases",
+    publisher: "NCBI",
+    kind: "bundled",
+    provides: "Each variant's classification at January 2023, 2024 and 2025, and September 2026.",
+    coverage: "As ClinVar.",
+    obtained: "variant_summary archives from the NCBI FTP site, re-checked on 25 Sep 2026.",
+    limitations: "Four checkpoints only, so a change is dated to the first checkpoint that shows it.",
+    permission: "Public NCBI data, reused under NCBI's data-use policies.",
+    permissionConfirmed: true,
+    url: "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/archive/",
+  },
+  {
+    name: "gnomAD v4",
+    publisher: "Broad Institute",
+    kind: "bundled",
+    provides: "Allele counts for the Middle Eastern genetic ancestry group and for all samples.",
+    coverage: "About 3,000 people in the Middle Eastern group, out of roughly 800,000.",
+    obtained: "The gnomAD API, dataset gnomad_r4, read on 25 Sep 2026.",
+    limitations: "A small regional sample: frequency is context for a reviewer, never a classification. Three monitored variants are absent altogether.",
+    permission: "Public data. Its terms for clinical and commercial use to be confirmed before production.",
+    permissionConfirmed: false,
+    url: "https://gnomad.broadinstitute.org/",
+  },
+  {
+    name: "CTGA",
+    publisher: "Centre for Arab Genomic Studies",
+    kind: "bundled",
+    provides: "The catalogue's clinical significance for three variants, quoted verbatim and attributed.",
+    coverage: "Variants recorded in Arab patients; the three held here are UAE records.",
+    obtained: "The CTGA database, read on 25 Sep 2026.",
+    limitations: "Readings are quoted, never adopted, and cover three of fifteen variants.",
+    permission: "Quoted with attribution. Permission for clinical or commercial reuse not yet confirmed with the publisher.",
+    permissionConfirmed: false,
+    url: "https://cags.org.ae/en/ctga-overview",
+  },
+  {
+    name: "PubMed citations",
+    publisher: "NCBI",
+    kind: "bundled",
+    provides: "Publications ClinVar links to each variant, with title, journal and year.",
+    coverage: "As ClinVar.",
+    obtained: "Resolved when the evidence snapshot was refreshed.",
+    limitations: "Linked, not read: VariantPulse does not interpret the papers.",
+    permission: "Bibliographic records, linked to PubMed.",
+    permissionConfirmed: true,
+    url: "https://pubmed.ncbi.nlm.nih.gov/",
+  },
+  {
+    name: "Regional context notes",
+    publisher: "This demonstration",
+    kind: "curated",
+    provides: "A short note per variant on why regional interpretation matters, and one review flag (HBB c.380T>G).",
+    coverage: "Seven of fifteen variants.",
+    obtained: "Written for the demonstration dataset, citing published papers.",
+    limitations: "Context, not evidence about the variant. A pilot replaces it with the partner's own regional knowledge.",
+    permission: "Original to VariantPulse.",
+    permissionConfirmed: true,
+    url: "https://pubmed.ncbi.nlm.nih.gov/35330423/",
+  },
+];
+
+/**
  * Variants gnomAD v4 has only in its exome call set. The supplied counts for
  * these are the exome figures; every other observed variant's are the joint
  * exome-and-genome figures. Checked against the gnomAD API on 2026-09-25.

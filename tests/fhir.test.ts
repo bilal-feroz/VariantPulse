@@ -18,7 +18,7 @@ import {
 const now = new Date("2026-09-25T14:00:00.000Z");
 
 const decision: DecisionRecord = {
-  decision: "Confirm change",
+  decision: "Refer to genetics",
   note: "Reassessed against the expert-panel reading.",
   reviewer: "Dr. A. Kassim",
   at: "2026-09-25T13:00:00.000Z",
@@ -108,6 +108,12 @@ describe("FHIR R4 export", () => {
 
     const confirmed = buildFhirBundle({ assessment, decision, now });
     expect(ofType<FhirObservation>(confirmed, "Observation")[0].status).toBe("final");
+
+    // Only a referral acts on the change; holding or setting it aside does not.
+    for (const other of ["Needs further evidence", "No action"] as const) {
+      const bundle = buildFhirBundle({ assessment, decision: { ...decision, decision: other }, now });
+      expect(ofType<FhirObservation>(bundle, "Observation")[0].status).toBe("preliminary");
+    }
   });
 
   it("asks for a review Task prioritised from the case, with the decision as its note", async () => {
@@ -128,7 +134,7 @@ describe("FHIR R4 export", () => {
       {
         authorString: "Dr. A. Kassim",
         time: "2026-09-25T13:00:00.000Z",
-        text: "Clinician decision: Confirm change. Reassessed against the expert-panel reading.",
+        text: "Clinician decision: Refer to genetics. Reassessed against the expert-panel reading.",
       },
     ]);
   });

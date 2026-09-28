@@ -47,7 +47,11 @@ export function ImpactPanel({
       />
       <ImpactStat
         label="Estimated clinician time saved"
-        value={`${formatNumber(Math.round(hours))} hours`}
+        value={
+          hours < 1.5
+            ? `${formatNumber(Math.round(hours * 60))} minutes`
+            : `${formatNumber(Math.round(hours))} hours`
+        }
         detail={`Estimate · assumes ~${MINUTES_PER_MANUAL_CHECK} min manual ClinVar lookup per finding`}
       />
     </Card>

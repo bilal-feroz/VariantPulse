@@ -23,7 +23,7 @@
 import provenance from "@/data/provenance.json";
 import type { VariantAssessment } from "./analysis";
 import { meta, type ClassificationCode } from "./classification";
-import type { DecisionRecord } from "./decision";
+import { actsOnChange, type DecisionRecord } from "./decision";
 import type { PriorityLevel } from "./priority";
 import { formatDate } from "./utils";
 
@@ -202,8 +202,8 @@ export function buildFhirBundle({
     const observation: FhirObservation = {
       resourceType: "Observation",
       id: `${record.id}-assessment`,
-      // Final only once a clinician has confirmed the change applies.
-      status: decision?.decision === "Confirm change" ? "final" : "preliminary",
+      // Final only once a clinician has accepted the change and acted on it.
+      status: decision && actsOnChange(decision.decision) ? "final" : "preliminary",
       category: [
         {
           coding: [

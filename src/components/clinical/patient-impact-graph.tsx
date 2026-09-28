@@ -17,7 +17,7 @@ import type { PatientRecord, ReviewState } from "@/data/workspace";
 import { meta } from "@/lib/classification";
 import { cn, formatDate } from "@/lib/utils";
 import { Badge, ClassificationBadge } from "@/components/ui";
-import type { CaseStatus } from "@/state/workspace";
+import type { CaseStage } from "@/lib/workflow";
 import { CHANGE, CURRENT, HISTORICAL } from "@/components/clinical/tokens";
 
 const STATE_TONE: Record<ReviewState, "warning" | "neutral" | "positive" | "muted"> = {
@@ -28,10 +28,20 @@ const STATE_TONE: Record<ReviewState, "warning" | "neutral" | "positive" | "mute
 };
 
 /** A record's review state as this session's case has moved it. */
-export function reviewStateFor(patient: PatientRecord, caseStatus?: CaseStatus): ReviewState {
-  if (caseStatus === "Reviewed") return "Reviewed";
-  if (caseStatus === "In review" || caseStatus === "Assigned") return "In review";
-  return patient.reviewState;
+export function reviewStateFor(patient: PatientRecord, stage?: CaseStage): ReviewState {
+  switch (stage) {
+    case "Closed":
+      return "Closed";
+    case "Decision recorded":
+    case "Follow-up approved":
+      return "Reviewed";
+    case "Assigned":
+    case "In review":
+    case "Awaiting evidence":
+      return "In review";
+    default:
+      return patient.reviewState;
+  }
 }
 
 export function SyntheticDataLabel({ className }: { className?: string }) {
@@ -48,7 +58,7 @@ export function PatientImpactGraph({
   className,
 }: {
   assessment: VariantAssessment;
-  caseStatus?: CaseStatus;
+  caseStatus?: CaseStage;
   className?: string;
 }) {
   const { variant, impactedPatients: patients, recordedCode, currentCode, evidence } = assessment;

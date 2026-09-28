@@ -1,22 +1,57 @@
 "use client";
 
-import { Building2, Database, ExternalLink, Globe2, Microscope } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Building2, Database, ExternalLink, Globe2, Microscope } from "lucide-react";
 
 import { PageHeader, PageShell } from "@/components/page-header";
 import { SyncButton } from "@/components/sync";
 import { Badge, Card, SectionHeading, StatusDot } from "@/components/ui";
-import { REGIONAL_EVIDENCE, REGIONAL_SOURCE } from "@/data/regional";
+import { REGIONAL_EVIDENCE, REGIONAL_SOURCE, SOURCE_KIND } from "@/data/regional";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { EVIDENCE_MODES } from "@/lib/evidence-mode";
 import { workspaceScope } from "@/lib/narrative";
 import { useWorkspace } from "@/state/workspace";
 import { RelativeTime } from "@/components/relative-time";
 
-/** Status text only: where a reviewed case can go, and how far each route has got. */
-const INTEGRATIONS = [
-  { name: "FHIR R4 export", status: "Available" },
-  { name: "HL7 v2 / EHR connector", status: "Pilot" },
-  { name: "Malaffi (Abu Dhabi HIE)", status: "Pilot target" },
+/**
+ * How data reaches VariantPulse and how a reviewed case leaves it, stated as
+ * what exists and how it is tested. Nothing is listed as available that has
+ * not been built.
+ */
+const INTEGRATIONS: {
+  name: string;
+  status: string;
+  tone: "positive" | "muted";
+  detail: string;
+  href?: string;
+}[] = [
+  {
+    name: "Structured-file import",
+    status: "Built · validated in the browser",
+    tone: "positive",
+    detail:
+      "CSV or tab-separated historical results, checked row by row with a downloadable report. A preview: accepted rows are not loaded into the workspace.",
+    href: "/onboarding",
+  },
+  {
+    name: "FHIR R4 export",
+    status: "Built · covered by automated tests",
+    tone: "positive",
+    detail:
+      "One collection Bundle per case: a Patient, a variant Observation (LOINC 69548-6) and a review Task for each record. Not yet exercised against a partner's FHIR server.",
+  },
+  {
+    name: "FHIR or HL7 v2 import from a record system",
+    status: "Not built",
+    tone: "muted",
+    detail: "Scoped with a partner, against a specific workflow and tested with their systems.",
+  },
+  {
+    name: "Health information exchange",
+    status: "Not built",
+    tone: "muted",
+    detail: "Would follow the exchange's own onboarding and approvals. No connection exists or is implied.",
+  },
 ];
 
 export default function SourcesPage() {
@@ -57,8 +92,8 @@ export default function SourcesPage() {
       name: "Literature index",
       description: "Publications linked to each variant record",
       icon: Microscope,
-      status: "Connected" as const,
-      tone: "positive" as const,
+      status: SOURCE_KIND.bundled.label,
+      tone: "neutral" as const,
       detail:
         "Citations are resolved from PubMed when the evidence snapshot is refreshed, and are shown with the variant they support.",
       stats: [
@@ -70,36 +105,28 @@ export default function SourcesPage() {
     },
     {
       name: REGIONAL_SOURCE.name,
-      description: REGIONAL_SOURCE.coverageNote,
+      description: "gnomAD v4 Middle Eastern and global allele counts, and CTGA readings",
       icon: Globe2,
-      status: "Connected" as const,
-      tone: "positive" as const,
-      detail: REGIONAL_SOURCE.coverageNote,
+      status: SOURCE_KIND.bundled.label,
+      tone: "neutral" as const,
+      detail: `${REGIONAL_SOURCE.coverageNote} Read from each source on ${formatDate(REGIONAL_SOURCE.checkedOn)} and not refreshed at runtime.`,
       stats: [
         { label: "Variants held", value: formatNumber(REGIONAL_EVIDENCE.length) },
         {
-          label: "Observations",
+          label: "Middle Eastern alleles seen",
           value: formatNumber(REGIONAL_EVIDENCE.reduce((t, r) => t + (r.middleEastern?.alleleCount ?? 0), 0)),
         },
-        {
-          label: "Last updated",
-          value: formatDate(
-            REGIONAL_EVIDENCE.map((r) => r.catalogue?.listedSince)
-              .filter((d): d is string => Boolean(d))
-              .sort()
-              .at(-1) ?? null,
-          ),
-        },
+        { label: "Checked on", value: formatDate(REGIONAL_SOURCE.checkedOn) },
       ],
     },
     {
       name: "Hospital record system",
       description: "Historical genomic findings on file",
       icon: Building2,
-      status: "Connected" as const,
-      tone: "positive" as const,
+      status: "Synthetic dataset",
+      tone: "muted" as const,
       detail:
-        "Read-only. VariantPulse walks the finding corpus at each sync and never writes back to it.",
+        "The demonstration's synthetic records, read-only. VariantPulse walks them at each sync and never writes back. No hospital system is connected.",
       stats: [
         { label: "Findings on file", value: formatNumber(analysis.scan.findingsChecked) },
         { label: "Distinct variants", value: formatNumber(analysis.scan.distinctVariants) },
@@ -121,7 +148,7 @@ export default function SourcesPage() {
           <StatusDot tone={modeMeta.tone} pulse={modeMeta.pulse} />
           <span className="text-[14px] font-semibold text-ink">
             {live
-              ? "All sources reachable"
+              ? "Live ClinVar reads · other sources bundled"
               : analysis.mode === "demo"
                 ? "Demo mode · bundled evidence snapshot"
                 : "Running on cached evidence"}
@@ -217,17 +244,27 @@ export default function SourcesPage() {
 
       <Card className="mt-5 p-5">
         <SectionHeading
-          title="Integrations"
-          description="How a reviewed case reaches hospital systems."
+          title="Integration readiness"
+          description="How data reaches VariantPulse and how a reviewed case leaves it: what is built, how it is tested, and what is not built yet."
         />
         <dl className="mt-3 divide-y divide-line">
           {INTEGRATIONS.map((integration) => (
-            <div
-              key={integration.name}
-              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 py-2.5"
-            >
-              <dt className="text-[13.5px] font-medium text-ink">{integration.name}</dt>
-              <dd className="text-[13px] text-muted">{integration.status}</dd>
+            <div key={integration.name} className="grid gap-x-6 gap-y-1 py-3 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+              <dt className="min-w-0">
+                <span className="block text-[13.5px] font-medium text-ink">{integration.name}</span>
+                <Badge tone={integration.tone} dot className="mt-1.5">
+                  {integration.status}
+                </Badge>
+              </dt>
+              <dd className="text-[12.5px] leading-relaxed text-ink-2">
+                {integration.detail}
+                {integration.href ? (
+                  <Link href={integration.href} className="ml-1.5 inline-flex items-center gap-1 font-medium text-accent hover:underline">
+                    Open
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                ) : null}
+              </dd>
             </div>
           ))}
         </dl>

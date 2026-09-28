@@ -4,12 +4,13 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Search, ShieldCheck, X } from "lucide-react";
+import { Bell, Lock, Menu, Search, ShieldCheck, X } from "lucide-react";
 
 import { CommandPalette } from "@/components/command-palette";
+import { PersonaMenu } from "@/components/persona-menu";
 import { Sidebar } from "@/components/sidebar";
 import { Badge, PriorityBadge, StatusDot } from "@/components/ui";
-import { CURRENT_USER } from "@/data/workspace";
+import { deadlineStatus } from "@/lib/workflow";
 import { useWorkspace } from "@/state/workspace";
 import { cn } from "@/lib/utils";
 import { evidenceModeMeta } from "@/components/story/mode";
@@ -40,7 +41,7 @@ function useDismiss(open: boolean, close: () => void) {
 
 export function Topbar() {
   const pathname = usePathname();
-  const { analysis, sync, cases } = useWorkspace();
+  const { analysis, sync, getCase, now, silentMode } = useWorkspace();
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -67,7 +68,11 @@ export function Topbar() {
 
   const open = analysis.assessments
     .filter((a) => a.caseId)
-    .filter((a) => (cases[a.caseId as string]?.status ?? "Needs review") !== "Reviewed");
+    .filter((a) => !getCase(a.caseId as string).closure);
+  const overdue = now
+    ? open.filter((a) => deadlineStatus(getCase(a.caseId as string), a.priority.level, now)?.state === "overdue")
+        .length
+    : 0;
 
   const lastChecked = sync.phase === "done" ? sync.at : analysis.checkedAt;
   const modeMeta = evidenceModeMeta(analysis.mode);
@@ -90,6 +95,16 @@ export function Topbar() {
         </Link>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
+          {silentMode ? (
+            <Link
+              href="/pilot"
+              title="Silent pilot: nothing reaches a patient and nothing is exported to hospital systems."
+              className="hidden items-center gap-1.5 rounded-full border border-warn-border bg-warn-soft px-3 py-1.5 text-[12px] font-medium text-warn md:inline-flex"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Silent pilot
+            </Link>
+          ) : null}
           <span
             className="hidden items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 xl:inline-flex"
             title={
@@ -123,7 +138,7 @@ export function Topbar() {
             <button
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
-              aria-label={`Review queue, ${open.length} open case${open.length === 1 ? "" : "s"}`}
+              aria-label={`Review queue, ${open.length} open case${open.length === 1 ? "" : "s"}${overdue ? `, ${overdue} overdue` : ""}`}
               aria-expanded={notifOpen}
               className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink-2 transition-colors hover:bg-surface-2"
             >
@@ -139,7 +154,10 @@ export function Topbar() {
               <div className="vp-rise absolute right-0 top-12 w-[330px] overflow-hidden rounded-2xl border border-line-2 bg-surface shadow-[0_22px_60px_-24px_rgba(var(--vp-shadow-rgb),0.36)]">
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <p className="text-[13px] font-semibold text-ink">Open review cases</p>
-                  <Badge tone={open.length ? "critical" : "positive"}>{open.length}</Badge>
+                  <span className="flex items-center gap-1.5">
+                    {overdue ? <Badge tone="critical">{overdue} overdue</Badge> : null}
+                    <Badge tone={open.length ? "warning" : "positive"}>{open.length}</Badge>
+                  </span>
                 </div>
                 <div className="vp-scroll max-h-[300px] overflow-y-auto">
                   {open.length === 0 ? (
@@ -159,8 +177,7 @@ export function Topbar() {
                             {a.variant.gene} {a.variant.hgvsCoding}
                           </span>
                           <span className="mt-0.5 block text-[11.5px] text-muted">
-                            {a.caseId} · {a.impactedRecordCount} record
-                            {a.impactedRecordCount === 1 ? "" : "s"}
+                            {a.caseId} · {getCase(a.caseId as string).owner ?? "Unassigned"}
                           </span>
                         </span>
                         <PriorityBadge level={a.priority.level} />
@@ -179,14 +196,7 @@ export function Topbar() {
             ) : null}
           </div>
 
-          <Link
-            href="/settings"
-            title={`${CURRENT_USER.name} · ${CURRENT_USER.role}`}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-oxblood text-[14px] font-semibold text-white transition-colors hover:bg-garnet"
-          >
-            {CURRENT_USER.initials}
-            <span className="sr-only">{CURRENT_USER.name}, open settings</span>
-          </Link>
+          <PersonaMenu />
         </div>
       </header>
 

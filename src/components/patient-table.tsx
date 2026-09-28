@@ -9,7 +9,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { Badge, ClassificationBadge, EmptyState } from "@/components/ui";
 import { RelativeTime } from "@/components/relative-time";
 import { reviewStateFor } from "@/components/clinical/patient-impact-graph";
-import type { CaseStatus } from "@/state/workspace";
+import type { CaseStage } from "@/lib/workflow";
 
 const STATE_TONE = {
   "Not reviewed": "warning",
@@ -29,8 +29,8 @@ export function PatientImpactTable({
   /** Assessment for each variant key, used for the interpretation columns. */
   byKey: Map<string, VariantAssessment>;
   showVariant?: boolean;
-  /** The review case these rows belong to, when the table shows a single case. */
-  caseStatus?: CaseStatus;
+  /** The stage of the review case these rows belong to, when the table shows a single case. */
+  caseStatus?: CaseStage;
   className?: string;
 }) {
   if (rows.length === 0) {

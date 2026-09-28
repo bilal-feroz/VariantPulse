@@ -43,9 +43,13 @@ const PAGES: Entry[] = [
   { id: "p-evidence", kind: "page", title: "Evidence", subtitle: "Source-by-source comparison", href: "/evidence", terms: ["evidence", "clinvar", "sources", "explorer"] },
   { id: "p-review", kind: "page", title: "Clinical Review", subtitle: "Review queue", href: "/review", terms: ["review", "queue", "cases", "clinical"] },
   { id: "p-regional", kind: "page", title: "Regional Insights", subtitle: "Global and regional comparison", href: "/regional", terms: ["regional", "arab", "gulf", "global", "conflict"] },
-  { id: "p-activity", kind: "page", title: "Activity", subtitle: "Audit trail", href: "/activity", terms: ["activity", "audit", "log", "trail"] },
-  { id: "p-sources", kind: "page", title: "Data Sources", subtitle: "Connection health", href: "/sources", terms: ["sources", "health", "connections", "status"] },
-  { id: "p-settings", kind: "page", title: "Settings", subtitle: "Architecture and governance", href: "/settings", terms: ["settings", "architecture", "about", "governance"] },
+  { id: "p-pilot", kind: "page", title: "Silent Pilot", subtitle: "Retrospective replay and evaluation", href: "/pilot", terms: ["pilot", "silent", "evaluation", "adjudication", "replay", "metrics", "reference set"] },
+  { id: "p-onboarding", kind: "page", title: "Data Onboarding", subtitle: "Validated import and report", href: "/onboarding", terms: ["onboarding", "import", "upload", "csv", "validation", "file"] },
+  { id: "p-oversight", kind: "page", title: "Oversight", subtitle: "Turnaround, workload and deadlines", href: "/oversight", terms: ["oversight", "management", "sponsor", "workload", "turnaround", "overdue"] },
+  { id: "p-activity", kind: "page", title: "Audit Trail", subtitle: "Every action, who and when", href: "/activity", terms: ["activity", "audit", "log", "trail", "history"] },
+  { id: "p-governance", kind: "page", title: "Trust & Governance", subtitle: "Controls, data flows, AI inventory", href: "/governance", terms: ["governance", "trust", "security", "privacy", "ai inventory", "data flows", "compliance", "retention", "delete"] },
+  { id: "p-sources", kind: "page", title: "Data Sources", subtitle: "Connection health and integrations", href: "/sources", terms: ["sources", "health", "connections", "status", "integrations", "fhir"] },
+  { id: "p-settings", kind: "page", title: "Settings", subtitle: "Architecture and signed-in identity", href: "/settings", terms: ["settings", "architecture", "about", "identity", "role"] },
 ];
 
 const ICONS: Record<Entry["kind"], React.ComponentType<{ className?: string }>> = {

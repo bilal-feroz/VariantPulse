@@ -5,11 +5,11 @@
  * three decision buttons, and the read-only record on the case page.
  *
  * The three buttons are styled alike on purpose. The interface should not nudge
- * a reviewer toward confirming a change any more than toward setting it aside.
+ * a reviewer toward referring a change any more than toward setting it aside.
  */
 
 import * as React from "react";
-import { CircleCheck, CircleSlash2, FileSearch, PenLine } from "lucide-react";
+import { CircleSlash2, FileSearch, PenLine, Send } from "lucide-react";
 
 import { Timestamp } from "@/components/clinical/timestamp";
 import { Badge, Button, Card, SectionHeading } from "@/components/ui";
@@ -24,15 +24,15 @@ import {
 import { cn } from "@/lib/utils";
 
 const DECISION_TONE: Record<Decision, Tone> = {
-  "Confirm change": "positive",
-  "Not applicable": "muted",
-  "Needs more evidence": "warning",
+  "Refer to genetics": "positive",
+  "Needs further evidence": "warning",
+  "No action": "muted",
 };
 
 const DECISION_ICON: Record<Decision, React.ComponentType<{ className?: string }>> = {
-  "Confirm change": CircleCheck,
-  "Not applicable": CircleSlash2,
-  "Needs more evidence": FileSearch,
+  "Refer to genetics": Send,
+  "Needs further evidence": FileSearch,
+  "No action": CircleSlash2,
 };
 
 export function DecisionBadge({
@@ -64,7 +64,7 @@ export function DecisionButtons({
   className?: string;
 }) {
   return (
-    <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-3 min-[1400px]:grid-cols-1", className)}>
+    <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-3 xl:grid-cols-1", className)}>
       {DECISIONS.map((decision) => {
         const Icon = DECISION_ICON[decision];
         return (
@@ -93,7 +93,8 @@ export function DecisionBlock({
 }: {
   history: DecisionRecord[];
   amending: boolean;
-  onAmend: () => void;
+  /** Absent when the signed-in role cannot amend, or the case is closed. */
+  onAmend?: () => void;
 }) {
   const latest = currentDecision(history);
   if (!latest) return null;
@@ -104,15 +105,17 @@ export function DecisionBlock({
       <SectionHeading
         title="Decision"
         action={
-          <button
-            type="button"
-            onClick={onAmend}
-            disabled={amending}
-            className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent disabled:pointer-events-none disabled:text-faint"
-          >
-            <PenLine className="h-3.5 w-3.5" />
-            {amending ? "Amending" : "Amend"}
-          </button>
+          onAmend ? (
+            <button
+              type="button"
+              onClick={onAmend}
+              disabled={amending}
+              className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-accent disabled:pointer-events-none disabled:text-faint"
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              {amending ? "Amending" : "Amend"}
+            </button>
+          ) : undefined
         }
       />
       <DecisionEntry record={latest} className="mt-3.5" />

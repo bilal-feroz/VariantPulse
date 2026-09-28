@@ -126,11 +126,25 @@ export function countWords(text: string): number {
 /* -- Rewording with a language model ---------------------------------------
    Optional. The model is given the filled templates and asked only to make
    them read better; whatever it returns must still carry every fact from the
-   record and stay inside the letter's limits, or the template is kept. */
+   record and stay inside the letter's limits, or the template is kept.
+
+   Nothing that identifies the record leaves the workspace. Before a letter is
+   sent, the record reference, the month of the test, the team and the signing
+   clinician are replaced by placeholders; the model rewords around them, and
+   the real values go back in only when its reply is checked. The gene name is
+   sent as written: it names a variant, not a person. */
+
+/** What a letter sent for rewording carries in place of the record's facts. */
+export const LETTER_PLACEHOLDERS = {
+  reference: "{{REFERENCE}}",
+  testDate: "{{TEST_DATE}}",
+  team: "{{TEAM}}",
+  clinician: "{{CLINICIAN}}",
+} as const;
 
 export const LETTER_SYSTEM_PROMPT = `You polish letters a genetics service sends to patients. You receive an English letter and its Arabic version, both filled in from a template.
 
-Make each read more clearly and warmly for a patient with no medical training. Keep every fact exactly as given: the reference number, the month and year of the test, the gene name, the team to book with, and the clinician and department that sign the letter. Keep its three messages: new scientific research may change what the earlier test result means; the patient's DNA has not changed; they should book a follow-up appointment.
+Make each read more clearly and warmly for a patient with no medical training. Facts from the patient's record are written as placeholders in double braces: {{REFERENCE}}, {{TEST_DATE}}, {{TEAM}} and {{CLINICIAN}}. Copy every placeholder exactly as written, in both letters, wherever its fact belongs; never fill one in, translate it or drop it. Keep the gene name exactly as given. Keep the letter's three messages: new scientific research may change what the earlier test result means; the patient's DNA has not changed; they should book a follow-up appointment.
 Keep each version under 150 words. Mention no diagnosis, risk, percentage or classification, use no medical term beyond the gene name, and add no facts.
 Write the Arabic in Modern Standard Arabic, in the respectful plural, saying the same as the English.
 
@@ -139,6 +153,44 @@ Reply in exactly this layout and nothing else:
 the English letter
 === ARABIC ===
 the Arabic letter`;
+
+/** Each identifying fact as it appears in each language, beside its placeholder. */
+function identifyingFacts(input: LetterInput): { english: [string, string][]; arabic: [string, string][] } {
+  const { reference, testDate, team, clinician } = LETTER_PLACEHOLDERS;
+  // Longest first, so a value that contains another is replaced whole.
+  const byLength = (pairs: [string, string][]) =>
+    pairs.filter(([value]) => value.length > 0).sort(([a], [b]) => b.length - a.length);
+  return {
+    english: byLength([
+      [input.recordId, reference],
+      [monthYear(input.testedOn, EN_MONTHS), testDate],
+      [input.department, team],
+      [input.clinicalOwner, clinician],
+    ]),
+    arabic: byLength([
+      [input.recordId, reference],
+      [monthYear(input.testedOn, AR_MONTHS), testDate],
+      [arabicDepartment(input.department), team],
+      [input.clinicalOwner, clinician],
+    ]),
+  };
+}
+
+/** The letter as a model may see it: no reference, date, team or clinician. */
+export function redactLetter(letter: PatientLetter, input: LetterInput): PatientLetter {
+  const facts = identifyingFacts(input);
+  const redact = (text: string, pairs: [string, string][]) =>
+    pairs.reduce((out, [value, token]) => out.replaceAll(value, token), text);
+  return { english: redact(letter.english, facts.english), arabic: redact(letter.arabic, facts.arabic) };
+}
+
+/** Puts the record's facts back where a reply kept their placeholders. */
+export function restoreLetter(letter: PatientLetter, input: LetterInput): PatientLetter {
+  const facts = identifyingFacts(input);
+  const restore = (text: string, pairs: [string, string][]) =>
+    pairs.reduce((out, [value, token]) => out.replaceAll(token, value), text);
+  return { english: restore(letter.english, facts.english), arabic: restore(letter.arabic, facts.arabic) };
+}
 
 /** What "Improve with AI" returns: the reworded letter, or the template it kept. */
 export interface LetterImprovement extends PatientLetter {
@@ -156,14 +208,16 @@ const EN_FORBIDDEN =
 const AR_FORBIDDEN = /تشخيص|خطر|مخاطر|٪|%|طفرة|ممرض|حميد|تصنيف/;
 
 /**
- * The model's letters if both still carry every fact from the record, the
- * required messages and the letter's limits, otherwise null.
+ * The model's letters, with the record's facts restored from their
+ * placeholders, if both then carry every fact, the required messages and the
+ * letter's limits; otherwise null.
  */
 export function parseImprovedLetter(text: string, input: LetterInput): PatientLetter | null {
   const match = /=== ENGLISH ===\s*([\s\S]+?)\s*=== ARABIC ===\s*([\s\S]+)$/.exec(text.trim());
   if (!match) return null;
-  const english = match[1].trim();
-  const arabic = match[2].trim();
+  const { english, arabic } = restoreLetter({ english: match[1].trim(), arabic: match[2].trim() }, input);
+  // A placeholder left over means the reply invented or mangled one.
+  if (/\{\{[A-Z_]+\}\}/.test(english) || /\{\{[A-Z_]+\}\}/.test(arabic)) return null;
 
   const shared = [input.recordId, input.gene, input.clinicalOwner];
   const englishHolds =

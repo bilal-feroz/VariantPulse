@@ -127,6 +127,24 @@ describe("POST /api/letter", () => {
     expect(body).toMatchObject({ source: "ai", english, arabic: template.arabic });
   });
 
+  it("sends the model no record reference, test date, team or clinician", async () => {
+    vi.stubEnv("AI_API_KEY", "test-key");
+    const input = await letterInput();
+    const fetchSpy = modelReply("not a letter");
+    vi.stubGlobal("fetch", fetchSpy);
+    const { POST } = await import("@/app/api/letter/route");
+    await POST(post({ caseId: input.caseId, recordId: input.recordId }));
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+    const sent = String(init.body);
+    for (const fact of [input.recordId, input.clinicalOwner, input.department, "March 2023"]) {
+      expect(sent).not.toContain(fact);
+    }
+    expect(sent).toContain("{{REFERENCE}}");
+    expect(sent).toContain(input.gene);
+  });
+
   it("keeps the template when the rewording drops a fact", async () => {
     vi.stubEnv("AI_API_KEY", "test-key");
     const input = await letterInput();

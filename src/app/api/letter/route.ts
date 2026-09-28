@@ -7,6 +7,7 @@ import {
   buildLetterPrompt,
   composePatientLetter,
   parseImprovedLetter,
+  redactLetter,
   type LetterImprovement,
   type LetterInput,
 } from "@/lib/letter";
@@ -50,9 +51,10 @@ export async function POST(request: Request) {
   if (hit) return NextResponse.json(hit);
 
   const template = composePatientLetter(input);
+  // The model sees placeholders, never the record reference, test date, team or clinician.
   const draft = await draftWithClaude({
     system: LETTER_SYSTEM_PROMPT,
-    prompt: buildLetterPrompt(template),
+    prompt: buildLetterPrompt(redactLetter(template, input)),
   });
   const improved = draft.ok ? parseImprovedLetter(draft.text, input) : null;
 

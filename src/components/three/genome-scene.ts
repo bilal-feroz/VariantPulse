@@ -47,7 +47,7 @@ import {
 import { GRCH38, type Chromosome } from "@/lib/genome";
 import { SIGNALS, type Signal } from "@/lib/signal";
 
-import { approach, createStage, softTexture, toScreen } from "./stage";
+import { approach, attachPointer, createStage, softTexture, toScreen } from "./stage";
 
 /** Scene units for the longest chromosome, chr1. */
 const TALLEST = 4.2;
@@ -181,6 +181,8 @@ interface FindingView {
   stalk: Mesh<CylinderGeometry, MeshBasicMaterial>;
   halo: Sprite;
   ring: Mesh<TorusGeometry, MeshStandardMaterial> | null;
+  /** Height of the locus on its chromosome, in the chromosome's own frame. */
+  y: number;
   /** Eased 0…1 values. */
   shown: number;
   emphasis: number;
@@ -297,7 +299,8 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
         // Out toward the reader and leaning to one side (upward once the chromosome is
         // laid down in locus mode). Variants sharing a locus fan along the chromosome.
         const lean = STALK_LEAN[options.mode];
-        const elevation = (index - (cluster.length - 1) / 2) * FAN;
+        // Sorted by position, so the first sits nearest the p end, which is +y.
+        const elevation = ((cluster.length - 1) / 2 - index) * FAN;
         const direction = new Vector3(
           Math.sin(lean) * Math.cos(elevation),
           Math.sin(elevation),
@@ -343,6 +346,7 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
           stalk,
           halo,
           ring: index === 0 ? ring : null,
+          y,
           shown: 1,
           emphasis: 0,
         });
@@ -360,8 +364,7 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
       if (only) {
         // Centre the chromosome's length on the origin before it is laid down.
         const { length, centromere } = only.chromosome;
-        only.group.position.y = ((length / 2 - centromere) * SCALE);
-        only.label.set(0, 0, 0);
+        only.group.position.y = (length / 2 - centromere) * SCALE;
       }
       return;
     }
@@ -392,6 +395,8 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
 
     const aspect = width / height;
     const tan = Math.tan((FOV * Math.PI) / 360);
+    // Frame the rest pose, then give back the reader's turn and tilt.
+    const pose = root.rotation.clone();
     root.rotation.set(0, 0, 0);
     root.updateMatrixWorld(true);
 
@@ -425,7 +430,7 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
     figure.position.y -= centre.y;
     root.updateMatrixWorld(true);
 
-    const fill = locus ? 0.84 : 0.92;
+    const fill = locus ? 0.8 : 0.92;
     let distance = 0;
     for (const c of corners) {
       const x = c.x - centre.x;
@@ -439,6 +444,8 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
     camera.updateProjectionMatrix();
     (scene.fog as Fog).near = distance;
     (scene.fog as Fog).far = distance + 9;
+    root.rotation.copy(pose);
+    root.updateMatrixWorld(true);
   };
 
   /* -- Interaction -- */
@@ -449,63 +456,33 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
   let pitch = 0;
   let hovering = false;
   const pointer = { x: 0, y: 0 };
-  let press: { id: number; x: number; y: number; lastX: number; lastY: number } | null = null;
   let dragging = false;
-  let swallowClick = false;
 
-  const onPointerDown = (event: PointerEvent) => {
-    if (event.button !== 0) return;
-    press = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY };
-  };
-  const onPointerMove = (event: PointerEvent) => {
-    const rect = interactive.getBoundingClientRect();
-    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
-    hovering = true;
-    if (press && event.pointerId === press.id) {
-      if (!dragging && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 5) {
-        dragging = true;
-        interactive.setPointerCapture(event.pointerId);
-        options.onDragChange(true);
-      }
-      if (dragging) {
-        yaw = Math.max(-YAW_LIMIT, Math.min(YAW_LIMIT, yaw + ((event.clientX - press.lastX) / rect.width) * 2.2));
-        pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch + ((event.clientY - press.lastY) / rect.height) * 1.2));
-      }
-      press.lastX = event.clientX;
-      press.lastY = event.clientY;
-    }
-    stage.invalidate();
-  };
-  const endPress = (event: PointerEvent) => {
-    if (!press || event.pointerId !== press.id) return;
-    if (dragging) {
-      swallowClick = true;
-      window.setTimeout(() => (swallowClick = false), 0);
-      dragging = false;
-      options.onDragChange(false);
-      if (interactive.hasPointerCapture(event.pointerId)) interactive.releasePointerCapture(event.pointerId);
-    }
-    press = null;
-  };
-  const onPointerLeave = () => {
-    hovering = false;
-    pointer.x = 0;
-    pointer.y = 0;
-    stage.invalidate();
-  };
-  const onClickCapture = (event: MouseEvent) => {
-    if (!swallowClick) return;
-    event.preventDefault();
-    event.stopPropagation();
-    swallowClick = false;
-  };
-  interactive.addEventListener("pointerdown", onPointerDown);
-  interactive.addEventListener("pointermove", onPointerMove);
-  interactive.addEventListener("pointerup", endPress);
-  interactive.addEventListener("pointercancel", endPress);
-  interactive.addEventListener("pointerleave", onPointerLeave);
-  interactive.addEventListener("click", onClickCapture, true);
+  const detachPointer = attachPointer(interactive, {
+    hover(x, y) {
+      pointer.x = x;
+      pointer.y = y;
+      hovering = true;
+      stage.invalidate();
+    },
+    leave() {
+      hovering = false;
+      pointer.x = 0;
+      pointer.y = 0;
+      stage.invalidate();
+    },
+    drag(dx, dy) {
+      const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
+      yaw = clamp(yaw + (dx / Math.max(stage.width, 1)) * 2.2, YAW_LIMIT);
+      pitch = clamp(pitch + (dy / Math.max(stage.height, 1)) * 1.2, PITCH_LIMIT);
+      stage.invalidate();
+    },
+    dragChange(next) {
+      dragging = next;
+      options.onDragChange(next);
+      stage.invalidate();
+    },
+  });
 
   /* -- Loop -- */
 
@@ -576,7 +553,8 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
       const points = findings.map((view) => {
         view.head.getWorldPosition(world);
         camSpace.copy(world).applyMatrix4(inverse);
-        view.chromosome.group.getWorldPosition(axisSpace).applyMatrix4(inverse);
+        // The axis at the marker's own locus: a tilted chromosome's ends sit at other depths.
+        axisSpace.set(0, view.y, 0).applyMatrix4(view.chromosome.group.matrixWorld).applyMatrix4(inverse);
         const { x, y } = toScreen(stage, world);
         return {
           key: view.finding.key,
@@ -620,12 +598,7 @@ export function mountGenome(stageHost: HTMLElement, interactive: HTMLElement, op
       stage.invalidate();
     },
     dispose() {
-      interactive.removeEventListener("pointerdown", onPointerDown);
-      interactive.removeEventListener("pointermove", onPointerMove);
-      interactive.removeEventListener("pointerup", endPress);
-      interactive.removeEventListener("pointercancel", endPress);
-      interactive.removeEventListener("pointerleave", onPointerLeave);
-      interactive.removeEventListener("click", onClickCapture, true);
+      detachPointer();
       ringTexture.dispose();
       stage.dispose();
     },

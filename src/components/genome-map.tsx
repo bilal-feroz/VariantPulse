@@ -169,7 +169,13 @@ export function GenomeMap({
               placeTip();
             },
             onReady: () => setStatus("ready"),
-            onLost: () => setStatus("failed"),
+            onLost: () => {
+              // Nothing is drawn again after a lost context: free it and leave the figure out.
+              controller?.dispose();
+              controller = null;
+              controllerRef.current = null;
+              setStatus("failed");
+            },
             onDragChange: setDragging,
           });
           controller.setVisible(current.visibleKeys);
@@ -227,7 +233,7 @@ export function GenomeMap({
   })).filter((c) => c.count > 0);
 
   return (
-    <figure role="img" aria-label={label} className={cn("relative m-0", className)}>
+    <figure className={cn("relative m-0", className)}>
       <div
         ref={interactiveRef}
         className={cn(
@@ -240,8 +246,12 @@ export function GenomeMap({
           aria-hidden
           className="pointer-events-none absolute inset-x-[10%] inset-y-[6%] rounded-[50%] bg-[radial-gradient(closest-side,rgba(232,197,204,0.38),transparent)]"
         />
+        {/* The drawing speaks for itself in one sentence; the links laid over it are
+            a pointer convenience that the list beside the map already provides. */}
         <div
           ref={stageRef}
+          role="img"
+          aria-label={label}
           className={cn(
             "absolute inset-0 transition-opacity duration-700",
             status === "ready" ? "opacity-100" : "opacity-0",

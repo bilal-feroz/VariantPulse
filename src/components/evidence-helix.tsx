@@ -143,7 +143,13 @@ export function EvidenceHelix({
               placeTip();
             },
             onReady: () => setStatus("ready"),
-            onLost: () => setStatus("failed"),
+            onLost: () => {
+              // Nothing is drawn again after a lost context: free it and keep the illustration.
+              controller?.dispose();
+              controller = null;
+              controllerRef.current = null;
+              setStatus("failed");
+            },
             onDragChange: setDragging,
           });
           controllerRef.current = controller;
@@ -257,9 +263,10 @@ export function EvidenceHelix({
                   aria-label={`${variant.gene} ${variant.hgvsCoding}: ${meta(recordedCode).label} on record, ${meta(currentCode).label} now. ${SIGNALS[finding.signal].label}.`}
                   onPointerEnter={() => setHoverKey(finding.key)}
                   onPointerLeave={() => setHoverKey((key) => (key === finding.key ? null : key))}
-                  onFocus={() => {
+                  onFocus={(event) => {
                     setRoving(index);
-                    setFocusKey(finding.key);
+                    // Only keyboard focus turns the helix; a press that starts a drag also focuses the link.
+                    if (event.currentTarget.matches(":focus-visible")) setFocusKey(finding.key);
                   }}
                   onBlur={() => setFocusKey((key) => (key === finding.key ? null : key))}
                   className="absolute left-0 top-0 -ml-3 -mt-3 h-6 w-6 cursor-pointer rounded-full focus-visible:outline-offset-0 data-[front=false]:pointer-events-none"

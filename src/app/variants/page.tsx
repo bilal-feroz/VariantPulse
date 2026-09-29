@@ -9,6 +9,7 @@ import { PageHeader, PageShell } from "@/components/page-header";
 import { SyncButton } from "@/components/sync";
 import { Card, EmptyState } from "@/components/ui";
 import { CHANGE_TYPES, type ChangeType } from "@/lib/classification";
+import { locusOf } from "@/lib/genome";
 import { SIGNALS, SIGNAL_OF, type Signal } from "@/lib/signal";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
@@ -48,10 +49,14 @@ export default function VariantsPage() {
   }, [analysis, filter, query]);
 
   const visibleKeys = React.useMemo(() => new Set(rows.map((a) => a.variant.key)), [rows]);
-  const chromosomeCount = React.useMemo(
-    () => new Set(analysis.assessments.map((a) => a.evidence.location?.chr).filter(Boolean)).size,
-    [analysis],
-  );
+  // The map can only draw what the evidence places on GRCh38; say so if that is not everything.
+  const mapLabel = React.useMemo(() => {
+    const loci = analysis.assessments.map((a) => locusOf(a.evidence)).filter((l) => l !== null);
+    const total = analysis.assessments.length;
+    const chromosomes = new Set(loci.map((l) => l.chromosome.name)).size;
+    const drawn = loci.length === total ? `${total}` : `${loci.length} of ${total}`;
+    return `Genome map: ${drawn} monitored variants on ${chromosomes} chromosome${chromosomes === 1 ? "" : "s"}, each at its GRCh38 position from ClinVar. The list below holds every variant.`;
+  }, [analysis]);
 
   const counts = React.useMemo(
     () =>
@@ -116,7 +121,7 @@ export default function VariantsPage() {
           visibleKeys={visibleKeys}
           activeKey={activeKey}
           onActiveChange={setActiveKey}
-          label={`Genome map: ${analysis.assessments.length} monitored variants on ${chromosomeCount} chromosomes, each at its GRCh38 position from ClinVar. The list below holds the same variants.`}
+          label={mapLabel}
           className="border-b border-line bg-surface-2/60 px-4 pb-3 pt-1"
           stageClassName="h-[250px] sm:h-[290px]"
         />

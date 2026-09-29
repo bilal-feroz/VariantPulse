@@ -32,6 +32,10 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 const MAX_STEP = 0.1;
 /** Frames with nothing moving before the loop goes to sleep. */
 const IDLE_FRAMES = 3;
+/** Movement, in CSS pixels, that turns a press into a drag rather than a click. */
+const DRAG_THRESHOLD = 5;
+/** A pointer held still this long before release has let go, not thrown. */
+const REST_MS = 80;
 
 export interface StageHooks {
   /** Advances the scene by `delta` seconds; returns whether anything moved. */
@@ -96,9 +100,11 @@ export function createStage(
   let idle = 0;
   let invalid = true;
   let inView = true;
+  let lost = false;
   let disposed = false;
 
-  const active = () => !disposed && hooks !== null && inView && !document.hidden && width > 0 && height > 0;
+  const active = () =>
+    !disposed && !lost && hooks !== null && inView && !document.hidden && width > 0 && height > 0;
 
   const tick = (now: number) => {
     frame = 0;
@@ -140,7 +146,12 @@ export function createStage(
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    hooks?.resize(w, h);
+    if (hooks && !lost && !disposed) {
+      hooks.resize(w, h);
+      // Resizing clears the canvas; draw now, before the browser paints it blank.
+      renderer.render(scene, camera);
+      hooks.afterRender?.();
+    }
     invalid = true;
     wake();
   };
@@ -166,8 +177,12 @@ export function createStage(
   };
   motion.addEventListener("change", onMotion);
 
-  const onContextLost = (event: Event) => {
-    event.preventDefault();
+  // A lost context is not waited on: the loop stops at once and the caller
+  // disposes the stage and falls back, as it would without WebGL at all.
+  const onContextLost = () => {
+    lost = true;
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
     onLost();
   };
   canvas.addEventListener("webglcontextlost", onContextLost);
@@ -199,6 +214,7 @@ export function createStage(
       wake();
     },
     dispose() {
+      if (disposed) return;
       disposed = true;
       if (frame) cancelAnimationFrame(frame);
       resizeObserver.disconnect();
@@ -210,9 +226,113 @@ export function createStage(
       environment.dispose();
       renderer.dispose();
       // Browsers cap live WebGL contexts; give this one back now rather than at collection.
-      renderer.forceContextLoss();
+      if (!lost) renderer.forceContextLoss();
       canvas.remove();
     },
+  };
+}
+
+export interface PointerHandlers {
+  /** The pointer moved over the view; each axis runs -1…1 across it. */
+  hover(x: number, y: number): void;
+  leave(): void;
+  /** A drag moved by (dx, dy) CSS pixels over `seconds`. */
+  drag(dx: number, dy: number, seconds: number): void;
+  /**
+   * A drag started (true) or ended (false). On the end, `rested` says the
+   * pointer was held still before release, so nothing should coast.
+   */
+  dragChange(dragging: boolean, rested: boolean): void;
+}
+
+/**
+ * Press, drag and hover on a 3D view, shared by every scene.
+ *
+ * Capture starts only once a press has moved far enough to be a drag, so a
+ * plain click still reaches the link under it; a click that ends a drag is
+ * swallowed. A press whose release happened outside the view is dropped as
+ * soon as the pointer comes back with no button held, so it can never turn
+ * into a drag nobody is making. Returns a function that detaches everything.
+ */
+export function attachPointer(interactive: HTMLElement, handlers: PointerHandlers): () => void {
+  let press: { id: number; x: number; y: number; lastX: number; lastY: number; lastT: number } | null = null;
+  let dragging = false;
+  let swallowClick = false;
+
+  const finish = (event: PointerEvent) => {
+    if (!press || event.pointerId !== press.id) return;
+    const rested = event.timeStamp - press.lastT > REST_MS;
+    press = null;
+    if (!dragging) return;
+    dragging = false;
+    swallowClick = true;
+    // A drag that ends away from any link produces no click to swallow.
+    setTimeout(() => (swallowClick = false), 0);
+    if (interactive.hasPointerCapture(event.pointerId)) interactive.releasePointerCapture(event.pointerId);
+    handlers.dragChange(false, rested);
+  };
+
+  const onDown = (event: PointerEvent) => {
+    if (event.button !== 0) return;
+    const { clientX: x, clientY: y, timeStamp } = event;
+    press = { id: event.pointerId, x, y, lastX: x, lastY: y, lastT: timeStamp };
+  };
+
+  const onMove = (event: PointerEvent) => {
+    const rect = interactive.getBoundingClientRect();
+    handlers.hover(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      ((event.clientY - rect.top) / rect.height) * 2 - 1,
+    );
+    if (!press || event.pointerId !== press.id) return;
+    if ((event.buttons & 1) === 0) {
+      finish(event);
+      return;
+    }
+    if (!dragging && Math.hypot(event.clientX - press.x, event.clientY - press.y) > DRAG_THRESHOLD) {
+      dragging = true;
+      try {
+        interactive.setPointerCapture(event.pointerId);
+      } catch {
+        // The pointer is already gone; the drag still runs on the moves that reach the view.
+      }
+      handlers.dragChange(true, false);
+    }
+    if (dragging) {
+      const seconds = Math.max((event.timeStamp - press.lastT) / 1000, 1 / 240);
+      handlers.drag(event.clientX - press.lastX, event.clientY - press.lastY, seconds);
+    }
+    press.lastX = event.clientX;
+    press.lastY = event.clientY;
+    press.lastT = event.timeStamp;
+  };
+
+  const onLeave = () => handlers.leave();
+
+  const onClick = (event: MouseEvent) => {
+    if (!swallowClick) return;
+    event.preventDefault();
+    event.stopPropagation();
+    swallowClick = false;
+  };
+
+  interactive.addEventListener("pointerdown", onDown);
+  interactive.addEventListener("pointermove", onMove);
+  interactive.addEventListener("pointerup", finish);
+  interactive.addEventListener("pointercancel", finish);
+  // Capture can end without a pointerup, for instance when the element is torn down.
+  interactive.addEventListener("lostpointercapture", finish);
+  interactive.addEventListener("pointerleave", onLeave);
+  interactive.addEventListener("click", onClick, true);
+
+  return () => {
+    interactive.removeEventListener("pointerdown", onDown);
+    interactive.removeEventListener("pointermove", onMove);
+    interactive.removeEventListener("pointerup", finish);
+    interactive.removeEventListener("pointercancel", finish);
+    interactive.removeEventListener("lostpointercapture", finish);
+    interactive.removeEventListener("pointerleave", onLeave);
+    interactive.removeEventListener("click", onClick, true);
   };
 }
 

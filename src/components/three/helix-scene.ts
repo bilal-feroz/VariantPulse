@@ -57,7 +57,7 @@ import {
 
 import { SIGNALS, type Signal } from "@/lib/signal";
 
-import { approach, createStage, softTexture, toScreen } from "./stage";
+import { approach, attachPointer, createStage, softTexture, toScreen } from "./stage";
 
 /* -- Geometry: B-DNA proportions ------------------------------------------ */
 
@@ -444,6 +444,8 @@ export function mountHelix(stageHost: HTMLElement, interactive: HTMLElement, opt
   const frame = (width: number, height: number) => {
     const aspect = width / height;
     const tan = Math.tan((FOV * Math.PI) / 360);
+    // Frame the rest pose, then give back whatever tilt the pointer had given it.
+    const pose = root.rotation.clone();
     root.rotation.set(0, 0, 0);
     root.updateMatrixWorld(true);
     let distance = 0;
@@ -466,6 +468,8 @@ export function mountHelix(stageHost: HTMLElement, interactive: HTMLElement, opt
     (scene.fog as Fog).near = distance - 0.5;
     (scene.fog as Fog).far = distance + 5.5;
     pixelsPerUnit = height / (2 * distance * tan);
+    root.rotation.copy(pose);
+    root.updateMatrixWorld(true);
   };
 
   /* -- Interaction -- */
@@ -478,82 +482,41 @@ export function mountHelix(stageHost: HTMLElement, interactive: HTMLElement, opt
   let scanFade = 0;
   let hovering = false;
   const pointer = { x: 0, y: 0 };
-  let press: { id: number; x: number; y: number; lastX: number; lastY: number; lastT: number } | null = null;
   let dragging = false;
-  let swallowClick = false;
 
   // Screen direction in which the near surface moves as the angle grows.
   const surfaceX = Math.cos(LEAN);
   const surfaceY = Math.sin(LEAN);
 
-  const onPointerDown = (event: PointerEvent) => {
-    if (event.button !== 0) return;
-    press = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, lastY: event.clientY, lastT: event.timeStamp };
-  };
-
-  const onPointerMove = (event: PointerEvent) => {
-    const rect = interactive.getBoundingClientRect();
-    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
-    hovering = true;
-
-    if (press && event.pointerId === press.id) {
-      if (!dragging && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 5) {
-        dragging = true;
-        target = null;
-        interactive.setPointerCapture(event.pointerId);
-        options.onDragChange(true);
-      }
-      if (dragging) {
-        const dx = event.clientX - press.lastX;
-        const dy = event.clientY - press.lastY;
-        const step = (dx * surfaceX + dy * surfaceY) / (RADIUS * pixelsPerUnit);
-        const dt = Math.max((event.timeStamp - press.lastT) / 1000, 1 / 240);
-        angle += step;
-        velocity = step / dt;
-      }
-      press.lastX = event.clientX;
-      press.lastY = event.clientY;
-      press.lastT = event.timeStamp;
-    }
-    stage.invalidate();
-  };
-
-  const endPress = (event: PointerEvent) => {
-    if (!press || event.pointerId !== press.id) return;
-    if (dragging) {
-      swallowClick = true;
-      // A drag that ends outside any link never produces a click to swallow.
-      window.setTimeout(() => (swallowClick = false), 0);
-      dragging = false;
-      options.onDragChange(false);
-      if (interactive.hasPointerCapture(event.pointerId)) interactive.releasePointerCapture(event.pointerId);
-    }
-    press = null;
-    stage.invalidate();
-  };
-
-  const onPointerLeave = () => {
-    hovering = false;
-    pointer.x = 0;
-    pointer.y = 0;
-    stage.invalidate();
-  };
-
-  // A drag that happens to end over a finding must not also open it.
-  const onClickCapture = (event: MouseEvent) => {
-    if (!swallowClick) return;
-    event.preventDefault();
-    event.stopPropagation();
-    swallowClick = false;
-  };
-
-  interactive.addEventListener("pointerdown", onPointerDown);
-  interactive.addEventListener("pointermove", onPointerMove);
-  interactive.addEventListener("pointerup", endPress);
-  interactive.addEventListener("pointercancel", endPress);
-  interactive.addEventListener("pointerleave", onPointerLeave);
-  interactive.addEventListener("click", onClickCapture, true);
+  const detachPointer = attachPointer(interactive, {
+    hover(x, y) {
+      pointer.x = x;
+      pointer.y = y;
+      hovering = true;
+      stage.invalidate();
+    },
+    leave() {
+      hovering = false;
+      pointer.x = 0;
+      pointer.y = 0;
+      stage.invalidate();
+    },
+    drag(dx, dy, seconds) {
+      // The near surface follows the pointer: the drag's component across the axis, in radians.
+      const step = (dx * surfaceX + dy * surfaceY) / (RADIUS * pixelsPerUnit);
+      angle += step;
+      velocity = step / seconds;
+      stage.invalidate();
+    },
+    dragChange(next, rested) {
+      dragging = next;
+      if (next) target = null;
+      // Let go after holding still: the helix stays where it was put.
+      else if (rested) velocity = 0;
+      options.onDragChange(next);
+      stage.invalidate();
+    },
+  });
 
   /* -- Loop -- */
 
@@ -740,12 +703,7 @@ export function mountHelix(stageHost: HTMLElement, interactive: HTMLElement, opt
       stage.invalidate();
     },
     dispose() {
-      interactive.removeEventListener("pointerdown", onPointerDown);
-      interactive.removeEventListener("pointermove", onPointerMove);
-      interactive.removeEventListener("pointerup", endPress);
-      interactive.removeEventListener("pointercancel", endPress);
-      interactive.removeEventListener("pointerleave", onPointerLeave);
-      interactive.removeEventListener("click", onClickCapture, true);
+      detachPointer();
       ringTexture.dispose();
       stage.dispose();
     },

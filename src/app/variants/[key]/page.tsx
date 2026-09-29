@@ -5,6 +5,7 @@ import { notFound, useParams } from "next/navigation";
 import { ArrowRight, ExternalLink } from "lucide-react";
 
 import { ThenNow } from "@/components/domain";
+import { GenomeMap } from "@/components/genome-map";
 import { PageHeader, PageShell } from "@/components/page-header";
 import {
   EvidenceComparison,
@@ -27,6 +28,7 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { CHANGE_TYPES } from "@/lib/classification";
+import { formatPosition, locusOf } from "@/lib/genome";
 import { caseStage } from "@/lib/workflow";
 import { WhatChanged } from "@/components/what-changed";
 import { composeRecommendation } from "@/lib/narrative";
@@ -42,6 +44,7 @@ export default function VariantPage() {
 
   const { variant, evidence, changeType, impactedPatients, caseId } = assessment;
   const byKey = new Map(analysis.assessments.map((a) => [a.variant.key, a]));
+  const locus = locusOf(evidence);
 
   return (
     <PageShell>
@@ -130,6 +133,22 @@ export default function VariantPage() {
         </div>
 
         <div className="min-w-0 space-y-5">
+          {locus ? (
+            <Card className="p-5">
+              <SectionHeading
+                title="Where it sits"
+                description={`Chromosome ${locus.chromosome.name}, ${locus.arm} arm${locus.band ? `, band ${locus.band}` : ""}. GRCh38 position ${formatPosition(locus.position)}, from ClinVar.`}
+              />
+              <GenomeMap
+                assessments={analysis.assessments}
+                mode="locus"
+                focusKey={variant.key}
+                label={`Chromosome ${locus.chromosome.name} drawn to scale, with ${variant.gene} ${variant.hgvsCoding} marked at ${locus.band ?? "its position"} and any other monitored variant on the same chromosome beside it.`}
+                className="mt-2"
+                stageClassName="h-[230px]"
+              />
+            </Card>
+          ) : null}
           <ScienceTimeline assessment={assessment} />
           <ReasoningPanel assessment={assessment} />
           {caseId ? <PriorityPanel assessment={assessment} /> : null}

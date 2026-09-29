@@ -4,35 +4,33 @@ import * as React from "react";
 import { Search } from "lucide-react";
 
 import { VariantRow } from "@/components/domain";
+import { GenomeMap } from "@/components/genome-map";
 import { PageHeader, PageShell } from "@/components/page-header";
 import { SyncButton } from "@/components/sync";
 import { Card, EmptyState } from "@/components/ui";
 import { CHANGE_TYPES, type ChangeType } from "@/lib/classification";
+import { SIGNALS, SIGNAL_OF, type Signal } from "@/lib/signal";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 
 type Filter = "all" | "changed" | "conflict" | "stable";
 
-const FILTERS: { id: Filter; label: string; matches: (type: ChangeType) => boolean }[] = [
-  { id: "all", label: "All", matches: () => true },
-  {
-    id: "changed",
-    label: "Reclassified",
-    matches: (t) =>
-      t === "CLASSIFICATION_DRIFT" || t === "EVIDENCE_STRENGTHENED" || t === "EVIDENCE_WEAKENED",
-  },
-  {
-    id: "conflict",
-    label: "Conflict or regional",
-    matches: (t) => t === "REGIONAL_CONFLICT" || t === "CONSENSUS_CONFLICT",
-  },
-  { id: "stable", label: "Unchanged", matches: (t) => t === "NO_MATERIAL_CHANGE" },
+/** The filters are the map's three signals, so a filter and its colour always agree. */
+const bySignal = (signal: Signal) => (type: ChangeType) => SIGNAL_OF[type] === signal;
+
+const FILTERS: { id: Filter; label: string; signal: Signal | null; matches: (type: ChangeType) => boolean }[] = [
+  { id: "all", label: "All", signal: null, matches: () => true },
+  { id: "changed", label: SIGNALS.changed.label, signal: "changed", matches: bySignal("changed") },
+  { id: "conflict", label: SIGNALS.review.label, signal: "review", matches: bySignal("review") },
+  { id: "stable", label: SIGNALS.quiet.label, signal: "quiet", matches: bySignal("quiet") },
 ];
 
 export default function VariantsPage() {
   const { analysis } = useWorkspace();
   const [filter, setFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
+  // The variant under the pointer, in the list or on the map; each highlights it in the other.
+  const [activeKey, setActiveKey] = React.useState<string | null>(null);
 
   const rows = React.useMemo(() => {
     const active = FILTERS.find((f) => f.id === filter)!;
@@ -48,6 +46,12 @@ export default function VariantsPage() {
           : true,
       );
   }, [analysis, filter, query]);
+
+  const visibleKeys = React.useMemo(() => new Set(rows.map((a) => a.variant.key)), [rows]);
+  const chromosomeCount = React.useMemo(
+    () => new Set(analysis.assessments.map((a) => a.evidence.location?.chr).filter(Boolean)).size,
+    [analysis],
+  );
 
   const counts = React.useMemo(
     () =>
@@ -68,7 +72,10 @@ export default function VariantsPage() {
 
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
-          <div className="flex items-center gap-1 rounded-xl bg-surface-3 p-1" role="tablist">
+          <div
+            className="vp-scroll flex max-w-full items-center gap-1 overflow-x-auto rounded-xl bg-surface-3 p-1"
+            role="tablist"
+          >
             {FILTERS.map((option) => (
               <button
                 key={option.id}
@@ -77,12 +84,15 @@ export default function VariantsPage() {
                 aria-selected={filter === option.id}
                 onClick={() => setFilter(option.id)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                  "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors",
                   filter === option.id
                     ? "bg-surface text-ink shadow-sm"
                     : "text-muted hover:text-ink",
                 )}
               >
+                {option.signal ? (
+                  <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", SIGNALS[option.signal].dot)} />
+                ) : null}
                 {option.label}
                 <span className="text-[11px] text-faint vp-num">{counts[option.id]}</span>
               </button>
@@ -101,6 +111,16 @@ export default function VariantsPage() {
           </label>
         </div>
 
+        <GenomeMap
+          assessments={analysis.assessments}
+          visibleKeys={visibleKeys}
+          activeKey={activeKey}
+          onActiveChange={setActiveKey}
+          label={`Genome map: ${analysis.assessments.length} monitored variants on ${chromosomeCount} chromosomes, each at its GRCh38 position from ClinVar. The list below holds the same variants.`}
+          className="border-b border-line bg-surface-2/60 px-4 pb-3 pt-1"
+          stageClassName="h-[250px] sm:h-[290px]"
+        />
+
         <div className="hidden items-center gap-4 border-b border-line bg-surface-2 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-faint lg:flex">
           <span className="flex-1">Variant</span>
           <span className="hidden md:block">On record → current</span>
@@ -117,7 +137,14 @@ export default function VariantsPage() {
         ) : (
           <div className="divide-y divide-line">
             {rows.map((assessment) => (
-              <VariantRow key={assessment.variant.key} assessment={assessment} />
+              <VariantRow
+                key={assessment.variant.key}
+                assessment={assessment}
+                active={activeKey === assessment.variant.key}
+                onHoverChange={(hovering) =>
+                  setActiveKey((key) => (hovering ? assessment.variant.key : key === assessment.variant.key ? null : key))
+                }
+              />
             ))}
           </div>
         )}

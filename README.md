@@ -107,7 +107,7 @@ sentence traces back to a cited field. No language model decides or phrases a ve
 | Framework | Next.js 15 (App Router) · React 19 |
 | Language | TypeScript, strict |
 | Styling | Tailwind CSS v4 |
-| Helix | Hand-drawn SVG, depth-sorted and CSS-animated |
+| 3D | three.js, loaded only when a 3D view is on screen; every shape is generated in code, with no model or image files. The hand-drawn SVG helix stands in until WebGL is ready, and wherever it is unavailable |
 | Icons | lucide-react |
 | Evidence | NCBI ClinVar and PubMed via E-utilities |
 
@@ -179,6 +179,7 @@ variant, classification, frequency and catalogue reading is public and cited.
 | **Current evidence** | Live NCBI ClinVar, one batched E-utilities request per sync | `src/lib/clinvar.ts` |
 | **Offline fallback** | A saved ClinVar snapshot, verified identical to a live read (15 of 15 records) when it was imported | `src/data/evidence-snapshot.json` |
 | **Regional evidence** | gnomAD v4 allele counts for the Middle Eastern genetic ancestry group and all samples, for every variant; and, for three variants, the reading of the Catalogue for Transmission Genetics in Arabs (CTGA, Centre for Arab Genomic Studies), quoted and attributed | `src/data/regional.ts` |
+| **Genome map** | GRCh38 chromosome lengths (UCSC hg38) and centromeres (the p11/q11 boundary in the hg38 cytoBand table), fixed properties of the assembly. Each variant stands at the GRCh38 position its ClinVar record gives; a test checks every one against ClinVar's own cytogenetic band | `src/lib/genome.ts` |
 
 With the bundled snapshot, `npm run verify:data` computes: **11 reclassifications** (10 against the
 January 2023 release, 1 against the modelled hospital report), **1 consensus conflict**, **2 regional
@@ -333,11 +334,13 @@ One synthetic patient from historical result to documented review, then how a pa
 evaluate it. The same path is linked step by step at the foot of `/pilot`.
 
 1. **Home**. A historical synthetic patient, VP-10247: BRCA1 c.5056C>T, reported in 2023 as
-   uncertain significance, which is what ClinVar said in its January 2023 release.
+   uncertain significance, which is what ClinVar said in its January 2023 release. Each bead on
+   the helix is a monitored finding, coloured by what its evidence did: drag to turn it, and hover
+   or tab to a bead to see the change (arrow keys move between them).
 2. **Run evidence sync**. Reads current ClinVar live (or the verified snapshot offline), compares
-   classifications, walks the 26 synthetic records and compares regional evidence. It ends on the
-   highest-priority change: uncertain significance → likely pathogenic, four synthetic patients,
-   one clinical review case.
+   classifications, walks the 26 synthetic records and compares regional evidence; a ring scans
+   along the helix as it runs. It ends on the highest-priority change: uncertain significance →
+   likely pathogenic, four synthetic patients, one clinical review case.
 3. **Open the case**. *What changed?* shows ClinVar's reading then and now, the archived
    checkpoints, how the four records were matched, and what limits the evidence.
 4. **Take ownership and decide**. Open the review, write a rationale, choose *Refer to genetics*,
@@ -349,6 +352,10 @@ evaluate it. The same path is linked step by step at the foot of `/pilot`.
 7. **Onboard, oversee, govern**. Load the sample file on `/onboarding`, read the sponsor's view on
    `/oversight`, and download the governance package from `/governance`.
 8. **Audit trail**. Every action above, with who, which role and when, exportable as CSV or JSON.
+
+`/variants` stands every monitored variant on a to-scale map of the 24 chromosomes; the filters
+and the list are linked to it both ways. Each variant's page shows its own chromosome, with the
+band and position.
 
 Global search is on `Ctrl`/`Cmd` + `K` and covers record IDs, gene symbols, HGVS strings, ClinVar
 accessions and case numbers.
@@ -370,8 +377,9 @@ account that owns the zone first. To enable AI drafting, add the key as a Worker
 
 ## Credits
 
-The helix on the home screen is drawn by VariantPulse itself. An earlier 3D model, licensed for
-non-commercial use only, has been removed from the repository.
+The helix and the genome map are generated in code by VariantPulse itself: no model, texture or
+image file is shipped or fetched. An earlier 3D model, licensed for non-commercial use only, has
+been removed from the repository.
 
 ---
 

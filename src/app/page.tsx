@@ -17,7 +17,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { HeroHelix } from "@/components/hero-helix";
+import { EvidenceHelix } from "@/components/evidence-helix";
 import { ImpactPanel } from "@/components/impact-panel";
 import { evidenceModeMeta } from "@/components/story/mode";
 import { SyncButton } from "@/components/sync";
@@ -31,7 +31,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { useWorkspace } from "@/state/workspace";
 
 export default function HomePage() {
-  const { analysis, scanMs } = useWorkspace();
+  const { analysis, scanMs, sync } = useWorkspace();
   // The headline change the story tests pin down, else the top-ranked case, so
   // the page always shows a change the dataset really holds.
   const lead =
@@ -39,7 +39,7 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-[1360px] space-y-3.5 px-5 pb-3 pt-2 sm:px-6 lg:px-8">
-      <Hero lead={lead} />
+      <Hero lead={lead} assessments={analysis.assessments} scanning={sync.phase === "running"} />
 
       <ImpactPanel
         findingsChecked={analysis.scan.findingsChecked}
@@ -94,9 +94,17 @@ export default function HomePage() {
 
 /* -- Hero ------------------------------------------------------------------ */
 
-function Hero({ lead }: { lead: VariantAssessment | undefined }) {
+function Hero({
+  lead,
+  assessments,
+  scanning,
+}: {
+  lead: VariantAssessment | undefined;
+  assessments: VariantAssessment[];
+  scanning: boolean;
+}) {
   return (
-    <section className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_240px] min-[86.25rem]:grid-cols-[minmax(0,1fr)_250px_330px]">
+    <section className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_400px] min-[90rem]:grid-cols-[minmax(0,1fr)_360px_310px]">
       <div className="py-2">
         <h1 className="text-[34px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink sm:text-[42px] min-[86.25rem]:text-[46px]">
           The same DNA.
@@ -108,12 +116,17 @@ function Hero({ lead }: { lead: VariantAssessment | undefined }) {
         </p>
       </div>
 
-      <HeroHelix className="hidden h-[184px] w-full md:block" />
+      <EvidenceHelix
+        assessments={assessments}
+        leadKey={lead?.variant.key ?? null}
+        scanning={scanning}
+        className="hidden md:block"
+      />
 
-      {/* Narrower screens show this card at the foot of the sidebar instead. */}
+      {/* Only the widest screens have room for this card beside the helix. */}
       <Link
         href={lead ? `/variants/${encodeURIComponent(lead.variant.key)}` : "/variants"}
-        className="group hidden rounded-[20px] border border-accent-ring/60 bg-gradient-to-br from-accent-soft to-surface p-5 transition-shadow hover:shadow-[0_14px_34px_-22px_rgba(120,20,50,0.45)] min-[86.25rem]:block"
+        className="group hidden rounded-[20px] border border-accent-ring/60 bg-gradient-to-br from-accent-soft to-surface p-5 transition-shadow hover:shadow-[0_14px_34px_-22px_rgba(120,20,50,0.45)] min-[90rem]:block"
       >
         <span className="flex items-start gap-3.5">
           <Dna className="h-10 w-10 shrink-0 text-accent/70" strokeWidth={1.3} />
@@ -305,8 +318,15 @@ function RealExample({ lead }: { lead: VariantAssessment }) {
           note={`Reported ${formatDate(variant.recordedOn)}`}
         />
         <div className="flex items-center justify-center gap-2 sm:flex-col sm:px-1">
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-line-2 bg-surface text-ink-2">
-            <ArrowRight className="h-4 w-4 rotate-90 sm:rotate-0" />
+          {/* The knowledge-change moment: vermilion, and the one pulse on the page. */}
+          <span className="relative grid h-9 w-9 place-items-center">
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full border border-vermilion/50 [animation:vp-pulse-ring_2.8s_cubic-bezier(0.22,1,0.36,1)_infinite]"
+            />
+            <span className="relative grid h-9 w-9 place-items-center rounded-full border border-vermilion/40 bg-vermilion-soft text-vermilion">
+              <ArrowRight className="h-4 w-4 rotate-90 sm:rotate-0" />
+            </span>
           </span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted sm:text-center">
             Science

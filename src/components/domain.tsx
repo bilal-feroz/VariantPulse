@@ -328,13 +328,29 @@ export function EvidenceAlert({
 
 /* -- Compact row used in dense lists --------------------------------------- */
 
-export function VariantRow({ assessment }: { assessment: VariantAssessment }) {
+export function VariantRow({
+  assessment,
+  active = false,
+  onHoverChange,
+}: {
+  assessment: VariantAssessment;
+  /** Highlighted from elsewhere, such as the genome map. */
+  active?: boolean;
+  onHoverChange?: (hovering: boolean) => void;
+}) {
   const { variant, changeType, impactedRecordCount, priority, caseId } = assessment;
 
   return (
     <Link
       href={`/variants/${encodeURIComponent(variant.key)}`}
-      className="flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-2"
+      onPointerEnter={() => onHoverChange?.(true)}
+      onPointerLeave={() => onHoverChange?.(false)}
+      onFocus={() => onHoverChange?.(true)}
+      onBlur={() => onHoverChange?.(false)}
+      className={cn(
+        "flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-surface-2",
+        active && "vp-selected hover:bg-selected-bg",
+      )}
     >
       <span className="min-w-0 flex-1">
         <VariantLabel
